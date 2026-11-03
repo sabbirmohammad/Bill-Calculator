@@ -46,6 +46,11 @@ fun TariffEditorDialog(
         }
     }
 
+    var serviceCharge by remember {
+        val charge = tariff.additionalCharges.find { it.chargeType == AdditionalChargeType.SERVICE_CHARGE }
+        mutableStateOf(charge?.amount?.toPlainString() ?: "0.00")
+    }
+
     var demandCharge by remember {
         val charge = tariff.additionalCharges.find { it.chargeType == AdditionalChargeType.DEMAND_CHARGE }
         mutableStateOf(charge?.amount?.toPlainString() ?: "42.00")
@@ -104,9 +109,20 @@ fun TariffEditorDialog(
 
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = "Additional Charges:",
+                    text = "Additional Charges (Optional):",
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold
+                )
+
+                OutlinedTextField(
+                    value = serviceCharge,
+                    onValueChange = { serviceCharge = it },
+                    label = { Text("Service Charge (Monthly)") },
+                    prefix = { Text("৳ ") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth()
                 )
 
                 OutlinedTextField(
@@ -151,13 +167,43 @@ fun TariffEditorDialog(
                         slab.copy(ratePerUnit = BigDecimal(rateStr))
                     }
 
+                    val existingTypes = tariff.additionalCharges.map { it.chargeType }.toSet()
                     val updatedCharges = tariff.additionalCharges.map { charge ->
                         when (charge.chargeType) {
-                            AdditionalChargeType.DEMAND_CHARGE -> charge.copy(amount = BigDecimal(demandCharge.ifBlank { "0" }))
-                            AdditionalChargeType.METER_RENT -> charge.copy(amount = BigDecimal(meterRent.ifBlank { "0" }))
-                            AdditionalChargeType.VAT -> charge.copy(amount = BigDecimal(vatPercentage.ifBlank { "0" }))
+                            AdditionalChargeType.SERVICE_CHARGE -> charge.copy(
+                                amount = BigDecimal(serviceCharge.ifBlank { "0" }),
+                                isEnabled = (serviceCharge.toDoubleOrNull() ?: 0.0) > 0.0
+                            )
+                            AdditionalChargeType.DEMAND_CHARGE -> charge.copy(
+                                amount = BigDecimal(demandCharge.ifBlank { "0" }),
+                                isEnabled = (demandCharge.toDoubleOrNull() ?: 0.0) > 0.0
+                            )
+                            AdditionalChargeType.METER_RENT -> charge.copy(
+                                amount = BigDecimal(meterRent.ifBlank { "0" }),
+                                isEnabled = (meterRent.toDoubleOrNull() ?: 0.0) > 0.0
+                            )
+                            AdditionalChargeType.VAT -> charge.copy(
+                                amount = BigDecimal(vatPercentage.ifBlank { "0" }),
+                                isEnabled = (vatPercentage.toDoubleOrNull() ?: 0.0) > 0.0
+                            )
                             else -> charge
                         }
+                    }.toMutableList()
+
+                    // If SERVICE_CHARGE was not already in additionalCharges and user set a value > 0, add it
+                    if (AdditionalChargeType.SERVICE_CHARGE !in existingTypes && (serviceCharge.toDoubleOrNull() ?: 0.0) > 0.0) {
+                        updatedCharges.add(
+                            com.bangla.electricitybill.domain.model.AdditionalCharge(
+                                id = java.util.UUID.randomUUID().toString(),
+                                tariffId = tariff.id,
+                                chargeType = AdditionalChargeType.SERVICE_CHARGE,
+                                calculationMethod = com.bangla.electricitybill.domain.model.ChargeCalculationMethod.FIXED_MONTHLY,
+                                amount = BigDecimal(serviceCharge),
+                                isEnabled = true,
+                                vatApplicable = true,
+                                customName = "সার্ভিস চার্জ"
+                            )
+                        )
                     }
 
                     val updatedTariff = tariff.copy(

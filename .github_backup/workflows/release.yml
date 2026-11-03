@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
     inputs:
       version_name:
-        description: 'Release Version Name (e.g., v1.0.1)'
+        description: 'Release Version Name (e.g., v1.0.2)'
         required: false
-        default: 'v1.0.1'
+        default: 'v1.0.2'
 
 permissions:
   contents: write
@@ -49,7 +49,7 @@ jobs:
             TAG_NAME="${{ github.event.inputs.version_name }}"
           fi
           if [ -z "$TAG_NAME" ]; then
-            TAG_NAME="v1.0.1"
+            TAG_NAME="v1.0.2"
           fi
           
           mkdir -p release-artifacts
@@ -84,11 +84,12 @@ jobs:
             ## ⚡ বাংলাদেশ বিদ্যুৎ মিটার রিডিং ও বিল ক্যালকুলেটর (${{ steps.prepare-apk.outputs.tag_name }})
             
             ### 📱 সরাসরি এপিকে (APK) ডাউনলোড ও ইনস্টলেশন
-            নিচের অ্যাসেটস (Assets) সেকশন থেকে সরাসরি `app-release.apk` ফাইলটি ডাউনলোড করে আপনার অ্যান্ড্রয়েড ফোনে ইনস্টল করে নিন।
+            নিচের অ্যাসেটস (Assets) সেকশন থেকে সরাসরি `app-release.apk` বা `Electricity-Bill-Calculator-${{ steps.prepare-apk.outputs.tag_name }}.apk` ফাইলটি ডাউনলোড করে আপনার অ্যান্ড্রয়েড ফোনে ইনস্টল করে নিন।
             
             * **সংস্করণ:** `${{ steps.prepare-apk.outputs.tag_name }}`
-            * **বাগ ফিক্স:** ইন-অ্যাপ আপডেট চেকের গিটহাব এপিআই ৪০৩ (Rate Limit) সমস্যার সম্পূর্ণ সমাধান।
-            * **স্বয়ংক্রিয় আপডেট:** এরপর থেকে সরাসরি অ্যাপের ভেতর থেকেই এক ক্লিকে ওটিএ (OTA) আপডেট নেওয়া যাবে।
+            * **নতুন স্প্ল্যাশ স্ক্রিন ও স্মুথ অনবোর্ডিং:** আধুনিক ইন্টারফেস এবং ইন্টারেক্টিভ মিটার ও ট্যারিফ সেটআপ।
+            * **উন্নত ট্যারিফ কনফিগারেশন:** সার্ভিস চার্জ, ডিমান্ড চার্জ, মিটার ভাড়া ও ভ্যাট কাস্টমাইজেশন সুবিধা।
+            * **স্বয়ংক্রিয় আপডেট:** সরাসরি অ্যাপের ভেতর থেকেই এক ক্লিকে ওটিএ (OTA) আপডেট নেওয়া যাবে।
             * **সিস্টেম রিকোয়ারমেন্ট:** Android 8.0 (API 26) বা তদূর্ধ্ব
             
             ---

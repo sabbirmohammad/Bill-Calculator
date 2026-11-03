@@ -27,7 +27,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.ReceiptLong
+import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -75,6 +75,8 @@ import com.bangla.electricitybill.presentation.reports.MonthlyReportScreen
 import com.bangla.electricitybill.presentation.reports.MonthlyReportViewModel
 import com.bangla.electricitybill.presentation.settings.SettingsScreen
 import com.bangla.electricitybill.presentation.settings.SettingsViewModel
+import com.bangla.electricitybill.presentation.splash.SplashScreen
+import com.bangla.electricitybill.presentation.splash.SplashViewModel
 import com.bangla.electricitybill.presentation.theme.AppDivider
 import com.bangla.electricitybill.presentation.theme.LightPurple
 import com.bangla.electricitybill.presentation.theme.PrimaryPurple
@@ -82,9 +84,10 @@ import com.bangla.electricitybill.presentation.theme.SecondaryText
 import com.bangla.electricitybill.presentation.update.AppUpdateViewModel
 
 sealed class Screen(val route: String, val title: String, val icon: ImageVector? = null) {
+    object Splash : Screen("splash", "Splash")
     object Onboarding : Screen("onboarding", "Onboarding")
     object Dashboard : Screen("dashboard", "Home", Icons.Default.Home)
-    object Readings : Screen("readings", "Readings", Icons.Default.ReceiptLong)
+    object Readings : Screen("readings", "Readings", Icons.AutoMirrored.Filled.ReceiptLong)
     object Analytics : Screen("analytics", "Analytics", Icons.Default.BarChart)
     object Bill : Screen("bill", "Bill", Icons.Default.Description)
     object Settings : Screen("settings", "Settings", Icons.Default.Settings)
@@ -165,13 +168,28 @@ fun AppNavigation(
                 ) + fadeOut(animationSpec = MotionTokens.normalTween())
             }
         ) {
+            composable(Screen.Splash.route) {
+                val viewModel: SplashViewModel = hiltViewModel()
+                SplashScreen(
+                    viewModel = viewModel,
+                    onNavigateToDashboard = {
+                        navController.navigate(Screen.Dashboard.route) {
+                            popUpTo(Screen.Splash.route) { inclusive = true }
+                        }
+                    },
+                    onAddMeterClick = {
+                        navController.navigate(Screen.Onboarding.route)
+                    }
+                )
+            }
+
             composable(Screen.Onboarding.route) {
                 val viewModel: OnboardingViewModel = hiltViewModel()
                 OnboardingScreen(
                     viewModel = viewModel,
                     onComplete = {
                         navController.navigate(Screen.Dashboard.route) {
-                            popUpTo(Screen.Onboarding.route) { inclusive = true }
+                            popUpTo(Screen.Splash.route) { inclusive = true }
                         }
                     }
                 )

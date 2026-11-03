@@ -41,14 +41,23 @@ data class EditableSlabState(
 )
 
 data class OnboardingUiState(
-    val currentStep: Int = 1,
-    // Step 2: Meter Config
+    val currentStep: Int = 1, // 1: Meter Name, 2: Current Units, 3: Slabs & Rates, 4: Optional Charges
+
+    // Step 1: Meter Info
     val meterName: String = "বাসা - মূল মিটার",
     val meterNumber: String = "",
     val blackDigitCapacity: Int = 5,
-    // Step 3: Billing Config
+
+    // Step 2: Current Units (Baseline Reading)
+    val baselineBlackDigits: String = "12500",
+    val baselineRedDigit: String = "0",
+    val baselineDateTime: LocalDateTime = DateUtils.now(),
+    val reconstructedBaseline: BigDecimal? = BigDecimal("12500.0"),
+
+    // Step 3: Area Slab Config & Rates
     val billingMode: TariffBillingMode = TariffBillingMode.SLAB_BASED,
     val flatRate: String = "8.00",
+    val selectedPreset: String = "BERC_6", // "BERC_6", "STANDARD_3", "FLAT_1", "CUSTOM"
     val slabs: List<EditableSlabState> = listOf(
         EditableSlabState("0", "75", "5.26"),
         EditableSlabState("75", "200", "7.20"),
@@ -57,14 +66,17 @@ data class OnboardingUiState(
         EditableSlabState("400", "600", "12.67"),
         EditableSlabState("600", null, "14.61")
     ),
-    val demandCharge: String = "42.00",
-    val meterRent: String = "10.00",
-    val vatPercentage: String = "5.00",
-    // Step 4: Baseline Reading
-    val baselineBlackDigits: String = "12500",
-    val baselineRedDigit: String = "0",
-    val baselineDateTime: LocalDateTime = DateUtils.now(),
-    val reconstructedBaseline: BigDecimal? = BigDecimal("12500.0"),
+
+    // Step 4: Optional Charges (Service Charge, Demand Charge, Meter Rent, VAT)
+    val isServiceChargeEnabled: Boolean = false,
+    val serviceCharge: String = "",
+    val isDemandChargeEnabled: Boolean = false,
+    val demandCharge: String = "",
+    val isMeterRentEnabled: Boolean = false,
+    val meterRent: String = "",
+    val isVatEnabled: Boolean = false,
+    val vatPercentage: String = "",
+
     val errorMessage: String? = null,
     val isCompleting: Boolean = false
 )
@@ -83,13 +95,45 @@ class OnboardingViewModel @Inject constructor(
 
     fun nextStep() {
         val current = _uiState.value.currentStep
-        if (current == 2) {
-            // Validate step 2
-            if (_uiState.value.meterName.isBlank()) {
-                _uiState.update { it.copy(errorMessage = "মিটারে একটি নাম দিন (Meter name is required)") }
-                return
+        when (current) {
+            1 -> {
+                // Step 1 Validation: Meter Name is required
+                if (_uiState.value.meterName.isBlank()) {
+                    _uiState.update { it.copy(errorMessage = "দয়া করে মিটারের একটি নাম লিখুন (Meter name is required)") }
+                    return
+                }
+            }
+            2 -> {
+                // Step 2 Validation: Current reading must be valid
+                val parseResult = MeterReadingParser.parse(
+                    _uiState.value.baselineBlackDigits,
+                    _uiState.value.baselineRedDigit
+                )
+                if (parseResult.isFailure) {
+                    _uiState.update { it.copy(errorMessage = "সঠিক কারেন্ট ইউনিট রিডিং প্রদান করুন") }
+                    return
+                }
+            }
+            3 -> {
+                // Step 3 Validation: All slab rates must be valid numbers >= 0
+                if (_uiState.value.billingMode == TariffBillingMode.FLAT_RATE) {
+                    val rate = _uiState.value.flatRate.toDoubleOrNull()
+                    if (rate == null || rate < 0) {
+                        _uiState.update { it.copy(errorMessage = "সঠিক ফ্ল্যাট রেট প্রদান করুন") }
+                        return
+                    }
+                } else {
+                    val invalidSlab = _uiState.value.slabs.any {
+                        it.rate.isBlank() || (it.rate.toDoubleOrNull() ?: -1.0) < 0
+                    }
+                    if (invalidSlab) {
+                        _uiState.update { it.copy(errorMessage = "সকল স্ল্যাবের জন্য সঠিক ইউনিট দর প্রদান করুন") }
+                        return
+                    }
+                }
             }
         }
+
         if (current < 4) {
             _uiState.update { it.copy(currentStep = current + 1, errorMessage = null) }
         }
@@ -102,27 +146,18 @@ class OnboardingViewModel @Inject constructor(
         }
     }
 
-    fun updateMeterName(name: String) = _uiState.update { it.copy(meterName = name) }
-    fun updateMeterNumber(number: String) = _uiState.update { it.copy(meterNumber = number) }
-    fun updateBlackCapacity(capacity: Int) = _uiState.update { it.copy(blackDigitCapacity = capacity) }
-
-    fun updateBillingMode(mode: TariffBillingMode) = _uiState.update { it.copy(billingMode = mode) }
-    fun updateFlatRate(rate: String) = _uiState.update { it.copy(flatRate = rate) }
-
-    fun updateSlabRate(index: Int, newRate: String) {
-        _uiState.update { state ->
-            val updated = state.slabs.toMutableList()
-            if (index in updated.indices) {
-                updated[index] = updated[index].copy(rate = newRate)
-            }
-            state.copy(slabs = updated)
+    fun goToStep(step: Int) {
+        if (step in 1..4) {
+            _uiState.update { it.copy(currentStep = step, errorMessage = null) }
         }
     }
 
-    fun updateDemandCharge(charge: String) = _uiState.update { it.copy(demandCharge = charge) }
-    fun updateMeterRent(rent: String) = _uiState.update { it.copy(meterRent = rent) }
-    fun updateVatPercentage(vat: String) = _uiState.update { it.copy(vatPercentage = vat) }
+    // --- Step 1: Meter Info Updates ---
+    fun updateMeterName(name: String) = _uiState.update { it.copy(meterName = name, errorMessage = null) }
+    fun updateMeterNumber(number: String) = _uiState.update { it.copy(meterNumber = number) }
+    fun updateBlackCapacity(capacity: Int) = _uiState.update { it.copy(blackDigitCapacity = capacity) }
 
+    // --- Step 2: Current Units / Baseline Updates ---
     fun updateBaselineBlackDigits(digits: String) {
         val normalized = BanglaDigitNormalizer.normalize(digits).filter { it.isDigit() }
         _uiState.update { state ->
@@ -147,6 +182,154 @@ class OnboardingViewModel @Inject constructor(
         }
     }
 
+    // --- Step 3: Area Slab Config & Rates Updates ---
+    fun updateBillingMode(mode: TariffBillingMode) = _uiState.update { it.copy(billingMode = mode, errorMessage = null) }
+    fun updateFlatRate(rate: String) = _uiState.update { it.copy(flatRate = rate) }
+
+    fun updateSlabRate(index: Int, newRate: String) {
+        val normalized = BanglaDigitNormalizer.normalize(newRate).filter { it.isDigit() || it == '.' }
+        _uiState.update { state ->
+            val updated = state.slabs.toMutableList()
+            if (index in updated.indices) {
+                updated[index] = updated[index].copy(rate = normalized)
+            }
+            state.copy(slabs = updated, selectedPreset = "CUSTOM", errorMessage = null)
+        }
+    }
+
+    fun updateSlabMin(index: Int, newMin: String) {
+        val normalized = BanglaDigitNormalizer.normalize(newMin).filter { it.isDigit() }
+        _uiState.update { state ->
+            val updated = state.slabs.toMutableList()
+            if (index in updated.indices) {
+                updated[index] = updated[index].copy(min = normalized)
+            }
+            state.copy(slabs = updated, selectedPreset = "CUSTOM")
+        }
+    }
+
+    fun updateSlabMax(index: Int, newMax: String?) {
+        val normalized = newMax?.let { BanglaDigitNormalizer.normalize(it).filter { c -> c.isDigit() } }
+        _uiState.update { state ->
+            val updated = state.slabs.toMutableList()
+            if (index in updated.indices) {
+                updated[index] = updated[index].copy(max = normalized?.ifBlank { null })
+            }
+            state.copy(slabs = updated, selectedPreset = "CUSTOM")
+        }
+    }
+
+    fun addSlab() {
+        _uiState.update { state ->
+            val currentSlabs = state.slabs.toMutableList()
+            val lastIdx = currentSlabs.size - 1
+            if (lastIdx >= 0) {
+                val lastSlab = currentSlabs[lastIdx]
+                val prevMin = lastSlab.min.toIntOrNull() ?: 0
+                val fixedMax = lastSlab.max ?: (prevMin + 100).toString()
+                currentSlabs[lastIdx] = lastSlab.copy(max = fixedMax)
+                val newMin = fixedMax
+                currentSlabs.add(EditableSlabState(min = newMin, max = null, rate = "10.00"))
+            } else {
+                currentSlabs.add(EditableSlabState(min = "0", max = null, rate = "7.00"))
+            }
+            state.copy(slabs = currentSlabs, selectedPreset = "CUSTOM")
+        }
+    }
+
+    fun removeSlab() {
+        _uiState.update { state ->
+            if (state.slabs.size > 1) {
+                val currentSlabs = state.slabs.dropLast(1).toMutableList()
+                val lastIdx = currentSlabs.size - 1
+                currentSlabs[lastIdx] = currentSlabs[lastIdx].copy(max = null)
+                state.copy(slabs = currentSlabs, selectedPreset = "CUSTOM")
+            } else {
+                state
+            }
+        }
+    }
+
+    fun applyPreset(presetKey: String) {
+        when (presetKey) {
+            "BERC_6" -> {
+                _uiState.update {
+                    it.copy(
+                        selectedPreset = "BERC_6",
+                        billingMode = TariffBillingMode.SLAB_BASED,
+                        slabs = listOf(
+                            EditableSlabState("0", "75", "5.26"),
+                            EditableSlabState("75", "200", "7.20"),
+                            EditableSlabState("200", "300", "7.59"),
+                            EditableSlabState("300", "400", "8.02"),
+                            EditableSlabState("400", "600", "12.67"),
+                            EditableSlabState("600", null, "14.61")
+                        )
+                    )
+                }
+            }
+            "STANDARD_3" -> {
+                _uiState.update {
+                    it.copy(
+                        selectedPreset = "STANDARD_3",
+                        billingMode = TariffBillingMode.SLAB_BASED,
+                        slabs = listOf(
+                            EditableSlabState("0", "100", "6.00"),
+                            EditableSlabState("100", "300", "8.50"),
+                            EditableSlabState("300", null, "12.00")
+                        )
+                    )
+                }
+            }
+            "FLAT_1" -> {
+                _uiState.update {
+                    it.copy(
+                        selectedPreset = "FLAT_1",
+                        billingMode = TariffBillingMode.FLAT_RATE,
+                        flatRate = "8.00",
+                        slabs = listOf(
+                            EditableSlabState("0", null, "8.00")
+                        )
+                    )
+                }
+            }
+        }
+    }
+
+    // --- Step 4: Optional Charges Updates ---
+    fun setServiceChargeEnabled(enabled: Boolean) = _uiState.update {
+        it.copy(isServiceChargeEnabled = enabled, serviceCharge = if (enabled && it.serviceCharge.isBlank()) "30.00" else it.serviceCharge)
+    }
+    fun updateServiceCharge(charge: String) {
+        val normalized = BanglaDigitNormalizer.normalize(charge).filter { it.isDigit() || it == '.' }
+        _uiState.update { it.copy(serviceCharge = normalized) }
+    }
+
+    fun setDemandChargeEnabled(enabled: Boolean) = _uiState.update {
+        it.copy(isDemandChargeEnabled = enabled, demandCharge = if (enabled && it.demandCharge.isBlank()) "42.00" else it.demandCharge)
+    }
+    fun updateDemandCharge(charge: String) {
+        val normalized = BanglaDigitNormalizer.normalize(charge).filter { it.isDigit() || it == '.' }
+        _uiState.update { it.copy(demandCharge = normalized) }
+    }
+
+    fun setMeterRentEnabled(enabled: Boolean) = _uiState.update {
+        it.copy(isMeterRentEnabled = enabled, meterRent = if (enabled && it.meterRent.isBlank()) "10.00" else it.meterRent)
+    }
+    fun updateMeterRent(rent: String) {
+        val normalized = BanglaDigitNormalizer.normalize(rent).filter { it.isDigit() || it == '.' }
+        _uiState.update { it.copy(meterRent = normalized) }
+    }
+
+    fun setVatEnabled(enabled: Boolean) = _uiState.update {
+        it.copy(isVatEnabled = enabled, vatPercentage = if (enabled && it.vatPercentage.isBlank()) "5.00" else it.vatPercentage)
+    }
+    fun updateVatPercentage(vat: String) {
+        val normalized = BanglaDigitNormalizer.normalize(vat).filter { it.isDigit() || it == '.' }
+        _uiState.update { it.copy(vatPercentage = normalized) }
+    }
+
+    // --- Complete Setup ---
     fun completeOnboarding(onSuccess: () -> Unit) {
         val state = _uiState.value
         val parseResult = MeterReadingParser.parse(state.baselineBlackDigits, state.baselineRedDigit)
@@ -178,75 +361,127 @@ class OnboardingViewModel @Inject constructor(
                 )
                 meterRepository.saveMeter(meter)
 
-                // 2. Create and save tariff with slabs and charges
-                val slabs = state.slabs.mapIndexed { idx, s ->
-                    TariffSlab(
-                        id = UUID.randomUUID().toString(),
-                        tariffId = tariffId,
-                        minimumUnits = BigDecimal(s.min),
-                        maximumUnits = s.max?.let { BigDecimal(it) },
-                        ratePerUnit = BigDecimal(s.rate.ifBlank { "0.0" }),
-                        displayOrder = idx + 1
+                // 2. Create and save tariff with slabs and optional charges
+                val isFlat = state.billingMode == TariffBillingMode.FLAT_RATE
+                val slabs = if (isFlat) {
+                    val flatVal = BigDecimal(state.flatRate.ifBlank { "8.00" })
+                    listOf(
+                        TariffSlab(
+                            id = UUID.randomUUID().toString(),
+                            tariffId = tariffId,
+                            minimumUnits = BigDecimal.ZERO,
+                            maximumUnits = null,
+                            ratePerUnit = flatVal,
+                            displayOrder = 1
+                        )
                     )
+                } else {
+                    state.slabs.mapIndexed { idx, s ->
+                        TariffSlab(
+                            id = UUID.randomUUID().toString(),
+                            tariffId = tariffId,
+                            minimumUnits = BigDecimal(s.min.ifBlank { "0" }),
+                            maximumUnits = s.max?.ifBlank { null }?.let { BigDecimal(it) },
+                            ratePerUnit = BigDecimal(s.rate.ifBlank { "0.0" }),
+                            displayOrder = idx + 1
+                        )
+                    }
                 }
 
                 val charges = mutableListOf<AdditionalCharge>()
-                if (state.demandCharge.isNotBlank()) {
-                    charges.add(
-                        AdditionalCharge(
-                            id = UUID.randomUUID().toString(),
-                            tariffId = tariffId,
-                            chargeType = AdditionalChargeType.DEMAND_CHARGE,
-                            calculationMethod = ChargeCalculationMethod.FIXED_MONTHLY,
-                            amount = BigDecimal(state.demandCharge),
-                            isEnabled = true,
-                            vatApplicable = true
+
+                // Service Charge (Optional)
+                if (state.isServiceChargeEnabled && state.serviceCharge.isNotBlank()) {
+                    val amt = state.serviceCharge.toDoubleOrNull() ?: 0.0
+                    if (amt > 0.0) {
+                        charges.add(
+                            AdditionalCharge(
+                                id = UUID.randomUUID().toString(),
+                                tariffId = tariffId,
+                                chargeType = AdditionalChargeType.SERVICE_CHARGE,
+                                calculationMethod = ChargeCalculationMethod.FIXED_MONTHLY,
+                                amount = BigDecimal(state.serviceCharge),
+                                isEnabled = true,
+                                vatApplicable = true,
+                                customName = "সার্ভিস চার্জ"
+                            )
                         )
-                    )
+                    }
                 }
-                if (state.meterRent.isNotBlank()) {
-                    charges.add(
-                        AdditionalCharge(
-                            id = UUID.randomUUID().toString(),
-                            tariffId = tariffId,
-                            chargeType = AdditionalChargeType.METER_RENT,
-                            calculationMethod = ChargeCalculationMethod.FIXED_MONTHLY,
-                            amount = BigDecimal(state.meterRent),
-                            isEnabled = true,
-                            vatApplicable = true
+
+                // Demand Charge (Optional)
+                if (state.isDemandChargeEnabled && state.demandCharge.isNotBlank()) {
+                    val amt = state.demandCharge.toDoubleOrNull() ?: 0.0
+                    if (amt > 0.0) {
+                        charges.add(
+                            AdditionalCharge(
+                                id = UUID.randomUUID().toString(),
+                                tariffId = tariffId,
+                                chargeType = AdditionalChargeType.DEMAND_CHARGE,
+                                calculationMethod = ChargeCalculationMethod.FIXED_MONTHLY,
+                                amount = BigDecimal(state.demandCharge),
+                                isEnabled = true,
+                                vatApplicable = true,
+                                customName = "ডিমান্ড চার্জ"
+                            )
                         )
-                    )
+                    }
                 }
-                if (state.vatPercentage.isNotBlank()) {
-                    charges.add(
-                        AdditionalCharge(
-                            id = UUID.randomUUID().toString(),
-                            tariffId = tariffId,
-                            chargeType = AdditionalChargeType.VAT,
-                            calculationMethod = ChargeCalculationMethod.PERCENTAGE_OF_TOTAL,
-                            amount = BigDecimal(state.vatPercentage),
-                            isEnabled = true,
-                            vatApplicable = false
+
+                // Meter Rent (Optional)
+                if (state.isMeterRentEnabled && state.meterRent.isNotBlank()) {
+                    val amt = state.meterRent.toDoubleOrNull() ?: 0.0
+                    if (amt > 0.0) {
+                        charges.add(
+                            AdditionalCharge(
+                                id = UUID.randomUUID().toString(),
+                                tariffId = tariffId,
+                                chargeType = AdditionalChargeType.METER_RENT,
+                                calculationMethod = ChargeCalculationMethod.FIXED_MONTHLY,
+                                amount = BigDecimal(state.meterRent),
+                                isEnabled = true,
+                                vatApplicable = true,
+                                customName = "মিটার ভাড়া"
+                            )
                         )
-                    )
+                    }
+                }
+
+                // VAT (Optional)
+                if (state.isVatEnabled && state.vatPercentage.isNotBlank()) {
+                    val amt = state.vatPercentage.toDoubleOrNull() ?: 0.0
+                    if (amt > 0.0) {
+                        charges.add(
+                            AdditionalCharge(
+                                id = UUID.randomUUID().toString(),
+                                tariffId = tariffId,
+                                chargeType = AdditionalChargeType.VAT,
+                                calculationMethod = ChargeCalculationMethod.PERCENTAGE_OF_TOTAL,
+                                amount = BigDecimal(state.vatPercentage),
+                                isEnabled = true,
+                                vatApplicable = false,
+                                customName = "ভ্যাট"
+                            )
+                        )
+                    }
                 }
 
                 val tariff = Tariff(
                     id = tariffId,
-                    tariffName = "আবাসিক ট্যারিফ (Residential LT-A)",
+                    tariffName = "আবাসিক ট্যারিফ (${state.meterName})",
                     billingMode = state.billingMode,
                     calculationMethod = TariffCalculationMethod.PROGRESSIVE_BLOCK,
                     effectiveFrom = now,
                     effectiveUntil = null,
                     currency = "BDT",
                     isActive = true,
-                    flatRate = if (state.billingMode == TariffBillingMode.FLAT_RATE) BigDecimal(state.flatRate) else null,
+                    flatRate = if (isFlat) BigDecimal(state.flatRate.ifBlank { "8.00" }) else null,
                     slabs = slabs,
                     additionalCharges = charges
                 )
                 tariffRepository.saveTariff(tariff)
 
-                // 3. Save Baseline reading
+                // 3. Save Baseline Reading with user's current reading
                 val baselineReading = MeterReading(
                     id = UUID.randomUUID().toString(),
                     meterId = meterId,
@@ -257,7 +492,7 @@ class OnboardingViewModel @Inject constructor(
                     createdAt = now,
                     updatedAt = now,
                     isBaseline = true,
-                    note = "প্রাথমিক বেসলাইন রিডিং (Initial Baseline)",
+                    note = "প্রারম্ভিক বেসলাইন রিডিং (${state.meterName})",
                     readingSource = ReadingSource.INITIAL_BASELINE
                 )
                 readingRepository.saveReading(baselineReading)
@@ -277,8 +512,9 @@ class OnboardingViewModel @Inject constructor(
                 // 5. Initialize period and calculate
                 recalculationUseCase.recalculateAll(meterId)
 
-                // Mark onboarding completed
+                // 6. Set onboarding completed
                 preferencesManager.setOnboardingCompleted(true)
+
                 onSuccess()
             } catch (e: Exception) {
                 _uiState.update { it.copy(isCompleting = false, errorMessage = "ত্রুটি: ${e.message}") }

@@ -60,12 +60,12 @@
 
 ### 🚀 গিটহাবে নতুন ভার্সন আপলোড করার নিয়ম
 যখনই আপনি অ্যাপের কোনো কোড পরিবর্তন বা আপডেট করবেন:
-1. `android/app/build.gradle.kts` ফাইলে `versionCode` (যেমন: 2) এবং `versionName` (যেমন: `"1.0.1"`) বৃদ্ধি করুন।
+1. `android/app/build.gradle.kts` ফাইলে `versionCode` (যেমন: 3) এবং `versionName` (যেমন: `"1.0.2"`) বৃদ্ধি করুন।
 2. গিটহাবে কমিট করে একটি নতুন ট্যাগ পুশ করুন:
    ```bash
    git add .
-   git commit -m "feat: নতুন সংস্করণ v1.0.1 রিলিজ"
-   git tag v1.0.1
+   git commit -m "feat: নতুন সংস্করণ v1.0.2 রিলিজ"
+   git tag v1.0.2
    git push origin main --tags
    ```
 3. GitHub Actions CI/CD স্বয়ংক্রিয়ভাবে রিলিজ APK বিল্ড করবে এবং GitHub Releases-এ অ্যাটাচ করে দেবে। ফলে সমস্ত ইনস্টল করা ফোনে সাথে সাথে আপডেটের নোটিফিকেশন চলে যাবে!

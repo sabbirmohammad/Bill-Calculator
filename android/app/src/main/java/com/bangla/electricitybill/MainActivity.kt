@@ -5,13 +5,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import com.bangla.electricitybill.data.datastore.PreferencesManager
@@ -34,7 +30,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            val isOnboardingCompleted by preferencesManager.isOnboardingCompleted.collectAsState(initial = null)
             val appTheme by preferencesManager.appTheme.collectAsState(initial = "SYSTEM")
             val appLanguage by preferencesManager.appLanguage.collectAsState(initial = "en")
             val updateState by updateViewModel.uiState.collectAsState()
@@ -54,22 +49,11 @@ class MainActivity : ComponentActivity() {
             }
 
             ElectricityBillTheme(darkTheme = isDark) {
-                if (isOnboardingCompleted == null) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
-                    }
-                } else {
-                    val startRoute = if (isOnboardingCompleted == true) {
-                        Screen.Dashboard.route
-                    } else {
-                        Screen.Onboarding.route
-                    }
-                    AppNavigation(
-                        startDestination = startRoute,
-                        updateViewModel = updateViewModel,
-                        isBangla = isBangla
-                    )
-                }
+                AppNavigation(
+                    startDestination = Screen.Splash.route,
+                    updateViewModel = updateViewModel,
+                    isBangla = isBangla
+                )
 
                 // Modern Update Prompt & Download Progress Dialog
                 ModernUpdateDialog(

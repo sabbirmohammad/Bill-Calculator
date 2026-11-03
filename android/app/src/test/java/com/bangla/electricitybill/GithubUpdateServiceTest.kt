@@ -41,10 +41,14 @@ class GithubUpdateServiceTest {
     fun testVersionComparison() {
         val service = GithubUpdateService(OkHttpClient(), Gson())
 
+        assertTrue(service.isVersionNewer(remote = "1.0.2", current = "1.0.1"))
         assertTrue(service.isVersionNewer(remote = "1.0.1", current = "1.0.0"))
         assertTrue(service.isVersionNewer(remote = "2.0.0", current = "1.9.9"))
         assertTrue(service.isVersionNewer(remote = "1.1.0", current = "1.0.9"))
+        assertFalse(service.isVersionNewer(remote = "1.0.2", current = "1.0.2"))
+        assertFalse(service.isVersionNewer(remote = "1.0.1", current = "1.0.1"))
         assertFalse(service.isVersionNewer(remote = "1.0.0", current = "1.0.0"))
+        assertFalse(service.isVersionNewer(remote = "1.0.1", current = "1.0.2"))
         assertFalse(service.isVersionNewer(remote = "0.9.9", current = "1.0.0"))
         assertFalse(service.isVersionNewer(remote = "", current = "1.0.0"))
     }
