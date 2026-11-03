@@ -93,7 +93,13 @@ fun SettingsScreen(
     LaunchedEffect(updateState) {
         when (val uState = updateState) {
             is UpdateUiState.UpToDate -> {
-                snackbarHostState.showSnackbar("Your app is on the latest version (v${BuildConfig.VERSION_NAME})")
+                val isBangla = state.appLanguage == "bn"
+                val upToDateMsg = if (isBangla) {
+                    "আপনার অ্যাপটি সর্বশেষ সংস্করণে (v${BuildConfig.VERSION_NAME}) রয়েছে।"
+                } else {
+                    "Your app is on the latest version (v${BuildConfig.VERSION_NAME})"
+                }
+                snackbarHostState.showSnackbar(upToDateMsg)
                 updateViewModel?.dismiss()
             }
             is UpdateUiState.Error -> {

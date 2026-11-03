@@ -81,9 +81,18 @@ class AppUpdateViewModel @Inject constructor(
                 }
             }.onFailure { error ->
                 _uiState.value = if (isManual) {
-                    UpdateUiState.Error(
-                        error.localizedMessage ?: "আপডেট সার্ভারের সাথে সংযোগ করা সম্ভব হয়নি। ইন্টারনেট সংযোগ পরীক্ষা করুন।"
-                    )
+                    val userFriendlyMsg = when {
+                        error.message?.contains("403") == true ->
+                            "গিটহাব এপিআই-এর রেট লিমিট সাময়িকভাবে অতিক্রান্ত হয়েছে। অনুগ্রহ করে কিছুক্ষণ পর আবার চেষ্টা করুন অথবা ব্রাউজার থেকে সরাসরি রিলিজ পেজে যান।"
+                        error.message?.contains("Unable to resolve host", ignoreCase = true) == true ||
+                        error is java.net.UnknownHostException ->
+                            "ইন্টারনেট সংযোগ পাওয়া যায়নি। অনুগ্রহ করে আপনার মোবাইল ডাটা বা ওয়াই-ফাই সংযোগ পরীক্ষা করুন।"
+                        error is java.net.SocketTimeoutException ->
+                            "সার্ভারের সাথে সংযোগের সময় শেষ হয়ে গেছে। অনুগ্রহ করে আবার চেষ্টা করুন।"
+                        else ->
+                            error.localizedMessage ?: "আপডেট সার্ভারের সাথে সংযোগ করা সম্ভব হয়নি। ইন্টারনেট সংযোগ পরীক্ষা করুন।"
+                    }
+                    UpdateUiState.Error(userFriendlyMsg)
                 } else {
                     UpdateUiState.Idle
                 }

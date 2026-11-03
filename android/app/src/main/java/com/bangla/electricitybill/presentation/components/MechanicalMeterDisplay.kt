@@ -44,6 +44,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bangla.electricitybill.core.util.BanglaDigitNormalizer
@@ -70,6 +72,18 @@ fun MechanicalMeterDisplay(
     val safeRed = remember(redDigit) {
         if (redDigit.isNotEmpty()) redDigit.take(1) else "0"
     }
+
+    // Adaptively scale digit wheel dimensions according to capacity so it never overflows narrow screens
+    val totalDigits = capacity + 1
+    val (digitWidth, digitHeight, fontSize) = remember(capacity) {
+        when {
+            totalDigits >= 8 -> Triple(28.dp, 44.dp, 20.sp)
+            totalDigits == 7 -> Triple(32.dp, 48.dp, 23.sp)
+            totalDigits == 6 -> Triple(36.dp, 50.dp, 26.sp)
+            else -> Triple(38.dp, 52.dp, 28.sp)
+        }
+    }
+    val digitSpacing = if (totalDigits >= 8) 2.dp else 3.dp
 
     // Concentric radius rule: outer radius = inner radius + padding
     // Inner window is 12dp + 12dp inner margin ~ 24dp outer card radius
@@ -147,18 +161,21 @@ fun MechanicalMeterDisplay(
                         MeterWheelDigit(
                             digit = BanglaDigitNormalizer.formatDigits(char.toString(), isBangla),
                             baseColor = MeterBlackWheelBg,
-                            textColor = MeterBlackWheelText
+                            textColor = MeterBlackWheelText,
+                            width = digitWidth,
+                            height = digitHeight,
+                            fontSize = fontSize
                         )
                         if (index < paddedBlack.length - 1) {
-                            Spacer(modifier = Modifier.width(3.dp))
+                            Spacer(modifier = Modifier.width(digitSpacing))
                         }
                     }
 
                     // Optically aligned decimal separator dot (replaces drifting bullet char)
                     Box(
                         modifier = Modifier
-                            .padding(horizontal = 6.dp)
-                            .size(5.dp)
+                            .padding(horizontal = if (totalDigits >= 8) 4.dp else 6.dp)
+                            .size(if (totalDigits >= 8) 4.dp else 5.dp)
                             .clip(CircleShape)
                             .background(Color(0xFF94A3B8))
                     )
@@ -168,7 +185,10 @@ fun MechanicalMeterDisplay(
                         digit = BanglaDigitNormalizer.formatDigits(safeRed, isBangla),
                         baseColor = MeterRedWheelBg,
                         textColor = MeterRedWheelText,
-                        isRedDigit = true
+                        isRedDigit = true,
+                        width = digitWidth,
+                        height = digitHeight,
+                        fontSize = fontSize
                     )
                 }
             }
@@ -279,7 +299,10 @@ fun MeterWheelDigit(
     baseColor: Color,
     textColor: Color,
     modifier: Modifier = Modifier,
-    isRedDigit: Boolean = false
+    isRedDigit: Boolean = false,
+    width: Dp = 38.dp,
+    height: Dp = 52.dp,
+    fontSize: TextUnit = 28.sp
 ) {
     // Subtle cylinder gradient giving tactile rotary wheel illusion
     val cylinderGradient = if (isRedDigit) {
@@ -303,8 +326,8 @@ fun MeterWheelDigit(
     // Digit wheel: radius 5.dp concentric with 12.dp window (5dp + 7dp padding = 12dp)
     Box(
         modifier = modifier
-            .width(38.dp)
-            .height(52.dp)
+            .width(width)
+            .height(height)
             .clip(RoundedCornerShape(5.dp))
             .background(cylinderGradient)
             .border(
@@ -339,7 +362,7 @@ fun MeterWheelDigit(
         ) { targetDigit ->
             Text(
                 text = targetDigit,
-                fontSize = 28.sp,
+                fontSize = fontSize,
                 fontWeight = FontWeight.Bold,
                 fontFamily = FontFamily.Monospace,
                 color = textColor,

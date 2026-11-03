@@ -593,6 +593,8 @@ private fun ErrorContent(
     errorMessage: String,
     onDismiss: () -> Unit
 ) {
+    val context = LocalContext.current
+
     Box(
         modifier = Modifier
             .size(64.dp)
@@ -629,6 +631,37 @@ private fun ErrorContent(
     )
 
     Spacer(modifier = Modifier.height(20.dp))
+
+    OutlinedButton(
+        onClick = {
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(com.bangla.electricitybill.core.update.UpdateConfig.getReleasesPageUrl())).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            context.startActivity(intent)
+            onDismiss()
+        },
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(44.dp)
+            .tactileClick(onClick = {}),
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
+    ) {
+        Icon(
+            imageVector = Icons.Default.OpenInBrowser,
+            contentDescription = null,
+            modifier = Modifier.size(18.dp),
+            tint = MaterialTheme.colorScheme.primary
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = "ব্রাউজারে রিলিজ পেজ খুলুন",
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.primary
+        )
+    }
+
+    Spacer(modifier = Modifier.height(8.dp))
 
     Button(
         onClick = onDismiss,

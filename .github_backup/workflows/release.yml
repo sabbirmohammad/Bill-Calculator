@@ -9,7 +9,7 @@ on:
       version_name:
         description: 'Release Version Name (e.g., v1.0.1)'
         required: false
-        default: 'v1.0.0'
+        default: 'v1.0.1'
 
 permissions:
   contents: write
@@ -49,7 +49,7 @@ jobs:
             TAG_NAME="${{ github.event.inputs.version_name }}"
           fi
           if [ -z "$TAG_NAME" ]; then
-            TAG_NAME="v1.0.0"
+            TAG_NAME="v1.0.1"
           fi
           
           mkdir -p release-artifacts
@@ -81,14 +81,15 @@ jobs:
           tag_name: ${{ steps.prepare-apk.outputs.tag_name }}
           name: ${{ steps.prepare-apk.outputs.tag_name }} - নতুন আপডেট ও রিলিজ
           body: |
-            ## ⚡ বাংলাদেশ বিদ্যুৎ মিটার রিডিং ও বিল ক্যালকুলেটর
+            ## ⚡ বাংলাদেশ বিদ্যুৎ মিটার রিডিং ও বিল ক্যালকুলেটর (${{ steps.prepare-apk.outputs.tag_name }})
             
             ### 📱 সরাসরি এপিকে (APK) ডাউনলোড ও ইনস্টলেশন
-            নিচের অ্যাসেটস (Assets) সেকশন থেকে সরাসরি `.apk` ফাইলটি ডাউনলোড করে আপনার অ্যান্ড্রয়েড ফোনে ইনস্টল করে নিন।
+            নিচের অ্যাসেটস (Assets) সেকশন থেকে সরাসরি `app-release.apk` ফাইলটি ডাউনলোড করে আপনার অ্যান্ড্রয়েড ফোনে ইনস্টল করে নিন।
             
-            * **ফাইল নাম:** `${{ steps.prepare-apk.outputs.tag_name }}`
+            * **সংস্করণ:** `${{ steps.prepare-apk.outputs.tag_name }}`
+            * **বাগ ফিক্স:** ইন-অ্যাপ আপডেট চেকের গিটহাব এপিআই ৪০৩ (Rate Limit) সমস্যার সম্পূর্ণ সমাধান।
+            * **স্বয়ংক্রিয় আপডেট:** এরপর থেকে সরাসরি অ্যাপের ভেতর থেকেই এক ক্লিকে ওটিএ (OTA) আপডেট নেওয়া যাবে।
             * **সিস্টেম রিকোয়ারমেন্ট:** Android 8.0 (API 26) বা তদূর্ধ্ব
-            * **স্বয়ংক্রিয় আপডেট:** ইতিমধ্যে অ্যাপটি ইনস্টল করা থাকলে অ্যাপের ভেতর থেকেই সরাসরি এক ট্যাপে আপডেট করে নিতে পারবেন।
             
             ---
             *স্বয়ংক্রিয়ভাবে GitHub Actions CI/CD দ্বারা বিল্ড এবং পাবলিশ করা হয়েছে।*
