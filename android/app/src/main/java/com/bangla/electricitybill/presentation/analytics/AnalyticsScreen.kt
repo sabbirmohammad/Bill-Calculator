@@ -69,7 +69,7 @@ fun AnalyticsScreen(
                     horizontalArrangement = Arrangement.Start
                 ) {
                     Text(
-                        text = "Analytics",
+                        text = if (state.isBangla) "বিদ্যুৎ ব্যবহার বিশ্লেষণ" else "Analytics",
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         color = PrimaryText
@@ -82,7 +82,8 @@ fun AnalyticsScreen(
                 SegmentedDateFilters(
                     selectedFilter = state.selectedFilter,
                     onFilterSelected = { viewModel.selectFilter(it) },
-                    modifier = Modifier.staggeredEntrance(1)
+                    modifier = Modifier.staggeredEntrance(1),
+                    isBangla = state.isBangla
                 )
             }
 
@@ -94,7 +95,8 @@ fun AnalyticsScreen(
                     percentageDiff = state.percentageDiff,
                     isDiffDecrease = state.isDiffDecrease,
                     previousUnits = state.previousMonthUnits,
-                    modifier = Modifier.staggeredEntrance(2)
+                    modifier = Modifier.staggeredEntrance(2),
+                    isBangla = state.isBangla
                 )
             }
 
@@ -108,13 +110,14 @@ fun AnalyticsScreen(
 
             // Screen 3 Section E: Analytics Summary Cards
             item {
-                val dailyUnitsFormatted = "${BigDecimalMath.formatKwh(state.averageDailyUnits)} units"
-                val billFormatted = BigDecimalMath.formatCurrency(state.estimatedBill)
+                val dailyUnitsFormatted = BigDecimalMath.formatUnits(state.averageDailyUnits, state.isBangla)
+                val billFormatted = BigDecimalMath.formatCurrency(state.estimatedBill, state.isBangla)
 
                 AnalyticsSummaryCardsRow(
                     dailyAverageUnits = dailyUnitsFormatted,
                     estimatedBillText = billFormatted,
-                    modifier = Modifier.staggeredEntrance(4)
+                    modifier = Modifier.staggeredEntrance(4),
+                    isBangla = state.isBangla
                 )
             }
 
@@ -122,7 +125,7 @@ fun AnalyticsScreen(
             item {
                 NavigableSectionTile(
                     icon = Icons.Default.ShowChart,
-                    title = "Usage Trend",
+                    title = if (state.isBangla) "ব্যবহারের গতিধারা" else "Usage Trend",
                     onClick = onNavigateToReadings,
                     modifier = Modifier.staggeredEntrance(5)
                 )
@@ -131,7 +134,7 @@ fun AnalyticsScreen(
             item {
                 NavigableSectionTile(
                     icon = Icons.Default.CalendarMonth,
-                    title = "Daily Readings",
+                    title = if (state.isBangla) "দৈনিক রিডিং তালিকা" else "Daily Readings",
                     onClick = onNavigateToReadings,
                     modifier = Modifier.staggeredEntrance(6)
                 )

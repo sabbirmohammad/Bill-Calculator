@@ -3,7 +3,9 @@ package com.bangla.electricitybill.presentation.bill
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bangla.electricitybill.core.util.BigDecimalMath
+import com.bangla.electricitybill.core.util.BanglaDigitNormalizer
 import com.bangla.electricitybill.core.util.DateUtils
+import com.bangla.electricitybill.data.datastore.PreferencesManager
 import com.bangla.electricitybill.domain.engine.ConsumptionCalculator
 import com.bangla.electricitybill.domain.engine.ProgressiveTariffEngine
 import com.bangla.electricitybill.domain.model.BillingPeriod
@@ -40,6 +42,7 @@ data class MonthlyBillUiState(
     val billingPeriodText: String = "",
     val status: PeriodStatus = PeriodStatus.IN_PROGRESS,
     val showEditTariffDialog: Boolean = false,
+    val isBangla: Boolean = false,
     val isLoading: Boolean = true
 )
 
@@ -49,7 +52,8 @@ class MonthlyBillViewModel @Inject constructor(
     private val readingRepository: MeterReadingRepository,
     private val billingPeriodRepository: BillingPeriodRepository,
     private val tariffRepository: TariffRepository,
-    private val recalculationUseCase: HistoricalRecalculationUseCase
+    private val recalculationUseCase: HistoricalRecalculationUseCase,
+    private val preferencesManager: PreferencesManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MonthlyBillUiState())
@@ -68,8 +72,10 @@ class MonthlyBillViewModel @Inject constructor(
                 readingRepository.getReadingsFlow(meter.id),
                 billingPeriodRepository.getBillingPeriodsFlow(meter.id),
                 tariffRepository.getActiveTariffFlow(),
+                preferencesManager.appLanguage,
                 _selectedMonth
-            ) { readings, periods, tariff, selMonth ->
+            ) { readings, periods, tariff, lang, selMonth ->
+                val isBn = lang == "bn"
                 val sorted = readings.sortedBy { it.readingDateTime }
                 val monthReadings = sorted.filter { YearMonth.from(it.readingDateTime) == selMonth }
 
@@ -108,11 +114,15 @@ class MonthlyBillViewModel @Inject constructor(
                     )
                 } else null
 
-                // Format billing period string (e.g. "Jan 1 – Jan 31, 2025")
+                // Format billing period string (e.g. "Nov 1 – Nov 30, 2026")
                 val firstDay = selMonth.atDay(1)
                 val lastDay = selMonth.atEndOfMonth()
                 val monthName = selMonth.format(DateTimeFormatter.ofPattern("MMM"))
-                val periodText = "$monthName 1 – $monthName ${lastDay.dayOfMonth}, ${selMonth.year}"
+                val periodText = if (isBn) {
+                    "${BanglaDigitNormalizer.toBangla("1")} $monthName – ${BanglaDigitNormalizer.toBangla(lastDay.dayOfMonth.toString())} $monthName, ${BanglaDigitNormalizer.toBangla(selMonth.year.toString())}"
+                } else {
+                    "$monthName 1 – $monthName ${lastDay.dayOfMonth}, ${selMonth.year}"
+                }
 
                 val status = period?.periodStatus ?: if (totalUnits > BigDecimal.ZERO) PeriodStatus.IN_PROGRESS else PeriodStatus.PARTIAL_TRACKING
 
@@ -126,6 +136,7 @@ class MonthlyBillViewModel @Inject constructor(
                         totalUnits = totalUnits,
                         billingPeriodText = periodText,
                         status = status,
+                        isBangla = isBn,
                         isLoading = false
                     )
                 }

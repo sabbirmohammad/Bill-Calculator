@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bangla.electricitybill.core.util.BanglaDigitNormalizer
 import com.bangla.electricitybill.core.util.DateUtils
+import com.bangla.electricitybill.data.datastore.PreferencesManager
 import com.bangla.electricitybill.domain.engine.ConsumptionCalculator
 import com.bangla.electricitybill.domain.engine.MeterReadingParser
 import com.bangla.electricitybill.domain.engine.ProgressiveTariffEngine
@@ -42,7 +43,8 @@ data class AddReadingUiState(
     val showRolloverDialog: Boolean = false,
     val rolloverValue: BigDecimal? = null,
     val isSaving: Boolean = false,
-    val isSaveSuccess: Boolean = false
+    val isSaveSuccess: Boolean = false,
+    val isBangla: Boolean = false
 )
 
 @HiltViewModel
@@ -50,7 +52,8 @@ class AddReadingViewModel @Inject constructor(
     private val meterRepository: MeterRepository,
     private val readingRepository: MeterReadingRepository,
     private val tariffRepository: TariffRepository,
-    private val saveReadingUseCase: SaveReadingUseCase
+    private val saveReadingUseCase: SaveReadingUseCase,
+    private val preferencesManager: PreferencesManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AddReadingUiState())
@@ -61,6 +64,11 @@ class AddReadingViewModel @Inject constructor(
     }
 
     private fun loadInitialData() {
+        viewModelScope.launch {
+            preferencesManager.appLanguage.collect { lang ->
+                _uiState.update { it.copy(isBangla = lang == "bn") }
+            }
+        }
         viewModelScope.launch {
             val meter = meterRepository.getActiveMeter()
             val tariff = tariffRepository.getActiveTariff()

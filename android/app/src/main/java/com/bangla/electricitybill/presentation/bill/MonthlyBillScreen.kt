@@ -90,7 +90,7 @@ fun MonthlyBillScreen(
                     horizontalArrangement = Arrangement.Start
                 ) {
                     Text(
-                        text = "Monthly Bill",
+                        text = if (state.isBangla) "মাসিক বিদ্যুৎ বিল" else "Monthly Bill",
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         color = PrimaryText
@@ -103,6 +103,7 @@ fun MonthlyBillScreen(
                 BillingMonthSelectorCard(
                     selectedMonth = state.selectedMonth,
                     onClick = { showMonthPicker = true },
+                    isBangla = state.isBangla,
                     modifier = Modifier.staggeredEntrance(1)
                 )
             }
@@ -110,16 +111,17 @@ fun MonthlyBillScreen(
             // Screen 4 Section C: Estimated Bill Hero Card
             item {
                 val billFormatted = state.itemizedBill?.let {
-                    BigDecimalMath.formatCurrency(it.totalBill)
-                } ?: "৳ 0.00"
+                    BigDecimalMath.formatCurrency(it.totalBill, state.isBangla)
+                } ?: (if (state.isBangla) "৳ ০.০০" else "৳ 0.00")
 
-                val unitsFormatted = "${BigDecimalMath.formatKwh(state.totalUnits)} kWh"
+                val unitsFormatted = BigDecimalMath.formatUnits(state.totalUnits, state.isBangla)
 
                 EstimatedBillHeroCard(
                     billAmountText = billFormatted,
                     totalUnitsText = unitsFormatted,
                     billingPeriodText = state.billingPeriodText,
                     status = state.status,
+                    isBangla = state.isBangla,
                     modifier = Modifier.staggeredEntrance(2)
                 )
             }
@@ -129,6 +131,7 @@ fun MonthlyBillScreen(
                 item {
                     FinTechTariffBreakdownCard(
                         itemizedBill = state.itemizedBill!!,
+                        isBangla = state.isBangla,
                         modifier = Modifier.staggeredEntrance(3)
                     )
                 }
@@ -147,6 +150,7 @@ fun MonthlyBillScreen(
                         }
                         context.startActivity(Intent.createChooser(sendIntent, "Share Electricity Bill"))
                     },
+                    isBangla = state.isBangla,
                     modifier = Modifier.staggeredEntrance(4)
                 )
             }

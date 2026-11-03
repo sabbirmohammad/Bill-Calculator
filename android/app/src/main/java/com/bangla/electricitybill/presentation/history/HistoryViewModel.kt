@@ -3,6 +3,7 @@ package com.bangla.electricitybill.presentation.history
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bangla.electricitybill.core.util.DateUtils
+import com.bangla.electricitybill.data.datastore.PreferencesManager
 import com.bangla.electricitybill.domain.engine.ConsumptionCalculator
 import com.bangla.electricitybill.domain.engine.ProgressiveTariffEngine
 import com.bangla.electricitybill.domain.model.IntervalConsumptionResult
@@ -40,7 +41,8 @@ data class HistoryUiState(
     val isLoading: Boolean = true,
     val selectedReadingForEdit: MeterReading? = null,
     val showDeleteConfirmDialog: Boolean = false,
-    val readingToDelete: MeterReading? = null
+    val readingToDelete: MeterReading? = null,
+    val isBangla: Boolean = false
 )
 
 @HiltViewModel
@@ -48,7 +50,8 @@ class HistoryViewModel @Inject constructor(
     private val meterRepository: MeterRepository,
     private val readingRepository: MeterReadingRepository,
     private val tariffRepository: TariffRepository,
-    private val recalculationUseCase: HistoricalRecalculationUseCase
+    private val recalculationUseCase: HistoricalRecalculationUseCase,
+    private val preferencesManager: PreferencesManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HistoryUiState())
@@ -63,8 +66,10 @@ class HistoryViewModel @Inject constructor(
             val meter = meterRepository.getActiveMeter() ?: return@launch
             combine(
                 readingRepository.getReadingsFlow(meter.id),
-                tariffRepository.getActiveTariffFlow()
-            ) { readings, tariff ->
+                tariffRepository.getActiveTariffFlow(),
+                preferencesManager.appLanguage
+            ) { readings, tariff, lang ->
+                val isBn = lang == "bn"
                 val sorted = readings.sortedBy { it.readingDateTime }
                 val historyList = mutableListOf<HistoryItem>()
 
@@ -119,6 +124,7 @@ class HistoryViewModel @Inject constructor(
                     it.copy(
                         items = historyList.reversed(), // Recent first
                         activeTariff = tariff,
+                        isBangla = isBn,
                         isLoading = false
                     )
                 }

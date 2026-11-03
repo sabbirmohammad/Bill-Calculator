@@ -76,7 +76,8 @@ import java.math.BigDecimal
 fun SegmentedDateFilters(
     selectedFilter: String,
     onFilterSelected: (String) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isBangla: Boolean = false
 ) {
     val filters = listOf("This Month", "Last Month", "Custom")
 
@@ -90,6 +91,17 @@ fun SegmentedDateFilters(
     ) {
         filters.forEach { filter ->
             val isSelected = filter == selectedFilter
+            val label = if (isBangla) {
+                when (filter) {
+                    "This Month" -> "চলতি মাস"
+                    "Last Month" -> "গত মাস"
+                    "Custom" -> "কাস্টম"
+                    else -> filter
+                }
+            } else {
+                filter
+            }
+
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -100,7 +112,7 @@ fun SegmentedDateFilters(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = filter,
+                    text = label,
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                     color = if (isSelected) Color.White else SecondaryText,
@@ -148,9 +160,9 @@ fun AnalyticsUsageHeroCard(
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                val formattedUnits = BigDecimalMath.formatKwh(totalUnits, isBangla)
+                val formattedUnits = BigDecimalMath.formatUnits(totalUnits, isBangla)
                 Text(
-                    text = "$formattedUnits Units",
+                    text = formattedUnits,
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.ExtraBold,
                     color = PrimaryText,
@@ -272,6 +284,12 @@ fun InteractiveConsumptionBarChart(
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         border = BorderStroke(1.dp, CardOutline)
     ) {
+        val secondaryTextColor = SecondaryText
+        val appDividerColor = AppDivider
+        val selectedBarColor = PrimaryPurple
+        val unselectedBarColor = LightPurple
+        val tooltipBgColor = DeepPurple
+
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -304,7 +322,7 @@ fun InteractiveConsumptionBarChart(
 
                 val labelStyle = androidx.compose.ui.text.TextStyle(
                     fontSize = 10.sp,
-                    color = SecondaryText
+                    color = secondaryTextColor
                 )
 
                 // 1. Draw horizontal grid lines & Y-axis labels
@@ -312,7 +330,7 @@ fun InteractiveConsumptionBarChart(
                     val yPos = chartTop + chartHeight * (1f - (yVal / 10f))
                     // Grid line
                     drawLine(
-                        color = AppDivider,
+                        color = appDividerColor,
                         start = Offset(leftPadding, yPos),
                         end = Offset(size.width, yPos),
                         strokeWidth = 1.dp.toPx()
@@ -346,7 +364,7 @@ fun InteractiveConsumptionBarChart(
                     val x = leftPadding + effectiveSpacing + index * (rawBarWidth + effectiveSpacing)
                     val y = chartTop + chartHeight - currentHeight
 
-                    val barColor = if (isSelected) PrimaryPurple else LightPurple
+                    val barColor = if (isSelected) selectedBarColor else unselectedBarColor
 
                     drawRoundRect(
                         color = barColor,
@@ -395,7 +413,7 @@ fun InteractiveConsumptionBarChart(
 
                     // Draw Tooltip pill background
                     drawRoundRect(
-                        color = DeepPurple,
+                        color = tooltipBgColor,
                         topLeft = Offset(pillX, pillY),
                         size = Size(pillWidth, pillHeight),
                         cornerRadius = CornerRadius(6.dp.toPx(), 6.dp.toPx())
@@ -408,7 +426,7 @@ fun InteractiveConsumptionBarChart(
                         lineTo(topCenter.x, pillY + pillHeight + 4.dp.toPx())
                         close()
                     }
-                    drawPath(arrowPath, color = DeepPurple)
+                    drawPath(arrowPath, color = tooltipBgColor)
 
                     // Draw text inside pill
                     drawText(
@@ -428,7 +446,8 @@ fun InteractiveConsumptionBarChart(
 fun AnalyticsSummaryCardsRow(
     dailyAverageUnits: String,
     estimatedBillText: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isBangla: Boolean = false
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -466,7 +485,7 @@ fun AnalyticsSummaryCardsRow(
 
                 Column {
                     Text(
-                        text = "Daily Average",
+                        text = if (isBangla) "দৈনিক গড়" else "Daily Average",
                         style = MaterialTheme.typography.labelSmall,
                         color = SecondaryText,
                         fontSize = 11.sp
@@ -515,7 +534,7 @@ fun AnalyticsSummaryCardsRow(
 
                 Column {
                     Text(
-                        text = "Estimated Bill",
+                        text = if (isBangla) "আনুমানিক বিল" else "Estimated Bill",
                         style = MaterialTheme.typography.labelSmall,
                         color = SecondaryText,
                         fontSize = 11.sp

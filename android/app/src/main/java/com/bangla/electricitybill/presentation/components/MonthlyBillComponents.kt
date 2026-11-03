@@ -3,6 +3,7 @@ package com.bangla.electricitybill.presentation.components
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -44,6 +45,8 @@ import com.bangla.electricitybill.domain.model.PeriodStatus
 import com.bangla.electricitybill.domain.model.SlabChargeBreakdown
 import com.bangla.electricitybill.presentation.theme.AppDivider
 import com.bangla.electricitybill.presentation.theme.CardOutline
+import com.bangla.electricitybill.presentation.theme.EnergyEmeraldDark
+import com.bangla.electricitybill.presentation.theme.EnergyEmeraldLight
 import com.bangla.electricitybill.presentation.theme.LightPurple
 import com.bangla.electricitybill.presentation.theme.PrimaryPurple
 import com.bangla.electricitybill.presentation.theme.PrimaryText
@@ -63,7 +66,8 @@ fun EstimatedBillHeroCard(
     totalUnitsText: String,
     billingPeriodText: String,
     status: PeriodStatus = PeriodStatus.IN_PROGRESS,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isBangla: Boolean = false
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -104,7 +108,7 @@ fun EstimatedBillHeroCard(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Estimated Bill",
+                            text = if (isBangla) "আনুমানিক বিল" else "Estimated Bill",
                             style = MaterialTheme.typography.bodySmall,
                             color = SecondaryText,
                             fontWeight = FontWeight.Medium
@@ -112,10 +116,10 @@ fun EstimatedBillHeroCard(
 
                         // Status Chip
                         val (statusText, statusBg, statusColor) = when (status) {
-                            PeriodStatus.COMPLETED -> Triple("Completed", SuccessGreenLight, SuccessGreen)
-                            PeriodStatus.PARTIAL_TRACKING -> Triple("Partial", WarningAmberLight, WarningAmber)
-                            PeriodStatus.ESTIMATED -> Triple("Estimated", LightPurple, PrimaryPurple)
-                            else -> Triple("In Progress", LightPurple, PrimaryPurple)
+                            PeriodStatus.COMPLETED -> Triple(if (isBangla) "সম্পূর্ণ" else "Completed", SuccessGreenLight, SuccessGreen)
+                            PeriodStatus.PARTIAL_TRACKING -> Triple(if (isBangla) "আংশিক" else "Partial", WarningAmberLight, WarningAmber)
+                            PeriodStatus.ESTIMATED -> Triple(if (isBangla) "আনুমানিক" else "Estimated", LightPurple, PrimaryPurple)
+                            else -> Triple(if (isBangla) "চলমান" else "In Progress", LightPurple, PrimaryPurple)
                         }
 
                         Box(
@@ -157,7 +161,7 @@ fun EstimatedBillHeroCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Total Units",
+                    text = if (isBangla) "মোট ব্যবহৃত ইউনিট" else "Total Units",
                     style = MaterialTheme.typography.bodyMedium,
                     color = SecondaryText
                 )
@@ -178,7 +182,7 @@ fun EstimatedBillHeroCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Billing Period",
+                    text = if (isBangla) "বিলিং সময়কাল" else "Billing Period",
                     style = MaterialTheme.typography.bodyMedium,
                     color = SecondaryText
                 )
@@ -215,7 +219,7 @@ fun FinTechTariffBreakdownCard(
                 .padding(20.dp)
         ) {
             Text(
-                text = "Tariff Breakdown",
+                text = if (isBangla) "ট্যারিফ ও স্ল্যাব ভিত্তিক হিসাব" else "Tariff Breakdown",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = PrimaryText
@@ -231,26 +235,42 @@ fun FinTechTariffBreakdownCard(
 
             // Additional Charges (Demand Charge, Meter Rent, VAT, etc.)
             if (itemizedBill.demandCharge > BigDecimal.ZERO) {
-                ChargeRow(label = "Demand Charge", amount = itemizedBill.demandCharge, isBangla = isBangla)
+                ChargeRow(
+                    label = if (isBangla) "ডিমান্ড চার্জ" else "Demand Charge",
+                    amount = itemizedBill.demandCharge,
+                    isBangla = isBangla
+                )
                 Spacer(modifier = Modifier.height(6.dp))
             }
             if (itemizedBill.meterRent > BigDecimal.ZERO) {
-                ChargeRow(label = "Meter Rent", amount = itemizedBill.meterRent, isBangla = isBangla)
+                ChargeRow(
+                    label = if (isBangla) "মিটার ভাড়া" else "Meter Rent",
+                    amount = itemizedBill.meterRent,
+                    isBangla = isBangla
+                )
                 Spacer(modifier = Modifier.height(6.dp))
             }
             if (itemizedBill.vatAmount > BigDecimal.ZERO) {
-                ChargeRow(label = "VAT (5%)", amount = itemizedBill.vatAmount, isBangla = isBangla)
+                ChargeRow(
+                    label = if (isBangla) "ভ্যাট (৫%)" else "VAT (5%)",
+                    amount = itemizedBill.vatAmount,
+                    isBangla = isBangla
+                )
                 Spacer(modifier = Modifier.height(6.dp))
             }
 
             Spacer(modifier = Modifier.height(12.dp))
+
+            val successBg = if (isSystemInDarkTheme()) Color(0xFF064E3B).copy(alpha = 0.4f) else EnergyEmeraldLight
+            val successTextColor = if (isSystemInDarkTheme()) Color(0xFF6EE7B7) else Color(0xFF065F46)
+            val successAmountColor = if (isSystemInDarkTheme()) Color(0xFF34D399) else EnergyEmeraldDark
 
             // Highlighted Green Total Row
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
-                    .background(SuccessGreenLight)
+                    .background(successBg)
                     .padding(horizontal = 14.dp, vertical = 12.dp)
             ) {
                 Row(
@@ -258,12 +278,16 @@ fun FinTechTariffBreakdownCard(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    val unitsStr = BigDecimalMath.formatKwh(itemizedBill.totalUnits, isBangla)
+                    val totalLabel = if (isBangla) {
+                        "সর্বমোট (${BigDecimalMath.formatUnits(itemizedBill.totalUnits, true)})"
+                    } else {
+                        "Total (${BigDecimalMath.formatUnits(itemizedBill.totalUnits, false)})"
+                    }
                     Text(
-                        text = "Total ($unitsStr units)",
+                        text = totalLabel,
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
-                        color = PrimaryText
+                        color = successTextColor
                     )
 
                     val billFormatted = BigDecimalMath.formatCurrency(itemizedBill.totalBill, isBangla)
@@ -271,7 +295,7 @@ fun FinTechTariffBreakdownCard(
                         text = billFormatted,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.ExtraBold,
-                        color = SuccessGreen
+                        color = successAmountColor
                     )
                 }
             }
@@ -284,10 +308,20 @@ private fun FinTechSlabRow(
     breakdown: SlabChargeBreakdown,
     isBangla: Boolean
 ) {
-    val rangeText = if (breakdown.slab.maximumUnits != null) {
-        "${breakdown.slab.minimumUnits.toInt()} – ${breakdown.slab.maximumUnits.toInt()} units"
+    val rangeText = if (isBangla) {
+        val min = BanglaDigitNormalizer.toBangla(breakdown.slab.minimumUnits.toInt().toString())
+        if (breakdown.slab.maximumUnits != null) {
+            val max = BanglaDigitNormalizer.toBangla(breakdown.slab.maximumUnits.toInt().toString())
+            "$min – $max ইউনিট"
+        } else {
+            "$min+ ইউনিট"
+        }
     } else {
-        "${breakdown.slab.minimumUnits.toInt()}+ units"
+        if (breakdown.slab.maximumUnits != null) {
+            "${breakdown.slab.minimumUnits.toInt()} – ${breakdown.slab.maximumUnits.toInt()} units"
+        } else {
+            "${breakdown.slab.minimumUnits.toInt()}+ units"
+        }
     }
 
     Row(
@@ -314,8 +348,13 @@ private fun FinTechSlabRow(
             )
         }
 
+        val rateFormatted = if (isBangla) {
+            "@ ৳ ${BanglaDigitNormalizer.toBangla(breakdown.rate.toString())}"
+        } else {
+            "@ ৳ ${breakdown.rate}"
+        }
         Text(
-            text = "@ ৳ ${breakdown.rate}",
+            text = rateFormatted,
             style = MaterialTheme.typography.bodySmall,
             color = SecondaryText,
             textAlign = TextAlign.Center,
@@ -366,7 +405,8 @@ private fun ChargeRow(
 fun MonthlyBillActionButtonsRow(
     onEditTariffClick: () -> Unit,
     onShareClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isBangla: Boolean = false
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -392,7 +432,7 @@ fun MonthlyBillActionButtonsRow(
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = "Edit Tariff",
+                text = if (isBangla) "ট্যারিফ পরিবর্তন" else "Edit Tariff",
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
                 color = PrimaryPurple
@@ -419,7 +459,7 @@ fun MonthlyBillActionButtonsRow(
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = "Share",
+                text = if (isBangla) "শেয়ার করুন" else "Share",
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
                 color = PrimaryPurple

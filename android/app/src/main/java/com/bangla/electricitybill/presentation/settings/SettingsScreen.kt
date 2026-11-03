@@ -242,7 +242,7 @@ fun SettingsScreen(
                     horizontalArrangement = Arrangement.Start
                 ) {
                     Text(
-                        text = "Settings",
+                        text = if (state.appLanguage == "bn") "অ্যাপ সেটিংস" else "Settings",
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         color = PrimaryText
@@ -264,28 +264,28 @@ fun SettingsScreen(
                 ) {
                     Column(modifier = Modifier.padding(18.dp)) {
                         Text(
-                            text = "Meter Settings",
+                            text = if (state.appLanguage == "bn") "মিটার সেটিংস" else "Meter Settings",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = PrimaryText
                         )
                         Spacer(modifier = Modifier.height(10.dp))
                         Text(
-                            text = "Name: ${meter?.meterName ?: "Default Main Meter"}",
+                            text = if (state.appLanguage == "bn") "মিটারের নাম: ${meter?.meterName ?: "মূল মিটার"}" else "Name: ${meter?.meterName ?: "Default Main Meter"}",
                             style = MaterialTheme.typography.bodyMedium,
                             color = PrimaryText
                         )
                         if (!meter?.meterNumber.isNullOrBlank()) {
                             Spacer(modifier = Modifier.height(3.dp))
                             Text(
-                                text = "Meter Number: ${meter?.meterNumber}",
+                                text = if (state.appLanguage == "bn") "মিটার নম্বর: ${meter?.meterNumber}" else "Meter Number: ${meter?.meterNumber}",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = PrimaryText
                             )
                         }
                         Spacer(modifier = Modifier.height(3.dp))
                         Text(
-                            text = "Configuration: ${meter?.blackDigitCapacity ?: 5} Black Digits + 1 Red Decimal Digit",
+                            text = if (state.appLanguage == "bn") "কনফিগারেশন: ${meter?.blackDigitCapacity ?: 5}টি কালো ডিজিট + ১টি লাল দশমিক ডিজিট" else "Configuration: ${meter?.blackDigitCapacity ?: 5} Black Digits + 1 Red Decimal Digit",
                             style = MaterialTheme.typography.bodyMedium,
                             color = SecondaryText
                         )
@@ -301,7 +301,7 @@ fun SettingsScreen(
                         ) {
                             Icon(imageVector = Icons.Default.ChangeCircle, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Meter Replacement Wizard", fontWeight = FontWeight.Bold)
+                            Text(if (state.appLanguage == "bn") "মিটার প্রতিস্থাপন উইজার্ড" else "Meter Replacement Wizard", fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -326,7 +326,7 @@ fun SettingsScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "Electricity Tariff",
+                                text = if (state.appLanguage == "bn") "বিদ্যুৎ ট্যারিফ" else "Electricity Tariff",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = PrimaryText
@@ -339,7 +339,7 @@ fun SettingsScreen(
                                     .padding(horizontal = 8.dp, vertical = 3.dp)
                             ) {
                                 Text(
-                                    text = "Slab-Based (LT-A)",
+                                    text = if (state.appLanguage == "bn") "স্ল্যাব-ভিত্তিক (LT-A)" else "Slab-Based (LT-A)",
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
                                     color = PrimaryPurple
@@ -349,7 +349,7 @@ fun SettingsScreen(
 
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Configured with progressive step rates, monthly demand charge, meter rent, and 5% VAT.",
+                            text = if (state.appLanguage == "bn") "ধাপভিত্তিক ইউনিট মূল্য, মাসিক ডিমান্ড চার্জ, মিটার ভাড়া এবং ৫% ভ্যাট অন্তর্ভুক্ত।" else "Configured with progressive step rates, monthly demand charge, meter rent, and 5% VAT.",
                             style = MaterialTheme.typography.bodySmall,
                             color = SecondaryText
                         )
@@ -366,7 +366,11 @@ fun SettingsScreen(
                         ) {
                             Icon(imageVector = Icons.Default.Edit, contentDescription = null, tint = PrimaryPurple, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Edit Tariff & Unit Prices", fontWeight = FontWeight.Bold, color = PrimaryPurple)
+                            Text(
+                                text = if (state.appLanguage == "bn") "ট্যারিফ ও ইউনিট দর পরিবর্তন" else "Edit Tariff & Unit Prices",
+                                fontWeight = FontWeight.Bold,
+                                color = PrimaryPurple
+                            )
                         }
                     }
                 }
@@ -385,14 +389,14 @@ fun SettingsScreen(
                 ) {
                     Column(modifier = Modifier.padding(18.dp)) {
                         Text(
-                            text = "Preferences",
+                            text = if (state.appLanguage == "bn") "পছন্দসমূহ" else "Preferences",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = PrimaryText
                         )
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        Text(text = "Language:", style = MaterialTheme.typography.bodySmall, color = SecondaryText)
+                        Text(text = if (state.appLanguage == "bn") "ভাষা:" else "Language:", style = MaterialTheme.typography.bodySmall, color = SecondaryText)
                         Spacer(modifier = Modifier.height(6.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             FilterChip(
@@ -411,25 +415,25 @@ fun SettingsScreen(
 
                         Spacer(modifier = Modifier.height(14.dp))
 
-                        Text(text = "Theme:", style = MaterialTheme.typography.bodySmall, color = SecondaryText)
+                        Text(text = if (state.appLanguage == "bn") "থিম:" else "Theme:", style = MaterialTheme.typography.bodySmall, color = SecondaryText)
                         Spacer(modifier = Modifier.height(6.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             FilterChip(
                                 selected = state.appTheme == "SYSTEM",
                                 onClick = { viewModel.setTheme("SYSTEM") },
-                                label = { Text("System") },
+                                label = { Text(if (state.appLanguage == "bn") "সিস্টেম" else "System") },
                                 shape = RoundedCornerShape(10.dp)
                             )
                             FilterChip(
                                 selected = state.appTheme == "LIGHT",
                                 onClick = { viewModel.setTheme("LIGHT") },
-                                label = { Text("Light") },
+                                label = { Text(if (state.appLanguage == "bn") "লাইট" else "Light") },
                                 shape = RoundedCornerShape(10.dp)
                             )
                             FilterChip(
                                 selected = state.appTheme == "DARK",
                                 onClick = { viewModel.setTheme("DARK") },
-                                label = { Text("Dark") },
+                                label = { Text(if (state.appLanguage == "bn") "ডার্ক" else "Dark") },
                                 shape = RoundedCornerShape(10.dp)
                             )
                         }
@@ -444,13 +448,13 @@ fun SettingsScreen(
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "Daily Reading Reminder",
+                                    text = if (state.appLanguage == "bn") "দৈনিক রিডিং রিমাইন্ডার" else "Daily Reading Reminder",
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = PrimaryText
                                 )
                                 Text(
-                                    text = "Daily notification at 8:00 PM to record meter digits",
+                                    text = if (state.appLanguage == "bn") "মিটার রিডিং রেকর্ড করার জন্য প্রতিদিন রাত ৮টায় নোটিফিকেশন" else "Daily notification at 8:00 PM to record meter digits",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = SecondaryText
                                 )
@@ -477,14 +481,14 @@ fun SettingsScreen(
                 ) {
                     Column(modifier = Modifier.padding(18.dp)) {
                         Text(
-                            text = "Data Management",
+                            text = if (state.appLanguage == "bn") "ডাটা ব্যবস্থাপনা" else "Data Management",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = PrimaryText
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = "Export your reading history or clear application data.",
+                            text = if (state.appLanguage == "bn") "রিডিং হিস্ট্রি ব্যাকআপ বা এক্সপোর্ট করুন অথবা ডাটা রিসেট করুন।" else "Export your reading history or clear application data.",
                             style = MaterialTheme.typography.bodySmall,
                             color = SecondaryText
                         )
@@ -581,7 +585,7 @@ fun SettingsScreen(
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = "About Application",
+                                    text = if (state.appLanguage == "bn") "অ্যাপ সম্পর্কিত তথ্য" else "About Application",
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = PrimaryText

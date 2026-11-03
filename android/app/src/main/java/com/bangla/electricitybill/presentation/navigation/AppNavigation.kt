@@ -109,7 +109,8 @@ private val bottomNavRoutes = setOf(
 fun AppNavigation(
     startDestination: String,
     navController: NavHostController = rememberNavController(),
-    updateViewModel: AppUpdateViewModel? = null
+    updateViewModel: AppUpdateViewModel? = null,
+    isBangla: Boolean = false
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
@@ -121,6 +122,7 @@ fun AppNavigation(
             if (isBottomBarVisible) {
                 FintechBottomBar(
                     currentRoute = currentRoute,
+                    isBangla = isBangla,
                     onNavigate = { route ->
                         navController.navigate(route) {
                             popUpTo(navController.graph.findStartDestination().id) {
@@ -257,7 +259,8 @@ fun AppNavigation(
 fun FintechBottomBar(
     currentRoute: String?,
     onNavigate: (String) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isBangla: Boolean = false
 ) {
     val navItems = listOf(
         Screen.Dashboard,
@@ -267,12 +270,14 @@ fun FintechBottomBar(
         Screen.Settings
     )
 
+    val dividerColor = AppDivider
+
     Surface(
         modifier = modifier
             .fillMaxWidth()
             .drawBehind {
                 drawLine(
-                    color = AppDivider,
+                    color = dividerColor,
                     start = Offset.Zero,
                     end = Offset(size.width, 0f),
                     strokeWidth = 1.dp.toPx()
@@ -292,8 +297,20 @@ fun FintechBottomBar(
         ) {
             navItems.forEach { screen ->
                 val selected = currentRoute == screen.route
+                val localizedTitle = if (isBangla) {
+                    when (screen.route) {
+                        Screen.Dashboard.route -> "হোম"
+                        Screen.Readings.route -> "রিডিং"
+                        Screen.Analytics.route -> "অ্যানালিটিক্স"
+                        Screen.Bill.route -> "বিল"
+                        Screen.Settings.route -> "সেটিংস"
+                        else -> screen.title
+                    }
+                } else {
+                    screen.title
+                }
                 FintechNavItem(
-                    title = screen.title,
+                    title = localizedTitle,
                     icon = screen.icon ?: Icons.Default.Home,
                     selected = selected,
                     onClick = { onNavigate(screen.route) },

@@ -174,6 +174,8 @@ fun ConsumptionTrendChart(
                 val textMeasurer = rememberTextMeasurer()
                 val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
                 val labelStyle = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, color = labelColor)
+                val multiDayBarColor = WarningAmber
+                val singleDayBarColor = AccentCyan
 
                 Canvas(
                     modifier = Modifier
@@ -192,7 +194,7 @@ fun ConsumptionTrendChart(
                         val x = spacing + index * (barWidth + spacing)
                         val y = chartHeight - animatedBarHeight
 
-                        val barColor = if (bar.isMultiDay) WarningAmber else AccentCyan
+                        val barColor = if (bar.isMultiDay) multiDayBarColor else singleDayBarColor
 
                         // Draw bar with smooth rounded top corners
                         drawRoundRect(

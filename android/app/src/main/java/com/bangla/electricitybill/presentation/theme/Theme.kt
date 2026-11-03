@@ -12,45 +12,45 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 private val LightColorScheme = lightColorScheme(
-    primary = PrimaryPurple,
-    onPrimary = AppSurface,
-    primaryContainer = LightPurple,
-    onPrimaryContainer = DeepPurple,
-    secondary = DeepPurple,
-    onSecondary = AppSurface,
-    secondaryContainer = SoftPurpleHover,
-    onSecondaryContainer = PrimaryPurple,
-    tertiary = SuccessGreen,
-    onTertiary = AppSurface,
-    tertiaryContainer = SuccessGreenLight,
-    onTertiaryContainer = SuccessGreenDark,
+    primary = ElectricBluePrimary,
+    onPrimary = PureWhite,
+    primaryContainer = ElectricBlueContainer,
+    onPrimaryContainer = ElectricNavyDeep,
+    secondary = ElectricNavyDeep,
+    onSecondary = PureWhite,
+    secondaryContainer = ElectricBlueHover,
+    onSecondaryContainer = ElectricNavyMidnight,
+    tertiary = EnergyEmerald,
+    onTertiary = PureWhite,
+    tertiaryContainer = EnergyEmeraldLight,
+    onTertiaryContainer = EnergyEmeraldDark,
     error = ErrorRed,
-    onError = AppSurface,
+    onError = PureWhite,
     errorContainer = ErrorRedLight,
     onErrorContainer = ErrorRed,
-    background = AppBackground,
-    onBackground = PrimaryText,
-    surface = AppSurface,
-    onSurface = PrimaryText,
-    surfaceVariant = LightPurple,
-    onSurfaceVariant = SecondaryText,
-    outline = CardOutline,
-    outlineVariant = AppDivider
+    background = Slate50,
+    onBackground = Slate900,
+    surface = PureWhite,
+    onSurface = Slate900,
+    surfaceVariant = ElectricBlueContainer,
+    onSurfaceVariant = Slate600,
+    outline = Slate200,
+    outlineVariant = Slate100
 )
 
 private val DarkColorScheme = darkColorScheme(
-    primary = DarkPrimaryPurple,
+    primary = DarkPrimaryBlue,
     onPrimary = DarkBackground,
-    primaryContainer = DarkLightPurple,
+    primaryContainer = DarkLightBlue,
     onPrimaryContainer = DarkOnSurface,
-    secondary = PrimaryPurple,
+    secondary = ElectricBlueVibrant,
     onSecondary = DarkBackground,
     secondaryContainer = DarkSurfaceVariant,
     onSecondaryContainer = DarkOnSurface,
-    tertiary = SuccessGreen,
+    tertiary = EnergyEmerald,
     onTertiary = DarkBackground,
-    tertiaryContainer = DarkLightPurple,
-    onTertiaryContainer = SuccessGreenLight,
+    tertiaryContainer = DarkSurfaceVariant,
+    onTertiaryContainer = EnergyEmeraldLight,
     error = ErrorRed,
     onError = DarkBackground,
     errorContainer = DarkSurfaceVariant,
@@ -75,10 +75,11 @@ fun ElectricityBillTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as? Activity)?.window ?: return@SideEffect
-            window.statusBarColor = if (darkTheme) colorScheme.background.toArgb() else DeepPurple.toArgb()
+            window.statusBarColor = colorScheme.background.toArgb()
             window.navigationBarColor = colorScheme.surface.toArgb()
             val controller = WindowCompat.getInsetsController(window, view)
-            controller.isAppearanceLightStatusBars = false // White text over purple/dark header
+            // In light theme, status bar icons must be dark so they are visible on light background!
+            controller.isAppearanceLightStatusBars = !darkTheme
             controller.isAppearanceLightNavigationBars = !darkTheme
         }
     }

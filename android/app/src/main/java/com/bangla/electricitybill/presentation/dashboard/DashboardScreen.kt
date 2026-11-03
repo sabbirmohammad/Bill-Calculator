@@ -42,7 +42,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bangla.electricitybill.presentation.components.AddReadingActionButton
-import com.bangla.electricitybill.presentation.components.BillingMonthSelectorCard
 import com.bangla.electricitybill.presentation.components.HomeHeader
 import com.bangla.electricitybill.presentation.components.MonthPickerDialog
 import com.bangla.electricitybill.presentation.components.MonthlyConsumptionCard
@@ -92,24 +91,15 @@ fun DashboardScreen(
                 .padding(innerPadding),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Screen 1 Section A: Modern Purple Gradient Hero Header
+            // Screen 1: Modern Clean Home Header with integrated Date & Notification
             item {
                 HomeHeader(
-                    appNameLine1 = if (state.isBangla) "বিদ্যুৎ বিল" else "Electricity Bill",
-                    appNameLine2 = if (state.isBangla) "ক্যালকুলেটর" else "Calculator",
-                    onNotificationClick = onSettingsClick
+                    title = if (state.isBangla) "বিদ্যুৎ বিল ক্যালকুলেটর" else "Electricity Bill Calculator",
+                    selectedMonth = state.selectedMonth,
+                    onDateClick = { showMonthPicker = true },
+                    onNotificationClick = onSettingsClick,
+                    isBangla = state.isBangla
                 )
-            }
-
-            // Screen 1 Section B: Billing Month Selector Card
-            item {
-                Box(modifier = Modifier.padding(horizontal = 20.dp)) {
-                    BillingMonthSelectorCard(
-                        selectedMonth = state.selectedMonth,
-                        onClick = { showMonthPicker = true },
-                        isBangla = state.isBangla
-                    )
-                }
             }
 
             if (!hasReadings) {
@@ -221,7 +211,7 @@ fun DashboardScreen(
                     Box(modifier = Modifier.padding(horizontal = 20.dp)) {
                         AddReadingActionButton(
                             onClick = onAddReadingClick,
-                            text = if (state.isBangla) "+ আজকের রিডিং যোগ করুন" else "+ Add Today's Reading",
+                            text = if (state.isBangla) "আজকের রিডিং যোগ করুন" else "Add Today's Reading",
                             modifier = Modifier.staggeredEntrance(3)
                         )
                     }
@@ -278,6 +268,7 @@ fun DashboardScreen(
                                         dateLabel = item.dateLabel,
                                         readingValue = item.readingValue,
                                         unitsDelta = item.unitsDelta,
+                                        isBangla = state.isBangla,
                                         showDivider = index < state.recentReadingsList.lastIndex
                                     )
                                 }

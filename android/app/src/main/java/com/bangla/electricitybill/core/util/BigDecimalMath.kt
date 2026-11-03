@@ -45,17 +45,33 @@ object BigDecimalMath {
     }
 
     /**
-     * Formats reading in kWh (e.g. 12,345.6 kWh or ১২,৩৪৫.৬ kWh).
+     * Formats pure reading value without unit suffix (e.g. 12,345.6 or ১২,৩৪৫.৬).
      */
-    fun formatKwh(kwh: BigDecimal, isBangla: Boolean = false): String {
-        val rounded = toReadingScale(kwh)
+    fun formatValue(value: BigDecimal, isBangla: Boolean = false): String {
+        val rounded = toReadingScale(value)
         val symbols = DecimalFormatSymbols(Locale.US)
         val formatter = DecimalFormat("#,##0.0", symbols)
         val formatted = formatter.format(rounded)
         return if (isBangla) {
-            "${BanglaDigitNormalizer.toBangla(formatted)} kWh"
+            BanglaDigitNormalizer.toBangla(formatted)
         } else {
-            "$formatted kWh"
+            formatted
         }
+    }
+
+    /**
+     * Formats units consumed (e.g. 12.5 Units or ১২.৫ ইউনিট).
+     */
+    fun formatUnits(units: BigDecimal, isBangla: Boolean = false): String {
+        val formatted = formatValue(units, isBangla)
+        return if (isBangla) "$formatted ইউনিট" else "$formatted Units"
+    }
+
+    /**
+     * Formats reading in kWh (e.g. 12,345.6 kWh or ১২,৩৪৫.৬ kWh).
+     */
+    fun formatKwh(kwh: BigDecimal, isBangla: Boolean = false): String {
+        val formatted = formatValue(kwh, isBangla)
+        return "$formatted kWh"
     }
 }

@@ -148,7 +148,7 @@ fun AddReadingScreen(
         topBar = {
             AddReadingTopBar(
                 onNavigateBack = onNavigateBack,
-                title = "Add Meter Reading"
+                title = if (state.isBangla) "মিটার রিডিং যোগ করুন" else "Add Meter Reading"
             )
         },
         containerColor = MaterialTheme.colorScheme.background
@@ -164,13 +164,20 @@ fun AddReadingScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             // Screen 2 Section B: Date Selection Card
+            val formattedDate = DateUtils.formatDate(state.readingDateTime)
             val dateLabel = when (state.readingDateTime.toLocalDate()) {
-                DateUtils.today() -> "Today, ${DateUtils.formatDate(state.readingDateTime)}"
-                else -> DateUtils.formatDate(state.readingDateTime)
+                DateUtils.today() -> if (state.isBangla) "আজ, ${com.bangla.electricitybill.core.util.BanglaDigitNormalizer.toBangla(formattedDate)}" else "Today, $formattedDate"
+                else -> if (state.isBangla) com.bangla.electricitybill.core.util.BanglaDigitNormalizer.toBangla(formattedDate) else formattedDate
             }
+            val badgeLabel = if (state.isBangla) {
+                if (state.isAutoDetectedDate) "স্বয়ংক্রিয় তারিখ" else "কাস্টম তারিখ"
+            } else {
+                if (state.isAutoDetectedDate) "Auto-detected" else "Custom Date"
+            }
+
             AddReadingDateCard(
                 dateText = dateLabel,
-                badgeText = if (state.isAutoDetectedDate) "Auto-detected" else "Custom Date",
+                badgeText = badgeLabel,
                 onClick = { showDatePicker = true },
                 modifier = Modifier.staggeredEntrance(0)
             )
@@ -185,7 +192,7 @@ fun AddReadingScreen(
                 horizontalArrangement = Arrangement.Start
             ) {
                 Text(
-                    text = "Enter Current Meter Reading",
+                    text = if (state.isBangla) "বর্তমান মিটার রিডিং লিখুন" else "Enter Current Meter Reading",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = PrimaryText
@@ -195,10 +202,13 @@ fun AddReadingScreen(
             Spacer(modifier = Modifier.height(14.dp))
 
             // Screen 2 Section C: Mechanical Meter Instruction Graphic
+            val capacity = state.activeMeter?.blackDigitCapacity ?: 5
+            val fallbackBlack = state.previousReading?.blackDigits ?: "0".repeat(capacity)
+            val fallbackRed = state.previousReading?.redDigit ?: "0"
             MechanicalMeterGraphic(
-                blackDigits = state.blackDigits.ifEmpty { "02568" },
-                redDigit = state.redDigit.ifEmpty { "6" },
-                capacity = state.activeMeter?.blackDigitCapacity ?: 5,
+                blackDigits = state.blackDigits.ifEmpty { fallbackBlack },
+                redDigit = state.redDigit.ifEmpty { fallbackRed },
+                capacity = capacity,
                 modifier = Modifier.staggeredEntrance(2)
             )
 
@@ -208,7 +218,8 @@ fun AddReadingScreen(
                 redDigit = state.redDigit,
                 onBlackDigitsChange = viewModel::updateBlackDigits,
                 onRedDigitChange = viewModel::updateRedDigit,
-                modifier = Modifier.staggeredEntrance(3)
+                modifier = Modifier.staggeredEntrance(3),
+                isBangla = state.isBangla
             )
 
             // Validation Message Display
@@ -233,22 +244,27 @@ fun AddReadingScreen(
 
             // Screen 2 Section E: Live Calculation Preview & Reading Summary Card
             val prevText = state.previousReading?.let {
-                "${it.blackDigits}.${it.redDigit} kWh"
-            } ?: "No previous reading"
+                if (state.isBangla) {
+                    "${com.bangla.electricitybill.core.util.BanglaDigitNormalizer.toBangla(it.blackDigits)}.${com.bangla.electricitybill.core.util.BanglaDigitNormalizer.toBangla(it.redDigit)} kWh"
+                } else {
+                    "${it.blackDigits}.${it.redDigit} kWh"
+                }
+            } ?: (if (state.isBangla) "কোনো পূর্ববর্তী রিডিং নেই" else "No previous reading")
 
             val unitsTodayText = state.previewDeltaUnits?.let {
-                BigDecimalMath.formatKwh(it)
+                BigDecimalMath.formatUnits(it, state.isBangla)
             }
 
             val costTodayText = state.previewEnergyCost?.let {
-                BigDecimalMath.formatCurrency(it)
+                BigDecimalMath.formatCurrency(it, state.isBangla)
             }
 
             ReadingSummaryCard(
                 previousReadingText = prevText,
                 unitsTodayText = unitsTodayText,
                 costTodayText = costTodayText,
-                modifier = Modifier.staggeredEntrance(4)
+                modifier = Modifier.staggeredEntrance(4),
+                isBangla = state.isBangla
             )
 
             Spacer(modifier = Modifier.height(28.dp))
@@ -273,7 +289,7 @@ fun AddReadingScreen(
                     )
                 } else {
                     Text(
-                        text = "Save Reading",
+                        text = if (state.isBangla) "রিডিং সংরক্ষণ করুন" else "Save Reading",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = Color.White

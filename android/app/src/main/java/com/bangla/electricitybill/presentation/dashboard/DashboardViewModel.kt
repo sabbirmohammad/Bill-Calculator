@@ -2,6 +2,7 @@ package com.bangla.electricitybill.presentation.dashboard
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.bangla.electricitybill.core.util.BanglaDigitNormalizer
 import com.bangla.electricitybill.core.util.DateUtils
 import com.bangla.electricitybill.data.datastore.PreferencesManager
 import com.bangla.electricitybill.domain.engine.ConsumptionCalculator
@@ -126,13 +127,18 @@ class DashboardViewModel @Inject constructor(
             val curr = sortedDesc[i]
             val prev = if (i + 1 < sortedDesc.size) sortedDesc[i + 1] else null
 
+            val dateFormatted = DateUtils.formatDate(curr.readingDateTime)
             val dateLabel = when (curr.readingDateTime.toLocalDate()) {
-                today -> "Today, ${DateUtils.formatDate(curr.readingDateTime)}"
-                today.minusDays(1) -> "Yesterday"
-                else -> DateUtils.formatDate(curr.readingDateTime)
+                today -> if (isBn) "আজ, ${BanglaDigitNormalizer.toBangla(dateFormatted)}" else "Today, $dateFormatted"
+                today.minusDays(1) -> if (isBn) "গতকাল" else "Yesterday"
+                else -> if (isBn) BanglaDigitNormalizer.toBangla(dateFormatted) else dateFormatted
             }
 
-            val readingFormatted = "${curr.blackDigits}.${curr.redDigit} kWh"
+            val readingFormatted = if (isBn) {
+                "${BanglaDigitNormalizer.toBangla(curr.blackDigits)}.${BanglaDigitNormalizer.toBangla(curr.redDigit)} kWh"
+            } else {
+                "${curr.blackDigits}.${curr.redDigit} kWh"
+            }
 
             val deltaStr = if (prev != null) {
                 val isRollover = curr.readingSource == ReadingSource.ROLLOVER || curr.normalizedReading < prev.normalizedReading
@@ -143,7 +149,10 @@ class DashboardViewModel @Inject constructor(
                     blackDigitCapacity = meter?.blackDigitCapacity ?: 5
                 )
                 val d = res.getOrDefault(BigDecimal.ZERO)
-                if (d > BigDecimal.ZERO) d.setScale(1, RoundingMode.HALF_UP).toPlainString() else null
+                if (d > BigDecimal.ZERO) {
+                    val s = d.setScale(1, RoundingMode.HALF_UP).toPlainString()
+                    if (isBn) BanglaDigitNormalizer.toBangla(s) else s
+                } else null
             } else null
 
             recentUiList.add(

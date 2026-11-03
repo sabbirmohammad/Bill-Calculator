@@ -166,8 +166,8 @@ fun MechanicalMeterGraphic(
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFC7CBD1)),
-        border = BorderStroke(1.5.dp, Color(0xFFA0A5AE)),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Box(
@@ -206,27 +206,14 @@ fun MechanicalMeterGraphic(
 
                     Spacer(modifier = Modifier.width(8.dp))
 
-                    Column(
-                        horizontalAlignment = Alignment.Start,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            text = "kWh",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = Color(0xFF94A3B8),
-                            fontSize = 11.sp,
-                            lineHeight = 12.sp
-                        )
-                        Text(
-                            text = "kWh",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Normal,
-                            color = Color(0xFF64748B),
-                            fontSize = 9.sp,
-                            lineHeight = 10.sp
-                        )
-                    }
+                    Text(
+                        text = "kWh",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color(0xFF94A3B8),
+                        fontSize = 12.sp,
+                        lineHeight = 14.sp
+                    )
                 }
             }
         }
@@ -298,7 +285,8 @@ fun MeterDigitInputSection(
     redDigit: String,
     onBlackDigitsChange: (String) -> Unit,
     onRedDigitChange: (String) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isBangla: Boolean = false
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -314,20 +302,23 @@ fun MeterDigitInputSection(
         } else "0"
         val formattedRed = if (redDigit.isNotEmpty()) redDigit else "0"
 
+        val displayWhole = if (isBangla) com.bangla.electricitybill.core.util.BanglaDigitNormalizer.toBangla(formattedWhole) else formattedWhole
+        val displayRed = if (isBangla) com.bangla.electricitybill.core.util.BanglaDigitNormalizer.toBangla(formattedRed) else formattedRed
+
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center,
             modifier = Modifier.padding(vertical = 12.dp)
         ) {
             Text(
-                text = "$formattedWhole.",
+                text = "$displayWhole.",
                 style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.Bold,
                 color = PrimaryText,
                 fontSize = 32.sp
             )
             Text(
-                text = formattedRed,
+                text = displayRed,
                 style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.Bold,
                 color = ErrorRed,
@@ -358,7 +349,11 @@ fun MeterDigitInputSection(
                 modifier = Modifier.size(16.dp)
             )
             Text(
-                text = "Enter the full reading from your meter (last red digit is the decimal, e.g. 2568.6)",
+                text = if (isBangla) {
+                    "মিটারের পুরো রিডিং লিখুন (শেষের লাল ঘরটি দশমিক মান নির্দেশ করে)"
+                } else {
+                    "Enter the full reading from your meter (last red digit is the decimal, e.g. 2568.6)"
+                },
                 style = MaterialTheme.typography.bodySmall,
                 color = SecondaryText,
                 lineHeight = 16.sp
@@ -375,7 +370,7 @@ fun MeterDigitInputSection(
             // Black Digits Input Field
             Column(modifier = Modifier.weight(2.2f)) {
                 Text(
-                    text = "BLACK DIGITS",
+                    text = if (isBangla) "কালো ডিজিট" else "BLACK DIGITS",
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     color = SecondaryText,
@@ -394,7 +389,7 @@ fun MeterDigitInputSection(
                 ) {
                     if (blackDigits.isEmpty()) {
                         Text(
-                            text = "12348",
+                            text = if (isBangla) "১২৩৪৮" else "12348",
                             style = MaterialTheme.typography.titleLarge,
                             color = SecondaryText.copy(alpha = 0.4f),
                             fontWeight = FontWeight.Bold
@@ -419,7 +414,7 @@ fun MeterDigitInputSection(
             // Red Decimal Digit Input Field
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "RED DIGIT",
+                    text = if (isBangla) "লাল ডিজিট" else "RED DIGIT",
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     color = ErrorRed,
@@ -475,7 +470,8 @@ fun ReadingSummaryCard(
     previousReadingText: String,
     unitsTodayText: String?,
     costTodayText: String?,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isBangla: Boolean = false
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -490,7 +486,7 @@ fun ReadingSummaryCard(
                 .padding(18.dp)
         ) {
             Text(
-                text = "Reading Summary",
+                text = if (isBangla) "রিডিং সারসংক্ষেপ" else "Reading Summary",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = PrimaryPurple
@@ -502,7 +498,7 @@ fun ReadingSummaryCard(
             SummaryItemRow(
                 icon = Icons.Default.Speed,
                 iconColor = DeepPurple,
-                label = "Previous Reading",
+                label = if (isBangla) "পূর্ববর্তী রিডিং" else "Previous Reading",
                 value = previousReadingText,
                 valueColor = PrimaryText
             )
@@ -510,11 +506,14 @@ fun ReadingSummaryCard(
             Spacer(modifier = Modifier.height(12.dp))
 
             // Row 2: Units Today
+            val unitsDisplay = if (unitsTodayText != null) {
+                if (isBangla) "+$unitsTodayText" else "+$unitsTodayText units"
+            } else "—"
             SummaryItemRow(
                 icon = Icons.Default.Bolt,
                 iconColor = PrimaryPurple,
-                label = "Units Today",
-                value = if (unitsTodayText != null) "+$unitsTodayText units" else "—",
+                label = if (isBangla) "আজকের ব্যবহূত ইউনিট" else "Units Today",
+                value = unitsDisplay,
                 valueColor = SuccessGreen
             )
 
@@ -524,7 +523,7 @@ fun ReadingSummaryCard(
             SummaryItemRow(
                 icon = Icons.Default.Layers,
                 iconColor = PrimaryPurple,
-                label = "Cost Today",
+                label = if (isBangla) "আজকের আনুমানিক খরচ" else "Cost Today",
                 value = costTodayText ?: "—",
                 valueColor = PrimaryText
             )

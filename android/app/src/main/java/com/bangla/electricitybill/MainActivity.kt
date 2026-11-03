@@ -36,8 +36,11 @@ class MainActivity : ComponentActivity() {
         setContent {
             val isOnboardingCompleted by preferencesManager.isOnboardingCompleted.collectAsState(initial = null)
             val appTheme by preferencesManager.appTheme.collectAsState(initial = "SYSTEM")
+            val appLanguage by preferencesManager.appLanguage.collectAsState(initial = "en")
             val updateState by updateViewModel.uiState.collectAsState()
             val context = LocalContext.current
+
+            val isBangla = appLanguage == "bn"
 
             // Check for updates automatically in the background
             LaunchedEffect(Unit) {
@@ -63,7 +66,8 @@ class MainActivity : ComponentActivity() {
                     }
                     AppNavigation(
                         startDestination = startRoute,
-                        updateViewModel = updateViewModel
+                        updateViewModel = updateViewModel,
+                        isBangla = isBangla
                     )
                 }
 

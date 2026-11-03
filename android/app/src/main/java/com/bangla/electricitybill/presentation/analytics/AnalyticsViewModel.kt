@@ -2,8 +2,10 @@ package com.bangla.electricitybill.presentation.analytics
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.bangla.electricitybill.core.util.BanglaDigitNormalizer
 import com.bangla.electricitybill.core.util.DateUtils
 import com.bangla.electricitybill.data.backup.BackupManager
+import com.bangla.electricitybill.data.datastore.PreferencesManager
 import com.bangla.electricitybill.domain.engine.ConsumptionCalculator
 import com.bangla.electricitybill.domain.engine.ProgressiveTariffEngine
 import com.bangla.electricitybill.domain.model.BillingPeriod
@@ -43,6 +45,7 @@ data class AnalyticsUiState(
     val readings: List<MeterReading> = emptyList(),
     val monthlyPeriods: List<BillingPeriod> = emptyList(),
     val activeTariff: Tariff? = null,
+    val isBangla: Boolean = false,
     val isLoading: Boolean = true
 )
 
@@ -52,7 +55,8 @@ class AnalyticsViewModel @Inject constructor(
     private val readingRepository: MeterReadingRepository,
     private val billingPeriodRepository: BillingPeriodRepository,
     private val tariffRepository: TariffRepository,
-    private val backupManager: BackupManager
+    private val backupManager: BackupManager,
+    private val preferencesManager: PreferencesManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AnalyticsUiState())
@@ -71,8 +75,10 @@ class AnalyticsViewModel @Inject constructor(
                 readingRepository.getReadingsFlow(meter.id),
                 billingPeriodRepository.getBillingPeriodsFlow(meter.id),
                 tariffRepository.getActiveTariffFlow(),
+                preferencesManager.appLanguage,
                 _selectedFilter
-            ) { readings, periods, tariff, filter ->
+            ) { readings, periods, tariff, lang, filter ->
+                val isBn = lang == "bn"
                 val sorted = readings.sortedBy { it.readingDateTime }
                 val now = DateUtils.now()
                 val currentYearMonth = YearMonth.from(now)
@@ -196,6 +202,7 @@ class AnalyticsViewModel @Inject constructor(
                         readings = sorted,
                         monthlyPeriods = periods,
                         activeTariff = tariff,
+                        isBangla = isBn,
                         isLoading = false
                     )
                 }

@@ -57,6 +57,7 @@ import com.bangla.electricitybill.presentation.theme.AppDivider
 import com.bangla.electricitybill.presentation.theme.CardOutline
 import com.bangla.electricitybill.presentation.theme.DeepPurple
 import com.bangla.electricitybill.presentation.theme.LightPurple
+import com.bangla.electricitybill.presentation.theme.ElectricNavyMidnight
 import com.bangla.electricitybill.presentation.theme.PrimaryPurple
 import com.bangla.electricitybill.presentation.theme.PrimaryText
 import com.bangla.electricitybill.presentation.theme.PurpleHeroGradientEnd
@@ -68,86 +69,87 @@ import java.math.BigDecimal
 import java.time.YearMonth
 
 /**
- * Screen 1 — Modern Purple Gradient Hero Header
+ * Screen 1 — Modern Clean Unboxed Home Header with integrated Date & Notification
  */
 @Composable
 fun HomeHeader(
-    appNameLine1: String = "Electricity Bill",
-    appNameLine2: String = "Calculator",
+    title: String = "Electricity Bill Calculator",
+    selectedMonth: YearMonth? = null,
+    onDateClick: () -> Unit = {},
     onNotificationClick: () -> Unit = {},
+    isBangla: Boolean = false,
     modifier: Modifier = Modifier
 ) {
-    Box(
+    Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp))
-            .background(
-                Brush.horizontalGradient(
-                    colors = listOf(PurpleHeroGradientStart, PurpleHeroGradientEnd)
-                )
-            )
-            .padding(horizontal = 20.dp, vertical = 20.dp)
+            .padding(horizontal = 20.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                // Circle lightning icon with gold accent
-                Box(
+            Text(
+                text = title,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground,
+                fontSize = 22.sp,
+                letterSpacing = (-0.3).sp
+            )
+
+            if (selectedMonth != null) {
+                val formattedMonth = DateUtils.formatMonthYear(selectedMonth)
+                val displayMonth = if (isBangla) BanglaDigitNormalizer.toBangla(formattedMonth) else formattedMonth
+
+                Row(
                     modifier = Modifier
-                        .size(44.dp)
-                        .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.18f)),
-                    contentAlignment = Alignment.Center
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable(onClick = onDateClick)
+                        .padding(vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(5.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Bolt,
+                        imageVector = Icons.Default.CalendarMonth,
                         contentDescription = null,
-                        tint = VoltAmber,
-                        modifier = Modifier.size(26.dp)
-                    )
-                }
-
-                Column {
-                    Text(
-                        text = appNameLine1,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                        fontSize = 17.sp,
-                        lineHeight = 20.sp
+                        tint = PrimaryPurple,
+                        modifier = Modifier.size(15.dp)
                     )
                     Text(
-                        text = appNameLine2,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                        fontSize = 17.sp,
-                        lineHeight = 20.sp
+                        text = displayMonth,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = SecondaryText,
+                        fontSize = 14.sp
+                    )
+                    Icon(
+                        imageVector = Icons.Default.KeyboardArrowDown,
+                        contentDescription = "Select Month",
+                        tint = SecondaryText,
+                        modifier = Modifier.size(16.dp)
                     )
                 }
             }
+        }
 
-            // Notification Bell
-            IconButton(
-                onClick = onNotificationClick,
-                modifier = Modifier
-                    .size(42.dp)
-                    .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.12f))
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Notifications,
-                    contentDescription = "Notifications",
-                    tint = Color.White,
-                    modifier = Modifier.size(22.dp)
-                )
-            }
+        // Notification Bell
+        IconButton(
+            onClick = onNotificationClick,
+            modifier = Modifier
+                .size(42.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surface)
+                .border(1.dp, CardOutline, CircleShape)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Notifications,
+                contentDescription = "Notifications",
+                tint = PrimaryText,
+                modifier = Modifier.size(20.dp)
+            )
         }
     }
 }
@@ -273,10 +275,9 @@ fun MonthlyConsumptionCard(
                 Spacer(modifier = Modifier.height(10.dp))
 
                 // Prominent Consumption Number
-                val kwhStr = BigDecimalMath.formatKwh(consumptionKwh, isBangla)
-                val unitWord = if (isBangla) "ইউনিট" else "Units"
+                val consumptionDisplay = BigDecimalMath.formatUnits(consumptionKwh, isBangla)
                 Text(
-                    text = "$kwhStr $unitWord",
+                    text = consumptionDisplay,
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.ExtraBold,
                     color = PrimaryText,
@@ -324,6 +325,9 @@ fun MonthlyConsumptionCard(
 fun MiniProgressiveBarChart(
     modifier: Modifier = Modifier
 ) {
+    val barColorTop = PrimaryPurple
+    val barColorBottom = LightPurple
+
     Canvas(modifier = modifier) {
         val barCount = 5
         val barRatios = listOf(0.35f, 0.48f, 0.62f, 0.78f, 0.95f)
@@ -338,8 +342,8 @@ fun MiniProgressiveBarChart(
             val y = chartHeight - bHeight
             val barBrush = Brush.verticalGradient(
                 colors = listOf(
-                    PrimaryPurple,
-                    LightPurple
+                    barColorTop,
+                    barColorBottom
                 ),
                 startY = y,
                 endY = chartHeight
@@ -379,7 +383,7 @@ fun QuickStatisticsRow(
 
         QuickStatCard(
             icon = Icons.Default.Bolt,
-            value = BigDecimalMath.formatKwh(unitsPerDay, isBangla),
+            value = BigDecimalMath.formatValue(unitsPerDay, isBangla),
             label = if (isBangla) "ইউনিট/দিন" else "Units/Day",
             modifier = Modifier.weight(1f)
         )
@@ -510,6 +514,7 @@ fun RecentReadingRow(
     readingValue: String,
     unitsDelta: String?,
     modifier: Modifier = Modifier,
+    isBangla: Boolean = false,
     showDivider: Boolean = true
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
@@ -543,7 +548,7 @@ fun RecentReadingRow(
             ) {
                 if (unitsDelta != null) {
                     Text(
-                        text = "+$unitsDelta units",
+                        text = "+$unitsDelta ${if (isBangla) "ইউনিট" else "units"}",
                         style = MaterialTheme.typography.bodyMedium,
                         color = SuccessGreen,
                         fontWeight = FontWeight.Bold
