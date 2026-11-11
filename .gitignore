@@ -10,6 +10,7 @@ gradle-app.setting
 
 # Local configuration file (sdk path, personal configs)
 local.properties
+.local/
 
 # Log files
 *.log
@@ -49,3 +50,7 @@ Thumbs.db
 # Build artifacts & APKs
 *.apk
 release-output/
+
+screenshots/
+*.xml
+

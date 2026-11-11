@@ -22,6 +22,15 @@
     <string name="empty_readings_title">No readings recorded yet</string>
     <string name="empty_readings_desc">Start by entering your first meter reading to track your electricity consumption and bills.</string>
     <string name="bill_breakdown">Bill Breakdown</string>
+    <string name="itemized_receipt">Itemized Receipt</string>
+    <string name="table_header_slab">Slab / Range</string>
+    <string name="table_header_units">Units</string>
+    <string name="table_header_rate">Rate</string>
+    <string name="table_header_amount">Amount</string>
+    <string name="energy_subtotal">Energy Subtotal</string>
+    <string name="total_payable_desc">Incl. all taxes &amp; charges</string>
+    <string name="slab_number">Slab %1$d</string>
+    <string name="rate_per_unit">/unit</string>
     <string name="what_if_simulator">What-If Bill Simulator</string>
     <string name="simulate_units_desc">Slide to see how reducing or increasing units affects your tariff slabs and final bill.</string>
     <string name="demand_charge">Demand Charge</string>
@@ -32,7 +41,11 @@
     <string name="yesterday_usage">Yesterday</string>
     <string name="daily_avg">Daily Avg</string>
     <string name="budget_status">Monthly Budget</string>
+    <string name="budget_and_outlook">Monthly Budget &amp; Outlook</string>
     <string name="forecast_title">Month-End Forecast</string>
+    <string name="forecast_on_track">On Track</string>
+    <string name="forecast_over_budget">Over Budget</string>
+    <string name="outlook_at_risk">Risk Alert</string>
     <string name="energy_charges">Energy Charges (Slabs)</string>
 
     <!-- Analytics -->
@@ -118,4 +131,46 @@
     <string name="export_csv">Export CSV</string>
     <string name="export_pdf">Export PDF</string>
     <string name="export_share_bill">Share Bill Statement</string>
+
+    <!-- App Update -->
+    <string name="update_checking_title">Checking for Updates</string>
+    <string name="update_checking_subtitle">Connecting to GitHub...</string>
+    <string name="update_available_title">New Update Available!</string>
+    <string name="update_changelog_title">What\'s New</string>
+    <string name="update_btn_later">Later</string>
+    <string name="update_btn_download_now">Download &amp; Update</string>
+    <string name="update_downloading_title">Downloading Update</string>
+    <string name="update_status_downloading">Downloading...</string>
+    <string name="update_btn_cancel">Cancel</string>
+    <string name="update_ready_title">Download Complete!</string>
+    <string name="update_ready_subtitle">WattWise v%1$s is ready to install.</string>
+    <string name="update_permission_hint">Please grant permission to install updates from unknown sources.</string>
+    <string name="update_btn_grant_permission">Grant Install Permission</string>
+    <string name="update_btn_install_now">Install Now</string>
+    <string name="update_error_title">Update Failed</string>
+    <string name="update_btn_ok">OK</string>
+    <string name="update_up_to_date">You are already on the latest version!</string>
+    <string name="settings_section_updates">App Updates</string>
+    <string name="settings_check_updates">Check for Updates</string>
+    <string name="settings_auto_update">Auto-check on Startup</string>
+    <string name="settings_github_repo">GitHub Repository</string>
+    <string name="settings_github_repo_desc">Source repository for updates</string>
+
+    <!-- Initial Reading & Date Picker -->
+    <string name="initial_reading_dialog_title">Initial Reading Required</string>
+    <string name="initial_reading_dialog_desc">WattWise needs your starting meter reading to calculate daily electricity usage and month-end bills. You can adjust the date if this reading was taken earlier.</string>
+    <string name="initial_reading_banner_title">Initial Reading Required</string>
+    <string name="initial_reading_banner_desc">Electricity tracking and bill calculations are paused until you provide an initial meter reading.</string>
+    <string name="btn_set_initial_reading">Set Initial Reading</string>
+    <string name="btn_save_initial_reading">Save Initial Reading</string>
+    <string name="btn_later">Later</string>
+    <string name="reading_date">Reading Date</string>
+    <string name="reading_time">Reading Time</string>
+    <string name="change_date">Change Date</string>
+    <string name="change_time">Change Time</string>
+    <string name="select_date">Select Date</string>
+    <string name="cancel">Cancel</string>
+    <string name="initial_reading_input_label">Starting Reading (kWh)</string>
+    <string name="initial_reading_info_title">Starting Baseline Reading</string>
+    <string name="initial_reading_info_banner">This is your starting meter reading. Future consumption will be calculated from this baseline.</string>
 </resources>

@@ -22,6 +22,15 @@
     <string name="empty_readings_title">এখনও কোনো রিডিং যোগ করা হয়নি</string>
     <string name="empty_readings_desc">আপনার বিদ্যুৎ খরচ এবং বিল ট্র্যাক করতে প্রথম মিটারের রিডিং যুক্ত করুন।</string>
     <string name="bill_breakdown">বিলের বিস্তারিত</string>
+    <string name="itemized_receipt">আইটেমাইজড রিসিট</string>
+    <string name="table_header_slab">স্ল্যাব / সীমা</string>
+    <string name="table_header_units">ইউনিট</string>
+    <string name="table_header_rate">দর</string>
+    <string name="table_header_amount">মোট</string>
+    <string name="energy_subtotal">এনার্জি সাবটোটাল</string>
+    <string name="total_payable_desc">সকল ভ্যাট ও চার্জ অন্তর্ভুক্ত</string>
+    <string name="slab_number">স্ল্যাব %1$d</string>
+    <string name="rate_per_unit">/ইউনিট</string>
     <string name="what_if_simulator">সিমুলেশন ক্যালকুলেটর</string>
     <string name="simulate_units_desc">ইউনিট কমানো বা বাড়ালে ট্যারিফ স্ল্যাব এবং মোট বিলে কী প্রভাব পড়ে তা পরীক্ষা করুন।</string>
     <string name="demand_charge">ডিমান্ড চার্জ</string>
@@ -32,7 +41,11 @@
     <string name="yesterday_usage">গতকালের ব্যবহার</string>
     <string name="daily_avg">দৈনিক গড়</string>
     <string name="budget_status">মাসিক বাজেট</string>
+    <string name="budget_and_outlook">মাসিক বাজেট ও পূর্বাভাস</string>
     <string name="forecast_title">মাস শেষের পূর্বাভাস</string>
+    <string name="forecast_on_track">নিয়ন্ত্রণে</string>
+    <string name="forecast_over_budget">বাজেট অতিরিক্ত</string>
+    <string name="outlook_at_risk">ঝুঁকিপূর্ণ</string>
     <string name="energy_charges">এনার্জি চার্জ (স্ল্যাবসমূহ)</string>
 
     <!-- Analytics -->
@@ -118,4 +131,46 @@
     <string name="export_csv">CSV এক্সপোর্ট</string>
     <string name="export_pdf">PDF এক্সপোর্ট</string>
     <string name="export_share_bill">বিলের বিবরণ শেয়ার করুন</string>
+
+    <!-- App Update -->
+    <string name="update_checking_title">আপডেট পরীক্ষা করা হচ্ছে</string>
+    <string name="update_checking_subtitle">গিটহাবের সাথে সংযোগ করা হচ্ছে...</string>
+    <string name="update_available_title">নতুন আপডেট উপলব্ধ!</string>
+    <string name="update_changelog_title">নতুন কী এসেছে</string>
+    <string name="update_btn_later">পরে</string>
+    <string name="update_btn_download_now">ডাউনলোড ও আপডেট করুন</string>
+    <string name="update_downloading_title">আপডেট ডাউনলোড হচ্ছে</string>
+    <string name="update_status_downloading">ডাউনলোড হচ্ছে...</string>
+    <string name="update_btn_cancel">বাতিল করুন</string>
+    <string name="update_ready_title">ডাউনলোড সম্পন্ন হয়েছে!</string>
+    <string name="update_ready_subtitle">WattWise v%1$s ইনস্টল করার জন্য প্রস্তুত।</string>
+    <string name="update_permission_hint">অনুগ্রহ করে অজানা উৎস থেকে অ্যাপ ইনস্টল করার অনুমতি প্রদান করুন।</string>
+    <string name="update_btn_grant_permission">ইনস্টল করার অনুমতি দিন</string>
+    <string name="update_btn_install_now">এখনই ইনস্টল করুন</string>
+    <string name="update_error_title">আপডেট ব্যর্থ হয়েছে</string>
+    <string name="update_btn_ok">ঠিক আছে</string>
+    <string name="update_up_to_date">আপনি ইতিমধ্যেই সর্বশেষ সংস্করণে আছেন!</string>
+    <string name="settings_section_updates">অ্যাপ আপডেট</string>
+    <string name="settings_check_updates">আপডেট চেক করুন</string>
+    <string name="settings_auto_update">অ্যাপ চালুর সময় স্বয়ংক্রিয় চেক</string>
+    <string name="settings_github_repo">গিটহাব রিপোজিটরি</string>
+    <string name="settings_github_repo_desc">রিলিজের সোর্স রিপোজিটরি</string>
+
+    <!-- Initial Reading & Date Picker -->
+    <string name="initial_reading_dialog_title">প্রারম্ভিক রিডিং প্রয়োজন</string>
+    <string name="initial_reading_dialog_desc">দৈনিক বিদ্যুৎ ব্যবহার ও সঠিক বিল হিসাব করতে ওয়াটওয়াইজের একটি প্রারম্ভিক মিটার রিডিং প্রয়োজন। এই রিডিংটি আগে নেওয়া হয়ে থাকলে নিচের তারিখ পরিবর্তন করতে পারেন।</string>
+    <string name="initial_reading_banner_title">প্রারম্ভিক রিডিং প্রয়োজন</string>
+    <string name="initial_reading_banner_desc">প্রারম্ভিক মিটার রিডিং না দেওয়া পর্যন্ত বিদ্যুৎ ব্যবহার ট্র্যাকিং ও বিল গণনা স্থগিত থাকবে।</string>
+    <string name="btn_set_initial_reading">প্রারম্ভিক রিডিং দিন</string>
+    <string name="btn_save_initial_reading">সংরক্ষণ করুন</string>
+    <string name="btn_later">পরে</string>
+    <string name="reading_date">রিডিংয়ের তারিখ</string>
+    <string name="reading_time">রিডিংয়ের সময়</string>
+    <string name="change_date">তারিখ পরিবর্তন</string>
+    <string name="change_time">সময় পরিবর্তন</string>
+    <string name="select_date">তারিখ নির্বাচন</string>
+    <string name="cancel">বাতিল</string>
+    <string name="initial_reading_input_label">শুরুর রিডিং (kWh)</string>
+    <string name="initial_reading_info_title">শুরুর বেইজলাইন রিডিং</string>
+    <string name="initial_reading_info_banner">শুরুর বেইজলাইন রিডিং। পরবর্তী সমস্ত বিদ্যুৎ খরচ এই মান থেকে হিসাব করা হবে।</string>
 </resources>

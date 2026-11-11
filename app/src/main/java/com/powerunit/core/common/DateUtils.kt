@@ -46,4 +46,33 @@ object DateUtils {
         val ldt = LocalDateTime(year, month, day, hour, minute, 0, 0)
         return ldt.toInstant(DHAKA_ZONE)
     }
+
+    fun toLocalDate(instant: Instant): LocalDate {
+        return instant.toLocalDateTime(DHAKA_ZONE).date
+    }
+
+    fun combineDateWithTime(date: LocalDate, existingInstant: Instant = currentInstant()): Instant {
+        val ldt = existingInstant.toLocalDateTime(DHAKA_ZONE)
+        return toInstantAtDhaka(
+            year = date.year,
+            month = date.monthNumber,
+            day = date.dayOfMonth,
+            hour = ldt.hour,
+            minute = ldt.minute
+        )
+    }
+
+    fun combineWithTime(date: LocalDate, hour: Int, minute: Int): Instant {
+        return toInstantAtDhaka(
+            year = date.year,
+            month = date.monthNumber,
+            day = date.dayOfMonth,
+            hour = hour.coerceIn(0, 23),
+            minute = minute.coerceIn(0, 59)
+        )
+    }
+
+    fun instantToUtcEpochMillis(instant: Instant): Long {
+        return instant.toEpochMilliseconds()
+    }
 }

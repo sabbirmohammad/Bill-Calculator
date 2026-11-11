@@ -39,8 +39,7 @@ class BackupAndExportTest {
         composeTestRule.onNodeWithText("History").performClick()
         composeTestRule.waitForIdle()
 
-        // Verify CSV and PDF export buttons exist
-        composeTestRule.onNodeWithTag("history_export_csv_btn").assertIsDisplayed()
+        // Verify PDF export button exists
         composeTestRule.onNodeWithTag("history_export_pdf_btn").assertIsDisplayed()
 
         // Tap Settings tab

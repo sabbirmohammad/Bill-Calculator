@@ -18,7 +18,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
-import java.io.FileWriter
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -26,30 +25,6 @@ import javax.inject.Singleton
 class ExportManager @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
-    suspend fun exportReadingsToCsv(
-        readings: List<Reading>,
-        meterName: String
-    ): File = withContext(Dispatchers.IO) {
-        val exportsDir = File(context.cacheDir, "exports").apply { mkdirs() }
-        val timestamp = DateUtils.formatDate(DateUtils.currentInstant(), "yyyyMMdd_HHmmss")
-        val csvFile = File(exportsDir, "wattwise_readings_$timestamp.csv")
-
-        FileWriter(csvFile).use { writer ->
-            // Header
-            writer.append("ID,Date,Time,Meter,ReadingValue,Estimated,MeterReset,Note\n")
-
-            // Rows
-            readings.forEach { r ->
-                val dateStr = DateUtils.formatDate(r.recordedAt, "yyyy-MM-dd")
-                val timeStr = DateUtils.formatDate(r.recordedAt, "HH:mm")
-                val noteClean = (r.note ?: "").replace("\"", "\"\"")
-                writer.append("${r.id},\"$dateStr\",\"$timeStr\",\"$meterName\",${r.readingValue},${r.isEstimated},${r.isMeterReset},\"$noteClean\"\n")
-            }
-        }
-
-        csvFile
-    }
-
     suspend fun exportBillToPdf(
         bill: BillBreakdown,
         meter: Meter?,

@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.powerunit.core.database.PowerUnitDatabase
 import com.powerunit.core.datastore.SettingsPreferences
 import com.powerunit.core.worker.WorkManagerScheduler
+import com.powerunit.core.update.AppUpdateManager
 import com.powerunit.domain.model.Meter
 import com.powerunit.domain.repository.MeterRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -26,7 +27,9 @@ data class SettingsUiState(
     val appLockEnabled: Boolean = false,
     val hideAmounts: Boolean = false,
     val screenshotBlock: Boolean = false,
-    val clearDataSuccess: Boolean = false
+    val clearDataSuccess: Boolean = false,
+    val githubRepo: String = "sabbirmohammad/Bill-Calculator",
+    val autoCheckUpdates: Boolean = true
 )
 
 @HiltViewModel
@@ -34,7 +37,8 @@ class SettingsViewModel @Inject constructor(
     private val meterRepository: MeterRepository,
     private val settingsPreferences: SettingsPreferences,
     private val workManagerScheduler: WorkManagerScheduler,
-    private val database: PowerUnitDatabase
+    private val database: PowerUnitDatabase,
+    val appUpdateManager: AppUpdateManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -75,15 +79,45 @@ class SettingsViewModel @Inject constructor(
                 settingsPreferences.hideAmounts,
                 settingsPreferences.screenshotBlock
             ) { bnDigits, appLock, hideAmt, blockScreen ->
-                _uiState.value.copy(
-                    useBengaliDigits = bnDigits,
-                    appLockEnabled = appLock,
-                    hideAmounts = hideAmt,
-                    screenshotBlock = blockScreen
+                listOf(bnDigits, appLock, hideAmt, blockScreen)
+            }.collect { values ->
+                _uiState.value = _uiState.value.copy(
+                    useBengaliDigits = values[0],
+                    appLockEnabled = values[1],
+                    hideAmounts = values[2],
+                    screenshotBlock = values[3]
                 )
-            }.collect { partialState ->
-                _uiState.value = partialState
             }
+        }
+
+        viewModelScope.launch {
+            combine(
+                settingsPreferences.githubRepo,
+                settingsPreferences.autoCheckUpdates
+            ) { repo, autoCheck ->
+                Pair(repo, autoCheck)
+            }.collect { (repo, autoCheck) ->
+                _uiState.value = _uiState.value.copy(
+                    githubRepo = repo,
+                    autoCheckUpdates = autoCheck
+                )
+            }
+        }
+    }
+
+    fun checkForUpdates() {
+        appUpdateManager.checkForUpdates(isManual = true)
+    }
+
+    fun setGithubRepo(repo: String) {
+        viewModelScope.launch {
+            settingsPreferences.setGithubRepo(repo)
+        }
+    }
+
+    fun setAutoCheckUpdates(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsPreferences.setAutoCheckUpdates(enabled)
         }
     }
 

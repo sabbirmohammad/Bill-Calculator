@@ -102,18 +102,20 @@ fun StatCard(
 
             Spacer(modifier = Modifier.height(Dimens.cardValueToHintGap))
 
-            Row(verticalAlignment = Alignment.Baseline) {
+            Row(verticalAlignment = Alignment.Bottom) {
                 Text(
                     text = value,
                     style = NumberMedium,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.alignByBaseline()
                 )
                 if (unit != null) {
                     Spacer(modifier = Modifier.width(Dimens.xxs))
                     Text(
                         text = unit,
                         style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.alignByBaseline()
                     )
                 }
             }
@@ -181,7 +183,7 @@ private fun PreviewStatCardBangla() {
             value = "৮.৪",
             unit = "ইউনিট",
             icon = Icons.Filled.ElectricBolt,
-            trendPercent = -৪.২
+            trendPercent = -4.2
         )
     }
 }

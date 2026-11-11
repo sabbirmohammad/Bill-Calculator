@@ -5,6 +5,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,30 +20,43 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.ElectricBolt
 import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.powerunit.core.common.DateUtils
+import com.powerunit.core.designsystem.component.WattWiseDatePickerDialog
 import com.powerunit.core.designsystem.theme.ButtonShape
+import com.powerunit.core.designsystem.theme.CardShape
+import com.powerunit.core.designsystem.theme.Dimens
+import com.powerunit.core.designsystem.theme.PillShape
 import com.powerunit.domain.model.MeterType
+import kotlinx.datetime.Instant
 
 @Composable
 fun OnboardingScreen(
@@ -60,7 +74,7 @@ fun OnboardingScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .padding(24.dp)
+            .padding(Dimens.spacingXl)
     ) {
         AnimatedContent(
             targetState = state.step,
@@ -91,6 +105,7 @@ fun OnboardingScreen(
                     onMeterNameChange = { viewModel.onMeterNameChange(it) },
                     onMeterTypeChange = { viewModel.onMeterTypeChange(it) },
                     onInitialReadingChange = { viewModel.onInitialReadingChange(it) },
+                    onInitialReadingDateChange = { viewModel.onInitialReadingDateChange(it) },
                     onCycleDayChange = { viewModel.onCycleDayChange(it) },
                     onFinish = { viewModel.completeOnboarding() }
                 )
@@ -115,7 +130,7 @@ private fun WelcomeSlide(
 
         Box(
             modifier = Modifier
-                .size(100.dp)
+                .size(96.dp)
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
             contentAlignment = Alignment.Center
@@ -124,41 +139,41 @@ private fun WelcomeSlide(
                 imageVector = icon,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(54.dp)
+                modifier = Modifier.size(Dimens.huge)
             )
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(Dimens.spacingXxl))
 
         Text(
             text = title,
-            style = MaterialTheme.typography.displayLarge,
+            style = MaterialTheme.typography.displayMedium,
             color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(Dimens.spacingMd))
 
         Text(
             text = description,
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
-            modifier = Modifier.padding(horizontal = 16.dp)
+            modifier = Modifier.padding(horizontal = Dimens.spacingMd)
         )
 
         Spacer(modifier = Modifier.weight(1f))
 
         Button(
             onClick = onNext,
-            shape = ButtonShape,
+            shape = PillShape,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(56.dp)
+                .height(Dimens.buttonHeightPrimary)
                 .testTag("onboarding_next_btn"),
             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
         ) {
-            Text(text = "Next", style = MaterialTheme.typography.titleMedium)
+            Text(text = "Next", style = MaterialTheme.typography.labelLarge)
         }
     }
 }
@@ -169,9 +184,23 @@ private fun SetupWizard(
     onMeterNameChange: (String) -> Unit,
     onMeterTypeChange: (MeterType) -> Unit,
     onInitialReadingChange: (String) -> Unit,
+    onInitialReadingDateChange: (Instant) -> Unit,
     onCycleDayChange: (Int) -> Unit,
     onFinish: () -> Unit
 ) {
+    var showDatePicker by remember { mutableStateOf(false) }
+
+    if (showDatePicker) {
+        WattWiseDatePickerDialog(
+            initialEpochMillis = DateUtils.instantToUtcEpochMillis(state.initialReadingDate),
+            onDateSelected = { selectedLocalDate ->
+                val updated = DateUtils.combineDateWithTime(selectedLocalDate, state.initialReadingDate)
+                onInitialReadingDateChange(updated)
+            },
+            onDismiss = { showDatePicker = false }
+        )
+    }
+
     Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center
@@ -182,7 +211,7 @@ private fun SetupWizard(
             color = MaterialTheme.colorScheme.onSurface
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(Dimens.xs))
 
         Text(
             text = "Enter your current meter details to get started. You can change these anytime in Settings.",
@@ -190,7 +219,7 @@ private fun SetupWizard(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(Dimens.spacingXl))
 
         OutlinedTextField(
             value = state.meterName,
@@ -200,10 +229,10 @@ private fun SetupWizard(
             singleLine = true
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(Dimens.spacingMd))
 
         Text(text = "Meter Type", style = MaterialTheme.typography.labelLarge)
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Dimens.xs)) {
             FilterChip(
                 selected = state.meterType == MeterType.POSTPAID,
                 onClick = { onMeterTypeChange(MeterType.POSTPAID) },
@@ -216,7 +245,7 @@ private fun SetupWizard(
             )
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(Dimens.spacingMd))
 
         OutlinedTextField(
             value = state.initialReading,
@@ -229,7 +258,61 @@ private fun SetupWizard(
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(Dimens.spacingSm))
+
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { showDatePicker = true }
+                .testTag("onboarding_date_card"),
+            shape = CardShape,
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            )
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Dimens.spacingMd, vertical = Dimens.spacingSm),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Dimens.xs)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CalendarToday,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(Dimens.iconSizeSmall)
+                    )
+                    Column {
+                        Text(
+                            text = "Reading Date",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = DateUtils.formatDate(state.initialReadingDate),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+
+                OutlinedButton(
+                    onClick = { showDatePicker = true },
+                    shape = ButtonShape,
+                    modifier = Modifier.testTag("onboarding_change_date_btn")
+                ) {
+                    Text(text = "Change Date", style = MaterialTheme.typography.labelSmall)
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(Dimens.spacingMd))
 
         OutlinedTextField(
             value = state.cycleDay.toString(),
@@ -240,21 +323,21 @@ private fun SetupWizard(
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
         )
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(Dimens.spacingXxl))
 
         Button(
             onClick = onFinish,
-            shape = ButtonShape,
+            shape = PillShape,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(56.dp)
+                .height(Dimens.buttonHeightPrimary)
                 .testTag("onboarding_finish_btn"),
             enabled = !state.isSaving && state.initialReading.isNotBlank(),
             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
         ) {
             Text(
                 text = if (state.isSaving) "Setting up..." else "Get Started",
-                style = MaterialTheme.typography.titleMedium
+                style = MaterialTheme.typography.labelLarge
             )
         }
     }

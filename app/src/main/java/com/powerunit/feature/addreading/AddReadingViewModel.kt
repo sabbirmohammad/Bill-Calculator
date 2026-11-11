@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.powerunit.core.common.DateUtils
+import com.powerunit.core.datastore.SettingsPreferences
 import com.powerunit.domain.model.Reading
 import com.powerunit.domain.model.ReadingValidationResult
 import com.powerunit.domain.repository.MeterRepository
@@ -28,6 +29,7 @@ data class AddReadingUiState(
     val previousReadingDate: String? = null,
     val recordedAt: kotlinx.datetime.Instant = DateUtils.currentInstant(),
     val isMeterReset: Boolean = false,
+    val isInitialReading: Boolean = false,
     val note: String = "",
     val calculatedDelta: BigDecimal? = null,
     val validationResult: ReadingValidationResult = ReadingValidationResult.Valid,
@@ -42,6 +44,7 @@ class AddReadingViewModel @Inject constructor(
     private val readingRepository: ReadingRepository,
     private val meterRepository: MeterRepository,
     private val validateReadingUseCase: ValidateReadingUseCase,
+    private val settingsPreferences: SettingsPreferences,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -68,17 +71,20 @@ class AddReadingViewModel @Inject constructor(
                             readingInput = existing.readingValue.toPlainString(),
                             recordedAt = existing.recordedAt,
                             isMeterReset = existing.isMeterReset,
-                            note = existing.note ?: ""
+                            note = existing.note ?: "",
+                            isInitialReading = false
                         )
                     }
                 }
             } else {
                 val latest = readingRepository.getLatestReadingSync(meterId)
-                val prevVal = latest?.readingValue ?: activeMeter?.startReading
+                val isInitial = (latest == null)
+                val prevVal = latest?.readingValue
                 val prevDate = latest?.recordedAt?.let { DateUtils.formatDate(it) }
 
                 _uiState.update {
                     it.copy(
+                        isInitialReading = isInitial,
                         previousReadingValue = prevVal,
                         previousReadingDate = prevDate
                     )
@@ -89,8 +95,8 @@ class AddReadingViewModel @Inject constructor(
 
     fun onReadingInputChange(input: String) {
         _uiState.update { current ->
-            val delta = computeDelta(input, current.previousReadingValue, current.isMeterReset)
-            val validation = validateInput(input, current.recordedAt, current.previousReadingValue, current.isMeterReset)
+            val delta = computeDelta(input, current.previousReadingValue, current.isMeterReset, current.isInitialReading)
+            val validation = validateInput(input, current.recordedAt, current.previousReadingValue, current.isMeterReset, current.isInitialReading)
             current.copy(
                 readingInput = input,
                 calculatedDelta = delta,
@@ -99,10 +105,22 @@ class AddReadingViewModel @Inject constructor(
         }
     }
 
+    fun onDateChange(newInstant: kotlinx.datetime.Instant) {
+        _uiState.update { current ->
+            val delta = computeDelta(current.readingInput, current.previousReadingValue, current.isMeterReset, current.isInitialReading)
+            val validation = validateInput(current.readingInput, newInstant, current.previousReadingValue, current.isMeterReset, current.isInitialReading)
+            current.copy(
+                recordedAt = newInstant,
+                calculatedDelta = delta,
+                validationResult = validation
+            )
+        }
+    }
+
     fun onMeterResetChange(reset: Boolean) {
         _uiState.update { current ->
-            val delta = computeDelta(current.readingInput, current.previousReadingValue, reset)
-            val validation = validateInput(current.readingInput, current.recordedAt, current.previousReadingValue, reset)
+            val delta = computeDelta(current.readingInput, current.previousReadingValue, reset, current.isInitialReading)
+            val validation = validateInput(current.readingInput, current.recordedAt, current.previousReadingValue, reset, current.isInitialReading)
             current.copy(
                 isMeterReset = reset,
                 calculatedDelta = delta,
@@ -123,7 +141,13 @@ class AddReadingViewModel @Inject constructor(
         val state = _uiState.value
         val parsed = state.readingInput.toBigDecimalOrNull() ?: return
 
-        val validation = validateInput(state.readingInput, state.recordedAt, state.previousReadingValue, state.isMeterReset)
+        val validation = validateInput(
+            state.readingInput,
+            state.recordedAt,
+            state.previousReadingValue,
+            state.isMeterReset,
+            state.isInitialReading
+        )
 
         if (!forceSave) {
             when (validation) {
@@ -162,7 +186,7 @@ class AddReadingViewModel @Inject constructor(
                 meterId = state.meterId,
                 readingValue = parsed.setScale(1, RoundingMode.HALF_UP),
                 recordedAt = state.recordedAt,
-                note = state.note.ifBlank { null },
+                note = state.note.ifBlank { if (state.isInitialReading) "Initial Reading" else null },
                 isEstimated = false,
                 isMeterReset = state.isMeterReset,
                 createdAt = DateUtils.currentInstant(),
@@ -173,15 +197,28 @@ class AddReadingViewModel @Inject constructor(
                 readingRepository.updateReading(reading)
             } else {
                 readingRepository.saveReading(reading)
+                if (state.isInitialReading) {
+                    val activeMeter = meterRepository.getActiveMeterSync()
+                    if (activeMeter != null) {
+                        meterRepository.saveMeter(activeMeter.copy(startReading = parsed))
+                    }
+                    settingsPreferences.setOnboardingCompleted(true)
+                }
             }
 
             _uiState.update { it.copy(isSaving = false, isSaved = true) }
         }
     }
 
-    private fun computeDelta(input: String, previous: BigDecimal?, isReset: Boolean): BigDecimal? {
+    private fun computeDelta(
+        input: String,
+        previous: BigDecimal?,
+        isReset: Boolean,
+        isInitial: Boolean = false
+    ): BigDecimal? {
+        if (isInitial || previous == null) return null
         val currentVal = input.toBigDecimalOrNull() ?: return null
-        return if (isReset || previous == null) {
+        return if (isReset) {
             currentVal
         } else {
             (currentVal - previous).setScale(1, RoundingMode.HALF_UP)
@@ -192,16 +229,17 @@ class AddReadingViewModel @Inject constructor(
         input: String,
         recordedAt: kotlinx.datetime.Instant,
         previous: BigDecimal?,
-        isReset: Boolean
+        isReset: Boolean,
+        isInitial: Boolean = false
     ): ReadingValidationResult {
         val currentVal = input.toBigDecimalOrNull() ?: return ReadingValidationResult.Valid
         return validateReadingUseCase(
             newReadingValue = currentVal,
             recordedAt = recordedAt,
             currentInstant = DateUtils.currentInstant(),
-            previousReadingValue = previous,
+            previousReadingValue = if (isInitial) null else previous,
             isMeterReset = isReset,
-            average30DayUnits = BigDecimal("10.0")
+            average30DayUnits = if (isInitial) null else BigDecimal("10.0")
         )
     }
 }

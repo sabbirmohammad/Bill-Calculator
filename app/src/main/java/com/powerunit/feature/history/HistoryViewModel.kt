@@ -39,11 +39,42 @@ data class ReadingItemUiModel(
     val costEstimate: BigDecimal,
     val formattedDate: String,
     val formattedTime: String,
+    val dayString: String = "",
+    val monthString: String = "",
     val isEstimated: Boolean,
     val isMeterReset: Boolean,
     val note: String?,
     val rawReading: Reading
 )
+
+fun Reading.toUiModel(prevReading: Reading? = null): ReadingItemUiModel {
+    val date = DateUtils.formatDate(recordedAt)
+    val time = DateUtils.formatTime(recordedAt)
+    val dayString = DateUtils.formatDate(recordedAt, "dd")
+    val monthString = DateUtils.formatDate(recordedAt, "MMM")
+
+    val delta = if (isMeterReset || prevReading == null) {
+        BigDecimal.ZERO
+    } else {
+        (readingValue - prevReading.readingValue).coerceAtLeast(BigDecimal.ZERO)
+    }
+    val cost = delta.multiply(BigDecimal("6.0")).setScale(2, RoundingMode.HALF_UP)
+
+    return ReadingItemUiModel(
+        id = id,
+        readingValue = readingValue,
+        unitsDelta = delta.setScale(1, RoundingMode.HALF_UP),
+        costEstimate = cost,
+        formattedDate = date,
+        formattedTime = time,
+        dayString = dayString,
+        monthString = monthString,
+        isEstimated = isEstimated,
+        isMeterReset = isMeterReset,
+        note = note,
+        rawReading = this
+    )
+}
 
 data class MonthHistoryGroup(
     val monthTitle: String,
@@ -57,7 +88,9 @@ data class HistoryUiState(
     val searchQuery: String = "",
     val activeFilter: HistoryFilter = HistoryFilter.ALL,
     val monthGroups: List<MonthHistoryGroup> = emptyList(),
-    val selectedDetailItem: ReadingItemUiModel? = null
+    val selectedDetailItem: ReadingItemUiModel? = null,
+    val hasEstimatedReadings: Boolean = false,
+    val hasResetReadings: Boolean = false
 )
 
 sealed interface HistoryUiEffect {
@@ -83,17 +116,6 @@ class HistoryViewModel @Inject constructor(
 
     init {
         loadReadings()
-    }
-
-    fun exportCsv(onReady: (Intent) -> Unit) {
-        viewModelScope.launch {
-            val meter = meterRepository.getActiveMeterSync()
-            val meterId = meter?.id ?: 1L
-            val readings = readingRepository.getReadings(meterId).first()
-            val file = exportManager.exportReadingsToCsv(readings, meter?.name ?: "Main Meter")
-            val intent = exportManager.getShareIntent(file, "text/csv")
-            onReady(intent)
-        }
     }
 
     fun exportPdf(onReady: (Intent) -> Unit) {
@@ -127,9 +149,19 @@ class HistoryViewModel @Inject constructor(
                 tariffRepository.getActiveTariff(),
                 _uiState
             ) { readings, tariff, state ->
-                processReadings(readings, tariff, state.searchQuery, state.activeFilter)
-            }.collect { groups ->
-                _uiState.update { it.copy(isLoading = false, monthGroups = groups) }
+                val hasEstimated = readings.any { it.isEstimated }
+                val hasResets = readings.any { it.isMeterReset }
+                val groups = processReadings(readings, tariff, state.searchQuery, state.activeFilter)
+                Triple(groups, hasEstimated, hasResets)
+            }.collect { (groups, hasEstimated, hasResets) ->
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        monthGroups = groups,
+                        hasEstimatedReadings = hasEstimated,
+                        hasResetReadings = hasResets
+                    )
+                }
             }
         }
     }
@@ -194,28 +226,7 @@ class HistoryViewModel @Inject constructor(
     }
 
     private fun createReadingItem(reading: Reading, prev: Reading?): ReadingItemUiModel {
-        val date = DateUtils.formatDate(reading.recordedAt)
-        val time = DateUtils.formatTime(reading.recordedAt)
-
-        val delta = if (reading.isMeterReset || prev == null) {
-            BigDecimal.ZERO
-        } else {
-            (reading.readingValue - prev.readingValue).coerceAtLeast(BigDecimal.ZERO)
-        }
-        val cost = delta.multiply(BigDecimal("6.0")).setScale(2, RoundingMode.HALF_UP)
-
-        return ReadingItemUiModel(
-            id = reading.id,
-            readingValue = reading.readingValue,
-            unitsDelta = delta.setScale(1, RoundingMode.HALF_UP),
-            costEstimate = cost,
-            formattedDate = date,
-            formattedTime = time,
-            isEstimated = reading.isEstimated,
-            isMeterReset = reading.isMeterReset,
-            note = reading.note,
-            rawReading = reading
-        )
+        return reading.toUiModel(prev)
     }
 
     private fun isEligible(item: ReadingItemUiModel, searchQuery: String, filter: HistoryFilter): Boolean {

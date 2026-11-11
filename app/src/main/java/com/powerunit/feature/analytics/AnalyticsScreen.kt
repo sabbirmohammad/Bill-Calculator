@@ -41,20 +41,21 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.powerunit.R
 import com.powerunit.core.common.DateUtils
 import com.powerunit.core.common.Formatters
 import com.powerunit.core.designsystem.component.EmptyState
+import com.powerunit.core.designsystem.component.SegmentedTabs
 import com.powerunit.core.designsystem.component.TrendChip
+import com.powerunit.core.designsystem.theme.CardShape
+import com.powerunit.core.designsystem.theme.Dimens
+import com.powerunit.core.designsystem.theme.IconWellShape
 import com.powerunit.domain.model.DailyUsage
 import com.powerunit.feature.analytics.components.SlabDonutChart
 import com.powerunit.feature.analytics.components.UsageBarAndLineChart
 import com.powerunit.feature.analytics.components.WeekdayHeatmap
-import com.powerunit.core.designsystem.theme.CardShape
 import java.math.BigDecimal
 
 @Composable
@@ -74,7 +75,7 @@ fun AnalyticsScreen(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator()
+                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
             }
         } else {
             AnalyticsContent(
@@ -99,12 +100,12 @@ private fun AnalyticsContent(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = Dimens.screenHorizontalPadding)
             .testTag("analytics_scroll_content"),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(Dimens.cardGap)
     ) {
         item {
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(Dimens.contentTopPadding))
             AnalyticsHeader(
                 isTableView = uiState.isTableView,
                 onToggleTable = onToggleTable
@@ -126,7 +127,7 @@ private fun AnalyticsContent(
                     description = stringResource(R.string.analytics_empty_desc),
                     actionLabel = "Record Reading",
                     onActionClick = onNavigateToAddReading,
-                    modifier = Modifier.padding(24.dp)
+                    modifier = Modifier.padding(Dimens.spacingXl)
                 )
             }
         } else {
@@ -175,7 +176,7 @@ private fun AnalyticsContent(
         }
 
         item {
-            Spacer(modifier = Modifier.height(80.dp))
+            Spacer(modifier = Modifier.height(Dimens.scrollBottomPadding))
         }
     }
 }
@@ -194,12 +195,11 @@ private fun AnalyticsHeader(
             Text(
                 text = stringResource(R.string.analytics_title),
                 style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground
             )
             Text(
                 text = "Consumption trends & cost insights",
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
@@ -215,7 +215,8 @@ private fun AnalyticsHeader(
                 } else {
                     stringResource(R.string.analytics_toggle_table)
                 },
-                tint = MaterialTheme.colorScheme.primary
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(Dimens.iconSizeStandard)
             )
         }
     }
@@ -226,50 +227,23 @@ private fun PeriodSelectorRow(
     selectedPeriod: AnalyticsPeriod,
     onPeriodSelected: (AnalyticsPeriod) -> Unit
 ) {
-    Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(4.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            AnalyticsPeriod.entries.forEach { period ->
-                val isSelected = period == selectedPeriod
-                val periodName = when (period) {
-                    AnalyticsPeriod.DAY -> stringResource(R.string.analytics_period_day)
-                    AnalyticsPeriod.WEEK -> stringResource(R.string.analytics_period_week)
-                    AnalyticsPeriod.MONTH -> stringResource(R.string.analytics_period_month)
-                    AnalyticsPeriod.YEAR -> stringResource(R.string.analytics_period_year)
-                }
-
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(if (isSelected) MaterialTheme.colorScheme.surface else Color.Transparent)
-                        .clickable { onPeriodSelected(period) }
-                        .padding(vertical = 8.dp)
-                        .testTag("period_tab_${period.name.lowercase()}"),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = periodName,
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                        color = if (isSelected) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        }
-                    )
-                }
-            }
+    val periods = AnalyticsPeriod.entries
+    val periodLabels = periods.map { period ->
+        when (period) {
+            AnalyticsPeriod.DAY -> stringResource(R.string.analytics_period_day)
+            AnalyticsPeriod.WEEK -> stringResource(R.string.analytics_period_week)
+            AnalyticsPeriod.MONTH -> stringResource(R.string.analytics_period_month)
+            AnalyticsPeriod.YEAR -> stringResource(R.string.analytics_period_year)
         }
     }
+    val selectedIndex = periods.indexOf(selectedPeriod).coerceAtLeast(0)
+
+    SegmentedTabs(
+        tabs = periodLabels,
+        selectedIndex = selectedIndex,
+        onTabSelected = { index -> onPeriodSelected(periods[index]) },
+        tabTestTags = listOf("period_tab_day", "period_tab_week", "period_tab_month", "period_tab_year")
+    )
 }
 
 @Composable
@@ -281,11 +255,11 @@ private fun AnalyticsSummaryGrid(
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        verticalArrangement = Arrangement.spacedBy(Dimens.xs)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            horizontalArrangement = Arrangement.spacedBy(Dimens.xs)
         ) {
             SummaryTile(
                 title = stringResource(R.string.analytics_total_usage),
@@ -303,7 +277,7 @@ private fun AnalyticsSummaryGrid(
 
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            horizontalArrangement = Arrangement.spacedBy(Dimens.xs)
         ) {
             SummaryTile(
                 title = stringResource(R.string.analytics_daily_average),
@@ -332,12 +306,12 @@ private fun SummaryTile(
         modifier = modifier,
         shape = CardShape,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = Dimens.level1)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(14.dp)
+                .padding(Dimens.cardPaddingStandard)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -346,21 +320,20 @@ private fun SummaryTile(
             ) {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.labelSmall,
+                    style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(16.dp)
+                    modifier = Modifier.size(Dimens.iconSizeSmall)
                 )
             }
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(Dimens.cardTitleToValueGap))
             Text(
                 text = value,
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             )
         }
@@ -377,39 +350,39 @@ private fun PeriodComparisonCard(
             .testTag("analytics_comparison_card"),
         shape = CardShape,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = Dimens.level1)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(Dimens.cardPaddingStandard),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
-                        .size(36.dp)
-                        .background(MaterialTheme.colorScheme.secondaryContainer, CircleShape),
+                        .size(Dimens.iconContainerSize)
+                        .background(MaterialTheme.colorScheme.secondaryContainer, IconWellShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.CompareArrows,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.secondary,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(Dimens.iconSizeSmall)
                     )
                 }
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(Dimens.iconToTextGap))
                 Column {
                     Text(
                         text = stringResource(R.string.analytics_comparison_title),
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
                         text = "Current vs prior period (${Formatters.formatUnits(comp.currentUnits)} vs ${Formatters.formatUnits(comp.previousUnits)} kWh)",
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -428,29 +401,29 @@ private fun AnomaliesSection(anomalies: List<DailyUsage>) {
             .testTag("analytics_anomalies_card"),
         shape = CardShape,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = Dimens.level1)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(Dimens.cardPaddingStandard)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = Icons.Default.WarningAmber,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(Dimens.iconSizeSmall)
                 )
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(Dimens.xs))
                 Text(
                     text = stringResource(R.string.analytics_anomalies_title),
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(Dimens.spacingSm))
 
             if (anomalies.isEmpty()) {
                 Text(
@@ -463,7 +436,7 @@ private fun AnomaliesSection(anomalies: List<DailyUsage>) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 6.dp),
+                            .padding(vertical = Dimens.xxs),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -471,7 +444,7 @@ private fun AnomaliesSection(anomalies: List<DailyUsage>) {
                             Text(
                                 text = DateUtils.formatDate(item.date),
                                 style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.SemiBold
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
                                 text = "High spike (> 2σ above mean)",
@@ -482,8 +455,7 @@ private fun AnomaliesSection(anomalies: List<DailyUsage>) {
 
                         Text(
                             text = "${Formatters.formatUnits(item.units)} kWh",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.error
                         )
                     }

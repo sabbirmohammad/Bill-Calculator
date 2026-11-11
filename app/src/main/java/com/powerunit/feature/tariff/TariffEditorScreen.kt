@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardOptions
@@ -18,6 +19,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -43,7 +45,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -51,6 +52,7 @@ import com.powerunit.R
 import com.powerunit.core.common.Formatters
 import com.powerunit.core.designsystem.theme.ButtonShape
 import com.powerunit.core.designsystem.theme.CardShape
+import com.powerunit.core.designsystem.theme.Dimens
 import com.powerunit.domain.model.BillBreakdown
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -78,7 +80,7 @@ fun TariffEditorScreen(
                 title = {
                     Text(
                         text = stringResource(R.string.tariff_editor_title),
-                        fontWeight = FontWeight.Bold
+                        style = MaterialTheme.typography.titleLarge
                     )
                 },
                 navigationIcon = {
@@ -88,12 +90,13 @@ fun TariffEditorScreen(
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = "Back",
+                            modifier = Modifier.size(Dimens.iconSizeStandard)
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
+                    containerColor = MaterialTheme.colorScheme.surface
                 )
             )
         }
@@ -106,7 +109,7 @@ fun TariffEditorScreen(
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                CircularProgressIndicator()
+                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
             }
         } else {
             TariffEditorContent(
@@ -127,14 +130,15 @@ private fun TariffEditorContent(
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+            .padding(horizontal = Dimens.screenHorizontalPadding),
+        verticalArrangement = Arrangement.spacedBy(Dimens.cardGap)
     ) {
         item {
+            Spacer(modifier = Modifier.height(Dimens.contentTopPadding))
             OutlinedTextField(
                 value = uiState.tariffName,
                 onValueChange = viewModel::updateTariffName,
-                label = { Text(stringResource(R.string.tariff_name)) },
+                label = { Text(stringResource(R.string.tariff_name), style = MaterialTheme.typography.bodyMedium) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .testTag("tariff_name_input"),
@@ -175,19 +179,23 @@ private fun TariffEditorContent(
                 onClick = viewModel::saveTariff,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp)
+                    .height(Dimens.buttonHeightPrimary)
                     .testTag("save_tariff_btn"),
-                shape = ButtonShape
+                shape = ButtonShape,
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
-                Icon(imageVector = Icons.Default.Save, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
+                Icon(
+                    imageVector = Icons.Default.Save,
+                    contentDescription = null,
+                    modifier = Modifier.size(Dimens.iconSizeSmall)
+                )
+                Spacer(modifier = Modifier.width(Dimens.xs))
                 Text(
                     text = "Save Tariff Rates",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    style = MaterialTheme.typography.labelLarge
                 )
             }
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(Dimens.scrollBottomPadding))
         }
     }
 }
@@ -205,19 +213,19 @@ private fun SlabsSection(
             .testTag("tariff_slabs_card"),
         shape = CardShape,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = Dimens.level1)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(Dimens.cardPaddingStandard)
         ) {
             Text(
                 text = stringResource(R.string.tariff_slabs_title),
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
+                color = MaterialTheme.colorScheme.onSurface
             )
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(Dimens.spacingSm))
 
             slabs.forEachIndexed { index, slab ->
                 SlabRow(
@@ -227,10 +235,10 @@ private fun SlabsSection(
                     onUpdateSlab = onUpdateSlab,
                     onRemoveSlab = onRemoveSlab
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(Dimens.xs))
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(Dimens.xs))
 
             OutlinedButton(
                 onClick = onAddSlab,
@@ -239,9 +247,13 @@ private fun SlabsSection(
                     .testTag("add_slab_btn"),
                 shape = ButtonShape
             ) {
-                Icon(imageVector = Icons.Default.Add, contentDescription = null)
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(stringResource(R.string.tariff_add_slab))
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = null,
+                    modifier = Modifier.size(Dimens.iconSizeSmall)
+                )
+                Spacer(modifier = Modifier.width(Dimens.xxs))
+                Text(stringResource(R.string.tariff_add_slab), style = MaterialTheme.typography.labelLarge)
             }
         }
     }
@@ -257,7 +269,7 @@ private fun SlabRow(
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(Dimens.xs),
         verticalAlignment = Alignment.CenterVertically
     ) {
         OutlinedTextField(
@@ -290,7 +302,8 @@ private fun SlabRow(
                 Icon(
                     imageVector = Icons.Default.Delete,
                     contentDescription = "Delete Slab",
-                    tint = MaterialTheme.colorScheme.error
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(Dimens.iconSizeSmall)
                 )
             }
         }
@@ -310,23 +323,23 @@ private fun FixedChargesSection(
         modifier = Modifier.fillMaxWidth(),
         shape = CardShape,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = Dimens.level1)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(Dimens.cardPaddingStandard)
         ) {
             Text(
                 text = stringResource(R.string.tariff_fixed_charges_title),
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
+                color = MaterialTheme.colorScheme.onSurface
             )
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(Dimens.spacingSm))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.spacedBy(Dimens.xs)
             ) {
                 OutlinedTextField(
                     value = demandCharge,
@@ -346,7 +359,7 @@ private fun FixedChargesSection(
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(Dimens.xs))
 
             OutlinedTextField(
                 value = vatPercent,
@@ -371,29 +384,30 @@ private fun LivePreviewSection(
             .fillMaxWidth()
             .testTag("tariff_live_preview_card"),
         shape = CardShape,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        elevation = CardDefaults.cardElevation(defaultElevation = Dimens.level1)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(Dimens.cardPaddingStandard)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = Icons.Default.Tune,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(Dimens.iconSizeSmall)
                 )
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(Dimens.xs))
                 Text(
                     text = stringResource(R.string.tariff_live_preview_title),
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(Dimens.spacingSm))
 
             OutlinedTextField(
                 value = testUnits,
@@ -407,9 +421,9 @@ private fun LivePreviewSection(
             )
 
             previewBill?.let { bill ->
-                Spacer(modifier = Modifier.height(12.dp))
-                HorizontalDivider()
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(Dimens.spacingSm))
+                HorizontalDivider(thickness = Dimens.dividerThickness, color = MaterialTheme.colorScheme.outlineVariant)
+                Spacer(modifier = Modifier.height(Dimens.xs))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -417,12 +431,13 @@ private fun LivePreviewSection(
                 ) {
                     Text(
                         text = "Energy Charges (${testUnits} kWh)",
-                        style = MaterialTheme.typography.bodySmall
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
                         text = Formatters.formatBDT(bill.energyCharge),
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.SemiBold
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
                 Row(
@@ -431,16 +446,17 @@ private fun LivePreviewSection(
                 ) {
                     Text(
                         text = "Fixed Charges & VAT",
-                        style = MaterialTheme.typography.bodySmall
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
                         text = Formatters.formatBDT(bill.demandCharge + bill.serviceCharge + bill.vatAmount),
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.SemiBold
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
 
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(Dimens.xxs))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -449,13 +465,11 @@ private fun LivePreviewSection(
                     Text(
                         text = "Preview Total Payable",
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
                     )
                     Text(
                         text = Formatters.formatBDT(bill.totalBill),
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
                     )
                 }

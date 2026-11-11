@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -19,6 +20,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -30,6 +33,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -40,22 +44,31 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.powerunit.R
 import com.powerunit.core.common.DateUtils
 import com.powerunit.core.common.Formatters
+import com.powerunit.core.designsystem.component.WattWiseDatePickerDialog
 import com.powerunit.core.designsystem.theme.ButtonShape
 import com.powerunit.core.designsystem.theme.CardShape
+import com.powerunit.core.designsystem.theme.Dimens
 import com.powerunit.core.designsystem.theme.InputShape
-import com.powerunit.core.designsystem.theme.MeterDisplayLarge
+import com.powerunit.core.designsystem.theme.NumberLarge
 import com.powerunit.core.designsystem.theme.PillShape
+import kotlinx.datetime.toLocalDateTime
 import java.math.BigDecimal
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -66,6 +79,18 @@ fun AddReadingScreen(
     viewModel: AddReadingViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
+    var showDatePicker by remember { mutableStateOf(false) }
+
+    if (showDatePicker) {
+        WattWiseDatePickerDialog(
+            initialEpochMillis = DateUtils.instantToUtcEpochMillis(state.recordedAt),
+            onDateSelected = { selectedLocalDate ->
+                val updated = DateUtils.combineDateWithTime(selectedLocalDate, state.recordedAt)
+                viewModel.onDateChange(updated)
+            },
+            onDismiss = { showDatePicker = false }
+        )
+    }
 
     LaunchedEffect(state.isSaved) {
         if (state.isSaved) {
@@ -88,7 +113,11 @@ fun AddReadingScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = if (state.readingId != null) "Edit Reading" else "Add Reading",
+                        text = when {
+                            state.isInitialReading -> stringResource(R.string.btn_set_initial_reading)
+                            state.readingId != null -> "Edit Reading"
+                            else -> "Add Reading"
+                        },
                         style = MaterialTheme.typography.titleLarge
                     )
                 },
@@ -97,7 +126,11 @@ fun AddReadingScreen(
                         onClick = onNavigateBack,
                         modifier = Modifier.testTag("add_reading_back_btn")
                     ) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            modifier = Modifier.size(Dimens.iconSizeStandard)
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -111,14 +144,17 @@ fun AddReadingScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
-                .padding(20.dp)
+                .padding(Dimens.screenHorizontalPadding)
         ) {
-            if (state.previousReadingValue != null) {
+            if (state.isInitialReading) {
+                InitialReadingInfoCard()
+                Spacer(modifier = Modifier.height(Dimens.spacingLg))
+            } else if (state.previousReadingValue != null) {
                 PreviousReadingCard(
                     value = state.previousReadingValue!!,
                     date = state.previousReadingDate
                 )
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(Dimens.spacingLg))
             }
 
             ReadingInputSection(
@@ -127,17 +163,19 @@ fun AddReadingScreen(
                 delta = state.calculatedDelta
             )
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(Dimens.spacingLg))
 
             ReadingOptionsSection(
                 recordedAt = state.recordedAt,
                 isMeterReset = state.isMeterReset,
                 onMeterResetChange = viewModel::onMeterResetChange,
                 note = state.note,
-                onNoteChange = viewModel::onNoteChange
+                onNoteChange = viewModel::onNoteChange,
+                onOpenDatePicker = { showDatePicker = true },
+                onDateChange = viewModel::onDateChange
             )
 
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(Dimens.sectionGap))
 
             SaveReadingButton(
                 canSave = state.readingInput.isNotBlank() &&
@@ -146,6 +184,8 @@ fun AddReadingScreen(
                 isSaving = state.isSaving,
                 onSave = { viewModel.saveReading() }
             )
+
+            Spacer(modifier = Modifier.height(Dimens.scrollBottomPadding))
         }
     }
 }
@@ -163,27 +203,73 @@ private fun ReadingConfirmDialog(
                 Icon(
                     imageVector = Icons.Default.Warning,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.tertiary
+                    tint = MaterialTheme.colorScheme.tertiary,
+                    modifier = Modifier.size(Dimens.iconSizeSmall)
                 )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(text = "Verify Reading")
+                Spacer(modifier = Modifier.width(Dimens.xs))
+                Text(text = "Verify Reading", style = MaterialTheme.typography.titleLarge)
             }
         },
-        text = { Text(text = message) },
+        text = { Text(text = message, style = MaterialTheme.typography.bodyMedium) },
         confirmButton = {
             Button(
                 onClick = onConfirm,
+                shape = ButtonShape,
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
-                Text("Confirm & Save")
+                Text("Confirm & Save", style = MaterialTheme.typography.labelLarge)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Edit Reading")
+                Text("Edit Reading", style = MaterialTheme.typography.labelLarge)
+            }
+        },
+        shape = CardShape,
+        containerColor = MaterialTheme.colorScheme.surface
+    )
+}
+
+@Composable
+private fun InitialReadingInfoCard() {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("initial_reading_info_card"),
+        shape = CardShape,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = Dimens.level1)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(Dimens.cardPaddingStandard),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Dimens.xs)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Info,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(Dimens.iconSizeStandard)
+            )
+            Column {
+                Text(
+                    text = stringResource(R.string.initial_reading_info_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                Text(
+                    text = stringResource(R.string.initial_reading_info_banner),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
+                )
             }
         }
-    )
+    }
 }
 
 @Composable
@@ -192,13 +278,14 @@ private fun PreviousReadingCard(value: BigDecimal, date: String?) {
         modifier = Modifier.fillMaxWidth(),
         shape = CardShape,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
-        )
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = Dimens.level1)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(Dimens.cardPaddingStandard),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -211,14 +298,13 @@ private fun PreviousReadingCard(value: BigDecimal, date: String?) {
                 Text(
                     text = "${Formatters.formatUnits(value)} kWh",
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
             }
             if (date != null) {
                 Text(
                     text = date,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -236,12 +322,12 @@ private fun ReadingInputSection(
         modifier = Modifier.fillMaxWidth(),
         shape = CardShape,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = Dimens.level1)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp),
+                .padding(Dimens.cardPaddingLarge),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
@@ -250,7 +336,7 @@ private fun ReadingInputSection(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(Dimens.spacingSm))
 
             OutlinedTextField(
                 value = input,
@@ -258,14 +344,13 @@ private fun ReadingInputSection(
                 modifier = Modifier
                     .fillMaxWidth()
                     .testTag("reading_input_field"),
-                textStyle = MeterDisplayLarge.copy(fontSize = 36.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center),
+                textStyle = NumberLarge.copy(textAlign = TextAlign.Center),
                 placeholder = {
                     Text(
                         text = "0.0",
-                        style = MeterDisplayLarge.copy(
-                            fontSize = 36.sp,
+                        style = NumberLarge.copy(
                             color = MaterialTheme.colorScheme.outline,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            textAlign = TextAlign.Center
                         ),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -275,7 +360,7 @@ private fun ReadingInputSection(
                         text = "kWh",
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(end = 12.dp)
+                        modifier = Modifier.padding(end = Dimens.spacingSm)
                     )
                 },
                 singleLine = true,
@@ -284,7 +369,7 @@ private fun ReadingInputSection(
             )
 
             if (delta != null) {
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(Dimens.spacingSm))
                 val isPositive = delta >= BigDecimal.ZERO
                 val deltaPrefix = if (isPositive) "+" else ""
                 val deltaText = "$deltaPrefix${Formatters.formatUnits(delta)} kWh"
@@ -293,16 +378,15 @@ private fun ReadingInputSection(
                     modifier = Modifier
                         .clip(PillShape)
                         .background(
-                            if (isPositive) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                            else MaterialTheme.colorScheme.error.copy(alpha = 0.12f)
+                            if (isPositive) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                            else MaterialTheme.colorScheme.error.copy(alpha = 0.15f)
                         )
-                        .padding(horizontal = 16.dp, vertical = 6.dp)
+                        .padding(horizontal = Dimens.spacingMd, vertical = Dimens.xxs)
                 ) {
                     Text(
                         text = "$deltaText since last reading",
                         style = MaterialTheme.typography.titleMedium,
-                        color = if (isPositive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
-                        fontWeight = FontWeight.SemiBold
+                        color = if (isPositive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
                     )
                 }
             }
@@ -316,47 +400,139 @@ private fun ReadingOptionsSection(
     isMeterReset: Boolean,
     onMeterResetChange: (Boolean) -> Unit,
     note: String,
-    onNoteChange: (String) -> Unit
+    onNoteChange: (String) -> Unit,
+    onOpenDatePicker: () -> Unit,
+    onDateChange: (kotlinx.datetime.Instant) -> Unit
 ) {
+    val context = LocalContext.current
+    val currentDhakaTime = recordedAt.toLocalDateTime(DateUtils.DHAKA_ZONE)
+
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(CardShape)
+            .clickable { onOpenDatePicker() }
+            .testTag("reading_date_time_card"),
         shape = CardShape,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = Dimens.level1)
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+                .padding(Dimens.cardPaddingStandard)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.CalendarToday,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(text = "Date & Time", style = MaterialTheme.typography.bodyLarge)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Dimens.iconToTextGap)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CalendarToday,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(Dimens.iconSizeSmall)
+                    )
+                    Column {
+                        Text(
+                            text = stringResource(R.string.reading_date),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = DateUtils.formatDate(recordedAt),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.testTag("reading_date_display")
+                        )
+                    }
+                }
+
+                OutlinedButton(
+                    onClick = onOpenDatePicker,
+                    shape = ButtonShape,
+                    modifier = Modifier.testTag("change_date_button")
+                ) {
+                    Text(
+                        text = stringResource(R.string.change_date),
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
             }
-            Text(
-                text = "${DateUtils.formatDate(recordedAt)} ${DateUtils.formatTime(recordedAt)}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+
+            Spacer(modifier = Modifier.height(Dimens.xs))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Dimens.iconToTextGap)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Schedule,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.size(Dimens.iconSizeSmall)
+                    )
+                    Column {
+                        Text(
+                            text = stringResource(R.string.reading_time),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = DateUtils.formatTime(recordedAt),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.testTag("reading_time_display")
+                        )
+                    }
+                }
+
+                TextButton(
+                    onClick = {
+                        android.app.TimePickerDialog(
+                            context,
+                            { _, hourOfDay, minute ->
+                                val updated = DateUtils.combineWithTime(
+                                    date = DateUtils.toLocalDate(recordedAt),
+                                    hour = hourOfDay,
+                                    minute = minute
+                                )
+                                onDateChange(updated)
+                            },
+                            currentDhakaTime.hour,
+                            currentDhakaTime.minute,
+                            false
+                        ).show()
+                    },
+                    modifier = Modifier.testTag("change_time_button")
+                ) {
+                    Text(
+                        text = stringResource(R.string.change_time),
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
+            }
         }
     }
 
-    Spacer(modifier = Modifier.height(16.dp))
+    Spacer(modifier = Modifier.height(Dimens.spacingMd))
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(CardShape)
             .background(MaterialTheme.colorScheme.surface)
-            .padding(12.dp),
+            .padding(Dimens.spacingSm),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Checkbox(
@@ -364,27 +540,26 @@ private fun ReadingOptionsSection(
             onCheckedChange = onMeterResetChange,
             modifier = Modifier.testTag("meter_reset_checkbox")
         )
-        Spacer(modifier = Modifier.width(8.dp))
+        Spacer(modifier = Modifier.width(Dimens.xs))
         Column {
             Text(
                 text = "Meter Reset or Replaced",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium
+                style = MaterialTheme.typography.bodyLarge
             )
             Text(
                 text = "Check if your meter rolled over to 0 or was replaced with a new unit.",
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
 
-    Spacer(modifier = Modifier.height(16.dp))
+    Spacer(modifier = Modifier.height(Dimens.spacingMd))
 
     OutlinedTextField(
         value = note,
         onValueChange = onNoteChange,
-        label = { Text("Note (optional, e.g. AC used heavily)") },
+        label = { Text("Note (optional, e.g. AC used heavily)", style = MaterialTheme.typography.bodyMedium) },
         modifier = Modifier.fillMaxWidth(),
         shape = InputShape,
         singleLine = true
@@ -401,17 +576,21 @@ private fun SaveReadingButton(
         onClick = onSave,
         modifier = Modifier
             .fillMaxWidth()
-            .height(56.dp)
+            .height(Dimens.buttonHeightPrimary)
             .testTag("save_reading_btn"),
         enabled = canSave,
         shape = ButtonShape,
         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
     ) {
-        Icon(Icons.Default.Check, contentDescription = null)
-        Spacer(modifier = Modifier.width(8.dp))
+        Icon(
+            Icons.Default.Check,
+            contentDescription = null,
+            modifier = Modifier.size(Dimens.iconSizeSmall)
+        )
+        Spacer(modifier = Modifier.width(Dimens.xs))
         Text(
             text = if (isSaving) "Saving..." else "Save Reading",
-            style = MaterialTheme.typography.titleMedium
+            style = MaterialTheme.typography.labelLarge
         )
     }
 }

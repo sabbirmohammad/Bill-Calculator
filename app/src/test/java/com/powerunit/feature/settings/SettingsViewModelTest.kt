@@ -3,6 +3,7 @@ package com.powerunit.feature.settings
 import com.powerunit.core.database.PowerUnitDatabase
 import com.powerunit.core.database.dao.ReadingDao
 import com.powerunit.core.datastore.SettingsPreferences
+import com.powerunit.core.update.AppUpdateManager
 import com.powerunit.core.worker.WorkManagerScheduler
 import com.powerunit.domain.model.Meter
 import com.powerunit.domain.model.MeterType
@@ -37,6 +38,7 @@ class SettingsViewModelTest {
     private val workManagerScheduler = mockk<WorkManagerScheduler>(relaxed = true)
     private val database = mockk<PowerUnitDatabase>(relaxed = true)
     private val readingDao = mockk<ReadingDao>(relaxed = true)
+    private val appUpdateManager = mockk<AppUpdateManager>(relaxed = true)
 
     private val sampleMeter = Meter(
         id = 1L,
@@ -62,6 +64,8 @@ class SettingsViewModelTest {
         coEvery { settingsPreferences.appLockEnabled } returns flowOf(false)
         coEvery { settingsPreferences.hideAmounts } returns flowOf(false)
         coEvery { settingsPreferences.screenshotBlock } returns flowOf(false)
+        coEvery { settingsPreferences.githubRepo } returns flowOf("sabbirmohammad/Bill-Calculator")
+        coEvery { settingsPreferences.autoCheckUpdates } returns flowOf(true)
     }
 
     @After
@@ -74,7 +78,8 @@ class SettingsViewModelTest {
             meterRepository = meterRepository,
             settingsPreferences = settingsPreferences,
             workManagerScheduler = workManagerScheduler,
-            database = database
+            database = database,
+            appUpdateManager = appUpdateManager
         )
     }
 
@@ -125,5 +130,37 @@ class SettingsViewModelTest {
 
         coVerify { readingDao.deleteAllReadings() }
         assertTrue(viewModel.uiState.value.clearDataSuccess)
+    }
+
+    @Test
+    fun checkForUpdates_callsAppUpdateManager() = runTest(testDispatcher) {
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.checkForUpdates()
+
+        verify { appUpdateManager.checkForUpdates(isManual = true) }
+    }
+
+    @Test
+    fun setGithubRepo_updatesPreferences() = runTest(testDispatcher) {
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.setGithubRepo("owner/custom-repo")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { settingsPreferences.setGithubRepo("owner/custom-repo") }
+    }
+
+    @Test
+    fun setAutoCheckUpdates_updatesPreferences() = runTest(testDispatcher) {
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.setAutoCheckUpdates(false)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { settingsPreferences.setAutoCheckUpdates(false) }
     }
 }

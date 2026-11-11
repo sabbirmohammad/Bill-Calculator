@@ -1,9 +1,11 @@
 package com.powerunit.feature.onboarding
 
+import com.powerunit.core.common.DateUtils
 import com.powerunit.core.datastore.SettingsPreferences
 import com.powerunit.domain.model.Meter
 import com.powerunit.domain.model.MeterType
 import com.powerunit.domain.repository.MeterRepository
+import com.powerunit.domain.repository.ReadingRepository
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -25,13 +27,15 @@ class OnboardingViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
     private val meterRepository = mockk<MeterRepository>(relaxed = true)
+    private val readingRepository = mockk<ReadingRepository>(relaxed = true)
     private val settingsPreferences = mockk<SettingsPreferences>(relaxed = true)
     private lateinit var viewModel: OnboardingViewModel
 
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
-        viewModel = OnboardingViewModel(meterRepository, settingsPreferences)
+        coEvery { meterRepository.saveMeter(any()) } returns 1L
+        viewModel = OnboardingViewModel(meterRepository, readingRepository, settingsPreferences)
     }
 
     @After
@@ -49,10 +53,13 @@ class OnboardingViewModelTest {
     }
 
     @Test
-    fun completeOnboarding_savesMeterAndUpdatesPreferences() = runTest(testDispatcher) {
+    fun completeOnboarding_savesMeterAndReadingWithCustomDate() = runTest(testDispatcher) {
+        val customInstant = DateUtils.toInstantAtDhaka(2026, 11, 1, 9, 30)
+
         viewModel.onMeterNameChange("Apartment Meter")
         viewModel.onMeterTypeChange(MeterType.POSTPAID)
         viewModel.onInitialReadingChange("1250.0")
+        viewModel.onInitialReadingDateChange(customInstant)
         viewModel.onCycleDayChange(15)
 
         viewModel.completeOnboarding()
@@ -63,6 +70,11 @@ class OnboardingViewModelTest {
                 it.name == "Apartment Meter" &&
                     it.startReading == BigDecimal("1250.0") &&
                     it.type == MeterType.POSTPAID
+            })
+            readingRepository.saveReading(match {
+                it.readingValue == BigDecimal("1250.0") &&
+                    it.recordedAt == customInstant &&
+                    it.note == "Initial Reading"
             })
             settingsPreferences.setBillingCycleDay(15)
             settingsPreferences.setOnboardingCompleted(true)

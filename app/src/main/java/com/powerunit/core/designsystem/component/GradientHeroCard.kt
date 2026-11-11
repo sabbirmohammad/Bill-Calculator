@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
@@ -54,6 +55,10 @@ fun GradientHeroCard(
     trendPercent: Double? = null,
     cycleDayText: String = "Day 11 of 30",
     cycleProgress: Float = 0.36f,
+    projectedBill: String? = null,
+    projectedUnits: String? = null,
+    forecastStatus: String? = null,
+    isOverBudget: Boolean? = null,
     sparklinePoints: List<Float>? = null,
     darkTheme: Boolean = isSystemInDarkTheme()
 ) {
@@ -74,31 +79,33 @@ fun GradientHeroCard(
                 .fillMaxWidth()
                 .background(gradient)
         ) {
-            // Optional background sparkline at 20% opacity
-            if (!sparklinePoints.isNullOrEmpty()) {
-                Canvas(
-                    modifier = Modifier
-                        .matchParentSize()
-                        .padding(bottom = Dimens.spacingXxl)
-                ) {
-                    val maxVal = (sparklinePoints.maxOrNull() ?: 1f).coerceAtLeast(1f)
-                    val minVal = sparklinePoints.minOrNull() ?: 0f
-                    val range = (maxVal - minVal).coerceAtLeast(0.1f)
-                    val stepX = size.width / (sparklinePoints.size - 1).coerceAtLeast(1)
+            // Optional background sparkline at 20% opacity (only drawn when there is meaningful variation across at least 2 points)
+            if (!sparklinePoints.isNullOrEmpty() && sparklinePoints.size >= 2) {
+                val maxVal = sparklinePoints.maxOrNull() ?: 1f
+                val minVal = sparklinePoints.minOrNull() ?: 0f
+                val range = maxVal - minVal
+                if (range > 0.5f) {
+                    Canvas(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .padding(bottom = Dimens.spacingXxl * 2)
+                    ) {
+                        val stepX = size.width / (sparklinePoints.size - 1)
 
-                    val path = Path()
-                    sparklinePoints.forEachIndexed { i, p ->
-                        val x = i * stepX
-                        val normalized = (p - minVal) / range
-                        val y = size.height - (normalized * (size.height * 0.45f))
-                        if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
+                        val path = Path()
+                        sparklinePoints.forEachIndexed { i, p ->
+                            val x = i * stepX
+                            val normalized = (p - minVal) / range
+                            val y = size.height - (normalized * (size.height * 0.40f))
+                            if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
+                        }
+
+                        drawPath(
+                            path = path,
+                            color = Color.White.copy(alpha = 0.20f),
+                            style = Stroke(width = 2.dp.toPx())
+                        )
                     }
-
-                    drawPath(
-                        path = path,
-                        color = Color.White.copy(alpha = 0.20f),
-                        style = Stroke(width = 2.dp.toPx())
-                    )
                 }
             }
 
@@ -127,18 +134,20 @@ fun GradientHeroCard(
 
                 // Center: numberHero units + unit suffix
                 Row(
-                    verticalAlignment = Alignment.Baseline
+                    verticalAlignment = Alignment.Bottom
                 ) {
                     Text(
                         text = unitsUsed,
                         style = NumberHero,
-                        color = whitePrimary
+                        color = whitePrimary,
+                        modifier = Modifier.alignByBaseline()
                     )
                     Spacer(modifier = Modifier.width(Dimens.xxs))
                     Text(
                         text = unitSymbol,
                         style = MaterialTheme.typography.labelMedium,
-                        color = whiteSecondary
+                        color = whiteSecondary,
+                        modifier = Modifier.alignByBaseline()
                     )
                 }
 
@@ -267,7 +276,7 @@ private fun PreviewGradientHeroCardBangla() {
             unitsUsed = "১৪২.৮",
             unitSymbol = "ইউনিট",
             estimatedCost = "৳ ১,২৮০.৫০ (সম্ভাব্য)",
-            trendPercent = -৫.৪,
+            trendPercent = -5.4,
             cycleDayText = "৩০ দিনের মধ্যে ১৪তম দিন",
             cycleProgress = 0.48f
         )

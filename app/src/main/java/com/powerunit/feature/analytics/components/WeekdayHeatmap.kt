@@ -22,10 +22,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.powerunit.core.common.Formatters
-import com.powerunit.feature.analytics.WeekdayIntensity
 import com.powerunit.core.designsystem.theme.CardShape
+import com.powerunit.core.designsystem.theme.ChipShape
+import com.powerunit.core.designsystem.theme.Dimens
+import com.powerunit.core.designsystem.theme.Elevation
+import com.powerunit.feature.analytics.WeekdayIntensity
 import kotlinx.datetime.DayOfWeek
 
 @Composable
@@ -39,26 +41,26 @@ fun WeekdayHeatmap(
             .testTag("analytics_heatmap_card"),
         shape = CardShape,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = Elevation.level1)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(Dimens.cardPaddingStandard)
         ) {
             Text(
                 text = "Day-of-Week Pattern",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(Dimens.xxs))
             Text(
                 text = "Average daily consumption across days of the week",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(Dimens.md))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -100,8 +102,8 @@ private fun WeekdayCell(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(64.dp)
-                .clip(RoundedCornerShape(8.dp))
+                .height(Dimens.keypadKeyHeight)
+                .clip(ChipShape)
                 .background(cellColor),
             contentAlignment = Alignment.Center
         ) {
@@ -109,12 +111,11 @@ private fun WeekdayCell(
                 text = Formatters.formatUnits(item.averageUnits),
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
-                color = if (item.intensity > 0.6f) Color.White else MaterialTheme.colorScheme.onSurface,
-                fontSize = 11.sp
+                color = if (item.intensity > 0.6f) Color.White else MaterialTheme.colorScheme.onSurface
             )
         }
 
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(Dimens.xs - 2.dp))
 
         Text(
             text = dayShort,

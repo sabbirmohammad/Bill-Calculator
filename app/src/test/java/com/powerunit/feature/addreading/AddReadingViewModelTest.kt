@@ -2,6 +2,7 @@ package com.powerunit.feature.addreading
 
 import androidx.lifecycle.SavedStateHandle
 import com.powerunit.core.common.DateUtils
+import com.powerunit.core.datastore.SettingsPreferences
 import com.powerunit.domain.model.Meter
 import com.powerunit.domain.model.MeterType
 import com.powerunit.domain.model.Reading
@@ -21,6 +22,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -32,6 +34,7 @@ class AddReadingViewModelTest {
     private val testDispatcher = StandardTestDispatcher()
     private val readingRepository = mockk<ReadingRepository>(relaxed = true)
     private val meterRepository = mockk<MeterRepository>(relaxed = true)
+    private val settingsPreferences = mockk<SettingsPreferences>(relaxed = true)
     private val validateReadingUseCase = ValidateReadingUseCase()
 
     private val sampleMeter = Meter(
@@ -68,29 +71,30 @@ class AddReadingViewModelTest {
         Dispatchers.resetMain()
     }
 
-    @Test
-    fun loadInitialData_setsMeterAndPreviousReading() = runTest(testDispatcher) {
-        val viewModel = AddReadingViewModel(
+    private fun createViewModel(savedStateHandle: SavedStateHandle = SavedStateHandle()): AddReadingViewModel {
+        return AddReadingViewModel(
             readingRepository = readingRepository,
             meterRepository = meterRepository,
             validateReadingUseCase = validateReadingUseCase,
-            savedStateHandle = SavedStateHandle()
+            settingsPreferences = settingsPreferences,
+            savedStateHandle = savedStateHandle
         )
+    }
+
+    @Test
+    fun loadInitialData_setsMeterAndPreviousReading() = runTest(testDispatcher) {
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         val state = viewModel.uiState.value
         assertEquals(1L, state.meterId)
         assertEquals(BigDecimal("120.0"), state.previousReadingValue)
+        assertFalse(state.isInitialReading)
     }
 
     @Test
     fun onReadingInputChange_calculatesDelta() = runTest(testDispatcher) {
-        val viewModel = AddReadingViewModel(
-            readingRepository = readingRepository,
-            meterRepository = meterRepository,
-            validateReadingUseCase = validateReadingUseCase,
-            savedStateHandle = SavedStateHandle()
-        )
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.onReadingInputChange("135.5")
@@ -102,13 +106,51 @@ class AddReadingViewModelTest {
     }
 
     @Test
+    fun onDateChange_updatesRecordedAt() = runTest(testDispatcher) {
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val customInstant = DateUtils.toInstantAtDhaka(2026, 11, 1, 10, 30)
+        viewModel.onDateChange(customInstant)
+
+        val state = viewModel.uiState.value
+        assertEquals(customInstant, state.recordedAt)
+    }
+
+    @Test
+    fun initialReading_detectedAndSavedCorrectly() = runTest(testDispatcher) {
+        coEvery { readingRepository.getLatestReadingSync(1L) } returns null
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertTrue(state.isInitialReading)
+        assertNull(state.previousReadingValue)
+
+        viewModel.onReadingInputChange("1500.0")
+        val customInstant = DateUtils.toInstantAtDhaka(2026, 11, 2, 9, 0)
+        viewModel.onDateChange(customInstant)
+        viewModel.saveReading()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify {
+            readingRepository.saveReading(match {
+                it.readingValue == BigDecimal("1500.0") &&
+                    it.recordedAt == customInstant &&
+                    it.note == "Initial Reading"
+            })
+            meterRepository.saveMeter(match {
+                it.startReading == BigDecimal("1500.0")
+            })
+            settingsPreferences.setOnboardingCompleted(true)
+        }
+        assertTrue(viewModel.uiState.value.isSaved)
+    }
+
+    @Test
     fun onReadingInputChange_lowerValueShowsWarningDialogOnSave() = runTest(testDispatcher) {
-        val viewModel = AddReadingViewModel(
-            readingRepository = readingRepository,
-            meterRepository = meterRepository,
-            validateReadingUseCase = validateReadingUseCase,
-            savedStateHandle = SavedStateHandle()
-        )
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.onReadingInputChange("110.0")
@@ -121,12 +163,7 @@ class AddReadingViewModelTest {
 
     @Test
     fun saveReading_forceSaveSavesSuccessfully() = runTest(testDispatcher) {
-        val viewModel = AddReadingViewModel(
-            readingRepository = readingRepository,
-            meterRepository = meterRepository,
-            validateReadingUseCase = validateReadingUseCase,
-            savedStateHandle = SavedStateHandle()
-        )
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.onReadingInputChange("110.0")
@@ -144,12 +181,7 @@ class AddReadingViewModelTest {
 
     @Test
     fun onMeterResetChange_calculatesDeltaAsTotalValue() = runTest(testDispatcher) {
-        val viewModel = AddReadingViewModel(
-            readingRepository = readingRepository,
-            meterRepository = meterRepository,
-            validateReadingUseCase = validateReadingUseCase,
-            savedStateHandle = SavedStateHandle()
-        )
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.onReadingInputChange("5.0")

@@ -16,6 +16,7 @@ import com.powerunit.domain.usecase.CalculateCycleUsageUseCase
 import com.powerunit.domain.usecase.CalculateDailyUsageUseCase
 import com.powerunit.domain.usecase.ForecastMonthEndUseCase
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -28,6 +29,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import java.math.BigDecimal
@@ -101,9 +103,8 @@ class DashboardViewModelTest {
         Dispatchers.resetMain()
     }
 
-    @Test
-    fun loadDashboardData_computesStateCorrectly() = runTest(testDispatcher) {
-        val viewModel = DashboardViewModel(
+    private fun createViewModel(): DashboardViewModel {
+        return DashboardViewModel(
             meterRepository = meterRepository,
             readingRepository = readingRepository,
             tariffRepository = tariffRepository,
@@ -114,6 +115,11 @@ class DashboardViewModelTest {
             calculateBillUseCase = calculateBillUseCase,
             forecastMonthEndUseCase = forecastMonthEndUseCase
         )
+    }
+
+    @Test
+    fun loadDashboardData_computesStateCorrectly() = runTest(testDispatcher) {
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         val state = viewModel.uiState.value
@@ -122,5 +128,69 @@ class DashboardViewModelTest {
         assertNotNull(state.cycleUsage)
         assertNotNull(state.billBreakdown)
         assertNotNull(state.budget)
+        assertTrue(state.hasInitialReading)
+        assertFalse(state.showInitialReadingDialog)
+    }
+
+    @Test
+    fun whenNoReadings_showsInitialReadingDialog() = runTest(testDispatcher) {
+        coEvery { readingRepository.getReadings(1L) } returns flowOf(emptyList())
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertFalse(state.hasInitialReading)
+        assertTrue(state.showInitialReadingDialog)
+    }
+
+    @Test
+    fun onDismissInitialReadingDialog_hidesDialog() = runTest(testDispatcher) {
+        coEvery { readingRepository.getReadings(1L) } returns flowOf(emptyList())
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.showInitialReadingDialog)
+
+        viewModel.onDismissInitialReadingDialog()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse(viewModel.uiState.value.showInitialReadingDialog)
+        assertFalse(viewModel.uiState.value.hasInitialReading)
+
+        viewModel.onShowInitialReadingDialog()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.showInitialReadingDialog)
+    }
+
+    @Test
+    fun saveInitialReading_savesReading_andUpdatesMeter() = runTest(testDispatcher) {
+        coEvery { readingRepository.getReadings(1L) } returns flowOf(emptyList())
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val customInstant = DateUtils.toInstantAtDhaka(2026, 11, 1, 8, 0)
+        viewModel.saveInitialReading(
+            readingValue = BigDecimal("1250.0"),
+            recordedAt = customInstant,
+            note = "First reading"
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify {
+            readingRepository.saveReading(match {
+                it.readingValue == BigDecimal("1250.0") &&
+                    it.recordedAt == customInstant &&
+                    it.note == "First reading"
+            })
+            meterRepository.updateMeter(match {
+                it.startReading == BigDecimal("1250.0")
+            })
+            settingsPreferences.setOnboardingCompleted(true)
+        }
+        assertFalse(viewModel.uiState.value.showInitialReadingDialog)
     }
 }

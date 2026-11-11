@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -15,18 +16,22 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Alarm
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.Speed
+import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -44,12 +49,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.powerunit.BuildConfig
 import com.powerunit.R
-import com.powerunit.core.common.Formatters
 import com.powerunit.core.designsystem.theme.CardShape
+import com.powerunit.core.designsystem.theme.Dimens
 import com.powerunit.domain.model.Meter
 
 @Composable
@@ -57,6 +62,7 @@ fun SettingsScreen(
     onNavigateToTariffEditor: () -> Unit,
     onNavigateToBackup: () -> Unit,
     modifier: Modifier = Modifier,
+    onNavigateToDesignGallery: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -81,15 +87,14 @@ fun SettingsScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .testTag("settings_lazy_column")
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                    .padding(horizontal = Dimens.screenHorizontalPadding),
+                verticalArrangement = Arrangement.spacedBy(Dimens.cardGap)
             ) {
                 item {
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(Dimens.contentTopPadding))
                     Text(
                         text = stringResource(R.string.settings_title),
                         style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onBackground
                     )
                 }
@@ -144,11 +149,22 @@ fun SettingsScreen(
                 }
 
                 item {
-                    AboutSettingsSection()
+                    UpdateSettingsSection(
+                        currentVersion = "v${BuildConfig.VERSION_NAME}",
+                        githubRepo = uiState.githubRepo,
+                        autoCheck = uiState.autoCheckUpdates,
+                        onCheckUpdates = viewModel::checkForUpdates,
+                        onToggleAutoCheck = viewModel::setAutoCheckUpdates,
+                        onRepoChange = viewModel::setGithubRepo
+                    )
                 }
 
                 item {
-                    Spacer(modifier = Modifier.height(80.dp))
+                    AboutSettingsSection(onNavigateToDesignGallery = onNavigateToDesignGallery)
+                }
+
+                item {
+                    Spacer(modifier = Modifier.height(Dimens.scrollBottomPadding))
                 }
             }
         }
@@ -157,8 +173,8 @@ fun SettingsScreen(
     if (showClearConfirm) {
         AlertDialog(
             onDismissRequest = { showClearConfirm = false },
-            title = { Text(stringResource(R.string.settings_clear_data)) },
-            text = { Text(stringResource(R.string.settings_clear_data_confirm)) },
+            title = { Text(stringResource(R.string.settings_clear_data), style = MaterialTheme.typography.titleLarge) },
+            text = { Text(stringResource(R.string.settings_clear_data_confirm), style = MaterialTheme.typography.bodyMedium) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -166,14 +182,16 @@ fun SettingsScreen(
                         showClearConfirm = false
                     }
                 ) {
-                    Text("Delete All", color = MaterialTheme.colorScheme.error)
+                    Text("Delete All", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelLarge)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showClearConfirm = false }) {
-                    Text("Cancel")
+                    Text("Cancel", style = MaterialTheme.typography.labelLarge)
                 }
-            }
+            },
+            shape = CardShape,
+            containerColor = MaterialTheme.colorScheme.surface
         )
     }
 }
@@ -184,11 +202,11 @@ private fun MeterSettingsSection(meter: Meter?) {
         modifier = Modifier.fillMaxWidth().testTag("settings_meter_card"),
         shape = CardShape,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = Dimens.level1)
     ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+        Column(modifier = Modifier.fillMaxWidth().padding(Dimens.cardPaddingStandard)) {
             SectionTitle(icon = Icons.Default.Speed, title = stringResource(R.string.settings_section_meter))
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(Dimens.spacingSm))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -199,11 +217,11 @@ private fun MeterSettingsSection(meter: Meter?) {
                     Text(
                         text = meter?.name ?: "Main Meter",
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
                         text = "Type: ${meter?.type?.name ?: "POSTPAID"} • Multiplier: ${meter?.multiplierFactor ?: 1.0}",
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -222,41 +240,41 @@ private fun BillingSettingsSection(
         modifier = Modifier.fillMaxWidth().testTag("settings_billing_card"),
         shape = CardShape,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = Dimens.level1)
     ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+        Column(modifier = Modifier.fillMaxWidth().padding(Dimens.cardPaddingStandard)) {
             SectionTitle(icon = Icons.Default.Receipt, title = stringResource(R.string.settings_section_billing))
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(Dimens.spacingSm))
 
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { onCycleDayChange(if (cycleDay >= 28) 1 else cycleDay + 1) }
-                    .padding(vertical = 4.dp),
+                    .padding(vertical = Dimens.xxs),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     text = stringResource(R.string.settings_cycle_start_day),
-                    style = MaterialTheme.typography.bodyMedium
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = "Day $cycleDay",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.primary
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
-            HorizontalDivider()
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(Dimens.xs))
+            HorizontalDivider(thickness = Dimens.dividerThickness, color = MaterialTheme.colorScheme.outlineVariant)
+            Spacer(modifier = Modifier.height(Dimens.xs))
 
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { onNavigateToTariff() }
-                    .padding(vertical = 4.dp)
+                    .padding(vertical = Dimens.xxs)
                     .testTag("settings_tariff_editor_row"),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
@@ -264,19 +282,20 @@ private fun BillingSettingsSection(
                 Column {
                     Text(
                         text = stringResource(R.string.settings_tariff_editor),
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
                         text = stringResource(R.string.settings_tariff_editor_desc),
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(Dimens.iconSizeSmall)
                 )
             }
         }
@@ -293,11 +312,11 @@ private fun ReminderSettingsSection(
         modifier = Modifier.fillMaxWidth().testTag("settings_reminders_card"),
         shape = CardShape,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = Dimens.level1)
     ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+        Column(modifier = Modifier.fillMaxWidth().padding(Dimens.cardPaddingStandard)) {
             SectionTitle(icon = Icons.Default.Alarm, title = stringResource(R.string.settings_section_reminders))
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(Dimens.spacingSm))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -307,12 +326,12 @@ private fun ReminderSettingsSection(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = stringResource(R.string.settings_reminder_toggle),
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
                         text = "Time: $reminderTime daily",
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -339,11 +358,11 @@ private fun DisplaySettingsSection(
         modifier = Modifier.fillMaxWidth().testTag("settings_display_card"),
         shape = CardShape,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = Dimens.level1)
     ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+        Column(modifier = Modifier.fillMaxWidth().padding(Dimens.cardPaddingStandard)) {
             SectionTitle(icon = Icons.Default.Palette, title = stringResource(R.string.settings_section_display))
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(Dimens.spacingSm))
 
             SettingToggleRow(
                 title = stringResource(R.string.settings_theme_mode),
@@ -361,28 +380,31 @@ private fun DisplaySettingsSection(
                         }
                         onThemeChange(next)
                     }) {
-                        Text(when (theme) {
-                            "LIGHT" -> "Light"
-                            "DARK" -> "Dark"
-                            else -> "System"
-                        })
+                        Text(
+                            when (theme) {
+                                "LIGHT" -> "Light"
+                                "DARK" -> "Dark"
+                                else -> "System"
+                            },
+                            style = MaterialTheme.typography.labelLarge
+                        )
                     }
                 }
             )
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+            HorizontalDivider(thickness = Dimens.dividerThickness, color = MaterialTheme.colorScheme.outlineVariant)
 
             SettingToggleRow(
                 title = stringResource(R.string.settings_language),
                 subtitle = if (language == "bn") "বাংলা (Bangla)" else "English",
                 action = {
                     TextButton(onClick = { onLangChange(if (language == "bn") "en" else "bn") }) {
-                        Text(if (language == "bn") "English" else "বাংলা")
+                        Text(if (language == "bn") "English" else "বাংলা", style = MaterialTheme.typography.labelLarge)
                     }
                 }
             )
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+            HorizontalDivider(thickness = Dimens.dividerThickness, color = MaterialTheme.colorScheme.outlineVariant)
 
             SettingToggleRow(
                 title = stringResource(R.string.settings_bengali_digits),
@@ -412,11 +434,11 @@ private fun SecuritySettingsSection(
         modifier = Modifier.fillMaxWidth().testTag("settings_security_card"),
         shape = CardShape,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = Dimens.level1)
     ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+        Column(modifier = Modifier.fillMaxWidth().padding(Dimens.cardPaddingStandard)) {
             SectionTitle(icon = Icons.Default.Lock, title = stringResource(R.string.settings_section_security))
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(Dimens.spacingSm))
 
             SettingToggleRow(
                 title = stringResource(R.string.settings_app_lock),
@@ -430,7 +452,7 @@ private fun SecuritySettingsSection(
                 }
             )
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+            HorizontalDivider(thickness = Dimens.dividerThickness, color = MaterialTheme.colorScheme.outlineVariant)
 
             SettingToggleRow(
                 title = stringResource(R.string.settings_hide_amounts),
@@ -444,7 +466,7 @@ private fun SecuritySettingsSection(
                 }
             )
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+            HorizontalDivider(thickness = Dimens.dividerThickness, color = MaterialTheme.colorScheme.outlineVariant)
 
             SettingToggleRow(
                 title = stringResource(R.string.settings_screenshot_block),
@@ -470,55 +492,54 @@ private fun DataSettingsSection(
         modifier = Modifier.fillMaxWidth(),
         shape = CardShape,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = Dimens.level1)
     ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+        Column(modifier = Modifier.fillMaxWidth().padding(Dimens.cardPaddingStandard)) {
             SectionTitle(icon = Icons.Default.Delete, title = stringResource(R.string.settings_section_data))
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(Dimens.spacingSm))
 
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { onBackupClick() }
                     .testTag("settings_backup_row")
-                    .padding(vertical = 4.dp),
+                    .padding(vertical = Dimens.xxs),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
                     Text(
                         text = "Encrypted Backup & Restore",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
                         text = "Export and restore encrypted data (.wattwise)",
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+            HorizontalDivider(thickness = Dimens.dividerThickness, color = MaterialTheme.colorScheme.outlineVariant)
 
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { onClearClick() }
-                    .padding(vertical = 4.dp),
+                    .padding(vertical = Dimens.xxs),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
                     Text(
                         text = stringResource(R.string.settings_clear_data),
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold,
+                        style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.error
                     )
                     Text(
                         text = "Reset readings database",
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -528,29 +549,73 @@ private fun DataSettingsSection(
 }
 
 @Composable
-private fun AboutSettingsSection() {
+private fun AboutSettingsSection(
+    onNavigateToDesignGallery: () -> Unit
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = CardShape,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = Dimens.level1)
     ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+        Column(modifier = Modifier.fillMaxWidth().padding(Dimens.cardPaddingStandard)) {
             SectionTitle(icon = Icons.Default.Info, title = stringResource(R.string.settings_section_about))
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(Dimens.xs))
 
             Text(
                 text = "WattWise v1.0.0",
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
+                color = MaterialTheme.colorScheme.onSurface
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(Dimens.xxs))
             Text(
                 text = stringResource(R.string.settings_privacy_pledge),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Medium
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary
             )
+
+            if (BuildConfig.DEBUG) {
+                Spacer(modifier = Modifier.height(Dimens.xs))
+                HorizontalDivider(thickness = Dimens.dividerThickness, color = MaterialTheme.colorScheme.outlineVariant)
+                Spacer(modifier = Modifier.height(Dimens.xs))
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onNavigateToDesignGallery() }
+                        .padding(vertical = Dimens.xxs),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.AutoAwesome,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(Dimens.iconSizeSmall)
+                        )
+                        Spacer(modifier = Modifier.width(Dimens.xs))
+                        Column {
+                            Text(
+                                text = "Design System Gallery (Dev)",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "Tokens, typography, and §5 components preview",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(Dimens.iconSizeSmall)
+                    )
+                }
+            }
         }
     }
 }
@@ -565,13 +630,13 @@ private fun SectionTitle(
             imageVector = icon,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(20.dp)
+            modifier = Modifier.size(Dimens.iconSizeSmall)
         )
-        Spacer(modifier = Modifier.width(8.dp))
+        Spacer(modifier = Modifier.width(Dimens.xs))
         Text(
             text = title,
             style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold
+            color = MaterialTheme.colorScheme.onSurface
         )
     }
 }
@@ -585,22 +650,185 @@ private fun SettingToggleRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
+            .defaultMinSize(minHeight = 48.dp)
+            .padding(vertical = Dimens.xxs),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface
             )
             Text(
                 text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
         action()
     }
 }
+
+@Composable
+private fun UpdateSettingsSection(
+    currentVersion: String,
+    githubRepo: String,
+    autoCheck: Boolean,
+    onCheckUpdates: () -> Unit,
+    onToggleAutoCheck: (Boolean) -> Unit,
+    onRepoChange: (String) -> Unit
+) {
+    var showRepoDialog by remember { mutableStateOf(false) }
+    var tempRepo by remember(githubRepo) { mutableStateOf(githubRepo) }
+
+    Card(
+        modifier = Modifier.fillMaxWidth().testTag("settings_updates_card"),
+        shape = CardShape,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = Dimens.level1)
+    ) {
+        Column(modifier = Modifier.fillMaxWidth().padding(Dimens.cardPaddingStandard)) {
+            SectionTitle(icon = Icons.Default.SystemUpdate, title = stringResource(R.string.settings_section_updates))
+            Spacer(modifier = Modifier.height(Dimens.spacingSm))
+
+            // Check for updates row
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onCheckUpdates() }
+                    .padding(vertical = Dimens.xxs)
+                    .testTag("settings_check_update_row"),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.settings_check_updates),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "Current: $currentVersion • Tap to check GitHub",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Icon(
+                    imageVector = Icons.Default.CloudDownload,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(Dimens.iconSizeStandard)
+                )
+            }
+
+            HorizontalDivider(thickness = Dimens.dividerThickness, color = MaterialTheme.colorScheme.outlineVariant)
+
+            // Auto-check toggle
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = Dimens.xxs),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.settings_auto_update),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "Silent check on app launch",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(
+                    checked = autoCheck,
+                    onCheckedChange = onToggleAutoCheck
+                )
+            }
+
+            HorizontalDivider(thickness = Dimens.dividerThickness, color = MaterialTheme.colorScheme.outlineVariant)
+
+            // GitHub Repository row
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { showRepoDialog = true }
+                    .padding(vertical = Dimens.xxs),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.settings_github_repo),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = githubRepo,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(Dimens.iconSizeSmall)
+                )
+            }
+        }
+    }
+
+    if (showRepoDialog) {
+        AlertDialog(
+            onDismissRequest = { showRepoDialog = false },
+            title = {
+                Text(
+                    text = stringResource(R.string.settings_github_repo),
+                    style = MaterialTheme.typography.titleLarge
+                )
+            },
+            text = {
+                Column {
+                    Text(
+                        text = "Enter GitHub repository (owner/repo):",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(Dimens.spacingSm))
+                    OutlinedTextField(
+                        value = tempRepo,
+                        onValueChange = { tempRepo = it },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (tempRepo.isNotBlank()) {
+                            onRepoChange(tempRepo.trim())
+                        }
+                        showRepoDialog = false
+                    }
+                ) {
+                    Text("Save", style = MaterialTheme.typography.labelLarge)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showRepoDialog = false }) {
+                    Text("Cancel", style = MaterialTheme.typography.labelLarge)
+                }
+            },
+            shape = CardShape,
+            containerColor = MaterialTheme.colorScheme.surface
+        )
+    }
+}
+

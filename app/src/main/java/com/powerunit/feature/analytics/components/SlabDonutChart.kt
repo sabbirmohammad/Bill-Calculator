@@ -34,18 +34,14 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.powerunit.core.common.Formatters
-import com.powerunit.feature.analytics.SlabDonutItem
 import com.powerunit.core.designsystem.theme.CardShape
+import com.powerunit.core.designsystem.theme.ChartColors
+import com.powerunit.core.designsystem.theme.Dimens
+import com.powerunit.core.designsystem.theme.Elevation
+import com.powerunit.feature.analytics.SlabDonutItem
 import java.math.BigDecimal
 
-private val SlabColors = listOf(
-    Color(0xFF00897B), // Teal
-    Color(0xFF1E88E5), // Blue
-    Color(0xFF5E35B1), // Deep Violet
-    Color(0xFFFB8C00), // Amber
-    Color(0xFFE53935), // Red / Crimson
-    Color(0xFF8E24AA)  // Purple
-)
+private val SlabPalette = ChartColors
 
 @Composable
 fun SlabDonutChart(
@@ -59,26 +55,26 @@ fun SlabDonutChart(
             .testTag("analytics_slab_donut_card"),
         shape = CardShape,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = Elevation.level1)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(Dimens.cardPaddingStandard)
         ) {
             Text(
                 text = "Tariff Slab Cost Distribution",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(Dimens.xxs))
             Text(
                 text = "Proportion of total energy bill spent across tariff tiers",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(Dimens.md))
 
             if (items.isEmpty() || totalUnits == BigDecimal.ZERO) {
                 Box(
@@ -105,15 +101,15 @@ fun SlabDonutChart(
                         modifier = Modifier.size(140.dp)
                     )
 
-                    Spacer(modifier = Modifier.width(16.dp))
+                    Spacer(modifier = Modifier.width(Dimens.md))
 
                     // Legend Column
                     Column(
                         modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                        verticalArrangement = Arrangement.spacedBy(Dimens.xs)
                     ) {
                         items.forEach { slab ->
-                            val color = SlabColors[slab.colorIndex % SlabColors.size]
+                            val color = SlabPalette[slab.colorIndex % SlabPalette.size]
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -125,10 +121,10 @@ fun SlabDonutChart(
                                 ) {
                                     Box(
                                         modifier = Modifier
-                                            .size(10.dp)
+                                            .size(Dimens.xs + 2.dp)
                                             .background(color, CircleShape)
                                     )
-                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Spacer(modifier = Modifier.width(Dimens.xs))
                                     Text(
                                         text = slab.slabName,
                                         style = MaterialTheme.typography.bodySmall,
@@ -175,7 +171,7 @@ private fun DonutCanvas(
 
             items.forEach { slab ->
                 val sweepAngle = (slab.percentageOfCost / 100f) * 360f * animationProgress.value
-                val color = SlabColors[slab.colorIndex % SlabColors.size]
+                val color = SlabPalette[slab.colorIndex % SlabPalette.size]
 
                 drawArc(
                     color = color,

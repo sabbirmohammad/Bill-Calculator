@@ -34,6 +34,8 @@ class SettingsPreferences @Inject constructor(
         val KEY_THEME_MODE = stringPreferencesKey("theme_mode")
         val KEY_DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
         val KEY_ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
+        val KEY_GITHUB_REPO = stringPreferencesKey("github_repo")
+        val KEY_AUTO_CHECK_UPDATES = booleanPreferencesKey("auto_check_updates")
     }
 
     val billingCycleDay: Flow<Int> = context.dataStore.data.map { it[KEY_BILLING_CYCLE_DAY] ?: 1 }
@@ -48,6 +50,8 @@ class SettingsPreferences @Inject constructor(
     val themeMode: Flow<String> = context.dataStore.data.map { it[KEY_THEME_MODE] ?: "SYSTEM" }
     val dynamicColor: Flow<Boolean> = context.dataStore.data.map { it[KEY_DYNAMIC_COLOR] ?: false }
     val onboardingCompleted: Flow<Boolean> = context.dataStore.data.map { it[KEY_ONBOARDING_COMPLETED] ?: false }
+    val githubRepo: Flow<String> = context.dataStore.data.map { it[KEY_GITHUB_REPO] ?: "sabbirmohammad/Bill-Calculator" }
+    val autoCheckUpdates: Flow<Boolean> = context.dataStore.data.map { it[KEY_AUTO_CHECK_UPDATES] ?: true }
 
     suspend fun setBillingCycleDay(day: Int) {
         context.dataStore.edit { it[KEY_BILLING_CYCLE_DAY] = day.coerceIn(1, 28) }
@@ -95,5 +99,13 @@ class SettingsPreferences @Inject constructor(
 
     suspend fun setOnboardingCompleted(completed: Boolean) {
         context.dataStore.edit { it[KEY_ONBOARDING_COMPLETED] = completed }
+    }
+
+    suspend fun setGithubRepo(repo: String) {
+        context.dataStore.edit { it[KEY_GITHUB_REPO] = repo.trim() }
+    }
+
+    suspend fun setAutoCheckUpdates(enabled: Boolean) {
+        context.dataStore.edit { it[KEY_AUTO_CHECK_UPDATES] = enabled }
     }
 }

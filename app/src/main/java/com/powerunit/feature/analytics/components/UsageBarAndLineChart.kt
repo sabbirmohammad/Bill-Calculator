@@ -38,10 +38,12 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.powerunit.core.common.Formatters
-import com.powerunit.feature.analytics.ChartBarData
 import com.powerunit.core.designsystem.theme.CardShape
+import com.powerunit.core.designsystem.theme.Dimens
+import com.powerunit.core.designsystem.theme.Elevation
+import com.powerunit.core.designsystem.theme.TooltipShape
+import com.powerunit.feature.analytics.ChartBarData
 import java.math.BigDecimal
 
 @Composable
@@ -58,12 +60,12 @@ fun UsageBarAndLineChart(
             .testTag("analytics_hero_chart_card"),
         shape = CardShape,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = Elevation.level1)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(Dimens.cardPaddingStandard)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -79,24 +81,24 @@ fun UsageBarAndLineChart(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
-                            .width(12.dp)
-                            .height(12.dp)
+                            .width(Dimens.sm)
+                            .height(Dimens.sm)
                             .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(2.dp))
                     )
-                    Spacer(modifier = Modifier.width(4.dp))
+                    Spacer(modifier = Modifier.width(Dimens.xxs))
                     Text(
                         text = "Units (kWh)",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Spacer(modifier = Modifier.width(12.dp))
+                    Spacer(modifier = Modifier.width(Dimens.sm))
                     Box(
                         modifier = Modifier
-                            .width(12.dp)
+                            .width(Dimens.sm)
                             .height(3.dp)
                             .background(MaterialTheme.colorScheme.tertiary)
                     )
-                    Spacer(modifier = Modifier.width(4.dp))
+                    Spacer(modifier = Modifier.width(Dimens.xxs))
                     Text(
                         text = "Cost (৳)",
                         style = MaterialTheme.typography.labelSmall,
@@ -105,7 +107,7 @@ fun UsageBarAndLineChart(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(Dimens.md))
 
             if (bars.isEmpty()) {
                 Box(
@@ -213,8 +215,7 @@ private fun ChartCanvasView(
                     Text(
                         text = bar.label,
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 10.sp
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -225,12 +226,12 @@ private fun ChartCanvasView(
 @Composable
 private fun SelectedBarTooltip(bar: ChartBarData) {
     Surface(
-        shape = RoundedCornerShape(8.dp),
+        shape = TooltipShape,
         color = MaterialTheme.colorScheme.inverseSurface,
-        modifier = Modifier.padding(bottom = 8.dp)
+        modifier = Modifier.padding(bottom = Dimens.xs)
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            modifier = Modifier.padding(horizontal = Dimens.sm, vertical = Dimens.xs - 2.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
@@ -239,7 +240,7 @@ private fun SelectedBarTooltip(bar: ChartBarData) {
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Bold
             )
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(Dimens.xs))
             Text(
                 text = "${Formatters.formatUnits(bar.units)} kWh • ${Formatters.formatBDT(bar.cost)}",
                 color = MaterialTheme.colorScheme.inverseOnSurface,
@@ -338,7 +339,7 @@ private fun ChartTableView(bars: List<ChartBarData>) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 4.dp),
+                .padding(vertical = Dimens.xxs),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
@@ -360,13 +361,13 @@ private fun ChartTableView(bars: List<ChartBarData>) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+        HorizontalDivider(modifier = Modifier.padding(vertical = Dimens.xxs))
 
         bars.forEach { bar ->
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 6.dp),
+                    .padding(vertical = Dimens.xs - 2.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {

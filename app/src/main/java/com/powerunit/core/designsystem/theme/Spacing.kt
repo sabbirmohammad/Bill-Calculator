@@ -23,6 +23,31 @@ object Dimens {
     val xxxl: Dp = 40.dp
     val huge: Dp = 48.dp
 
+    // Spacing scale aliases
+    val spacingXxs: Dp get() = xxs
+    val spacingXs: Dp get() = xs
+    val spacingSm: Dp get() = sm
+    val spacingMd: Dp get() = md
+    val spacingLg: Dp get() = lg
+    val spacingXl: Dp get() = xl
+    val spacingXxl: Dp get() = xxl
+    val spacingXxxl: Dp get() = xxxl
+    val spacingHuge: Dp get() = huge
+
+    // Elevation shortcuts
+    val level0: Dp get() = Elevation.level0
+    val level1: Dp get() = Elevation.level1
+    val level2: Dp get() = Elevation.level2
+    val level3: Dp get() = Elevation.level3
+    val level4: Dp get() = Elevation.level4
+    val level5: Dp get() = Elevation.level5
+    val elevationLevel0: Dp get() = Elevation.level0
+    val elevationLevel1: Dp get() = Elevation.level1
+    val elevationLevel2: Dp get() = Elevation.level2
+    val elevationLevel3: Dp get() = Elevation.level3
+    val elevationLevel4: Dp get() = Elevation.level4
+    val elevationLevel5: Dp get() = Elevation.level5
+
     // Context tokens
     val screenHorizontalPadding: Dp = 20.dp
     val contentTopPadding: Dp = 8.dp

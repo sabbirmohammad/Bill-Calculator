@@ -40,7 +40,8 @@ class DashboardAndBillTest {
 
         // Verify Bill screen components
         composeTestRule.onNodeWithTag("bill_summary_card").assertIsDisplayed()
-        composeTestRule.onNodeWithTag("what_if_simulator_card").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("bill_itemized_receipt_card").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("what_if_simulator_card").performScrollTo().assertIsDisplayed()
         composeTestRule.onNodeWithTag("what_if_slider").performScrollTo().assertIsDisplayed()
 
         // Tap Back button

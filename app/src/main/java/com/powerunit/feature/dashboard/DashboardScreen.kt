@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,11 +18,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -30,24 +33,36 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.powerunit.R
 import com.powerunit.core.common.DateUtils
 import com.powerunit.core.common.Formatters
 import com.powerunit.core.designsystem.component.GradientHeroCard
 import com.powerunit.core.designsystem.component.SectionHeader
 import com.powerunit.core.designsystem.component.StatCard
-import com.powerunit.core.designsystem.component.TrendChip
+import com.powerunit.core.designsystem.component.UsageRing
+import com.powerunit.core.designsystem.theme.ButtonShape
 import com.powerunit.core.designsystem.theme.CardShape
+import com.powerunit.core.designsystem.theme.Dimens
 import com.powerunit.core.designsystem.theme.PillShape
 import com.powerunit.domain.model.DailyUsage
 import com.powerunit.domain.model.Reading
+import com.powerunit.feature.dashboard.components.InitialReadingDialog
+import com.powerunit.feature.dashboard.components.InitialReadingRequiredBanner
+import com.powerunit.feature.history.ReadingDetailDialog
+import com.powerunit.feature.history.ReadingItemUiModel
+import com.powerunit.feature.history.ReadingListItem
+import com.powerunit.feature.history.toUiModel
 import java.math.BigDecimal
 
 @Composable
@@ -55,23 +70,63 @@ fun DashboardScreen(
     onNavigateToAddReading: () -> Unit,
     onNavigateToBill: () -> Unit,
     onNavigateToHistory: () -> Unit,
+    onNavigateToEditReading: (Long) -> Unit = {},
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
+    var selectedReadingForDetail by remember { mutableStateOf<ReadingItemUiModel?>(null) }
+
+    selectedReadingForDetail?.let { detail ->
+        ReadingDetailDialog(
+            detail = detail,
+            onDismiss = { selectedReadingForDetail = null },
+            onEdit = { id ->
+                selectedReadingForDetail = null
+                onNavigateToEditReading(id)
+            },
+            onDelete = {
+                selectedReadingForDetail = null
+                onNavigateToHistory()
+            }
+        )
+    }
+
+    if (state.showInitialReadingDialog && !state.hasInitialReading) {
+        InitialReadingDialog(
+            onSave = { value, date, note ->
+                viewModel.saveInitialReading(value, date, note)
+            },
+            onDismiss = {
+                viewModel.onDismissInitialReadingDialog()
+            }
+        )
+    }
 
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+            .padding(horizontal = Dimens.screenHorizontalPadding),
+        verticalArrangement = Arrangement.spacedBy(Dimens.cardGap)
     ) {
         item {
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(Dimens.contentTopPadding))
             DashboardHeader(
                 greeting = state.greeting,
                 meterName = state.activeMeter?.name ?: "Main Meter"
             )
+        }
+
+        if (!state.hasInitialReading) {
+            item {
+                InitialReadingRequiredBanner(
+                    onSetInitialReadingClick = { viewModel.onShowInitialReadingDialog() }
+                )
+            }
+        } else if (!state.hasRecordedToday) {
+            item {
+                RecordTodayPromptBanner(onRecordClick = onNavigateToAddReading)
+            }
         }
 
         item {
@@ -81,48 +136,49 @@ fun DashboardScreen(
             )
         }
 
-        if (!state.hasRecordedToday) {
-            item {
-                RecordTodayPromptBanner(onRecordClick = onNavigateToAddReading)
-            }
-        }
-
         item {
+            Spacer(modifier = Modifier.height(Dimens.spacingSm))
             QuickStatsSection(state = state)
         }
 
         item {
-            ForecastCardSection(state = state)
-        }
-
-        item {
-            state.budget?.let { budget ->
-                BudgetSection(budget = budget)
+            if (state.budget != null || state.forecast != null) {
+                BudgetAndOutlookSection(
+                    budget = state.budget,
+                    forecast = state.forecast,
+                    daysLeft = state.cycleUsage?.daysLeft,
+                    hideAmounts = state.hideAmounts
+                )
             }
         }
 
         if (state.past14DaysUsage.isNotEmpty()) {
             item {
+                Spacer(modifier = Modifier.height(Dimens.spacingSm))
                 SectionHeader(title = "14-Day Usage Trend")
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(Dimens.sectionHeaderToContentGap))
                 MiniUsageBarChart(dailyUsages = state.past14DaysUsage)
             }
         }
 
         if (state.recentReadings.isNotEmpty()) {
             item {
+                Spacer(modifier = Modifier.height(Dimens.spacingSm))
                 SectionHeader(
                     title = "Recent Readings",
                     actionLabel = "See All",
                     onActionClick = onNavigateToHistory
                 )
-                Spacer(modifier = Modifier.height(8.dp))
-                RecentReadingsSection(readings = state.recentReadings)
+                Spacer(modifier = Modifier.height(Dimens.sectionHeaderToContentGap))
+                RecentReadingsSection(
+                    readings = state.recentReadings,
+                    onReadingClick = { item -> selectedReadingForDetail = item }
+                )
             }
         }
 
         item {
-            Spacer(modifier = Modifier.height(80.dp)) // padding for bottom bar & FAB
+            Spacer(modifier = Modifier.height(Dimens.scrollBottomPadding))
         }
     }
 }
@@ -132,20 +188,19 @@ private fun DashboardHeader(greeting: String, meterName: String) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
+            .padding(vertical = Dimens.xs),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column {
             Text(
                 text = greeting,
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
                 text = "WattWise",
                 style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             )
         }
@@ -156,20 +211,19 @@ private fun DashboardHeader(greeting: String, meterName: String) {
             modifier = Modifier.clip(PillShape)
         ) {
             Row(
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                modifier = Modifier.padding(horizontal = Dimens.chipHorizontalPadding, vertical = Dimens.xxs),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
                     imageVector = Icons.Default.Speed,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(16.dp)
+                    modifier = Modifier.size(Dimens.iconSizeSmall)
                 )
-                Spacer(modifier = Modifier.width(6.dp))
+                Spacer(modifier = Modifier.width(Dimens.xs))
                 Text(
                     text = meterName,
                     style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
             }
@@ -194,9 +248,11 @@ private fun HeroUsageCard(
         monthLabel = "Current Billing Cycle",
         unitsUsed = unitsStr,
         unitSymbol = "kWh",
-        estimatedBill = billStr,
-        budgetPercent = state.budget?.percentageUsed ?: 0f,
-        projectionText = cycleInfo,
+        estimatedCost = billStr,
+        trendPercent = state.usageTrendPercent?.toDouble(),
+        cycleDayText = cycleInfo,
+        cycleProgress = state.budget?.percentageUsed ?: 0.36f,
+        sparklinePoints = null,
         modifier = Modifier
             .testTag("dashboard_hero_card")
             .clickable(onClick = onCardClick)
@@ -215,7 +271,7 @@ private fun RecordTodayPromptBanner(onRecordClick: () -> Unit) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(Dimens.cardPaddingStandard),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -224,19 +280,18 @@ private fun RecordTodayPromptBanner(onRecordClick: () -> Unit) {
                     imageVector = Icons.Default.Bolt,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(Dimens.iconSizeStandard)
                 )
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(Dimens.iconToTextGap))
                 Column {
                     Text(
                         text = "Record Today's Reading",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                     Text(
                         text = "Keep track of daily power usage",
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
                     )
                 }
@@ -244,9 +299,9 @@ private fun RecordTodayPromptBanner(onRecordClick: () -> Unit) {
 
             Button(
                 onClick = onRecordClick,
-                shape = PillShape,
+                shape = ButtonShape,
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 14.dp, vertical = 6.dp)
+                contentPadding = PaddingValues(horizontal = Dimens.spacingSm, vertical = Dimens.xxs)
             ) {
                 Text("Log", style = MaterialTheme.typography.labelMedium)
             }
@@ -258,7 +313,7 @@ private fun RecordTodayPromptBanner(onRecordClick: () -> Unit) {
 private fun QuickStatsSection(state: DashboardUiState) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(Dimens.cardGap)
     ) {
         StatCard(
             modifier = Modifier.weight(1f),
@@ -283,20 +338,24 @@ private fun QuickStatsSection(state: DashboardUiState) {
 }
 
 @Composable
-private fun ForecastCardSection(state: DashboardUiState) {
-    val forecast = state.forecast ?: return
-
+private fun BudgetAndOutlookSection(
+    budget: BudgetUiModel?,
+    forecast: com.powerunit.domain.model.MonthEndForecast?,
+    daysLeft: Int? = null,
+    hideAmounts: Boolean = false
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = CardShape,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = Dimens.level1)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(Dimens.cardPaddingStandard)
         ) {
+            // Header Row: Title + Dynamic Status Badge
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -304,95 +363,160 @@ private fun ForecastCardSection(state: DashboardUiState) {
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        imageVector = Icons.AutoMirrored.Filled.TrendingUp,
+                        imageVector = Icons.Default.Savings,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.tertiary,
-                        modifier = Modifier.size(20.dp)
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(Dimens.iconSizeSmall)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(Dimens.xs))
                     Text(
-                        text = "Month-End Forecast",
+                        text = if (budget != null) stringResource(R.string.budget_and_outlook) else stringResource(R.string.forecast_title),
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
+                        color = MaterialTheme.colorScheme.onSurface
                     )
+                }
+
+                // Dynamic Status Badge
+                if (budget != null) {
+                    val isExceeded = budget.isOverBudget
+                    val isRisk = forecast != null && forecast.expectedBill > budget.monthlyLimitBDT
+                    val (badgeText, badgeColor, textColor) = when {
+                        isExceeded -> Triple(
+                            stringResource(R.string.forecast_over_budget),
+                            MaterialTheme.colorScheme.errorContainer,
+                            MaterialTheme.colorScheme.onErrorContainer
+                        )
+                        isRisk -> Triple(
+                            stringResource(R.string.outlook_at_risk),
+                            MaterialTheme.colorScheme.tertiaryContainer,
+                            MaterialTheme.colorScheme.onTertiaryContainer
+                        )
+                        else -> Triple(
+                            stringResource(R.string.forecast_on_track),
+                            MaterialTheme.colorScheme.secondaryContainer,
+                            MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    }
+
+                    Surface(
+                        shape = PillShape,
+                        color = badgeColor
+                    ) {
+                        Text(
+                            text = badgeText,
+                            modifier = Modifier.padding(horizontal = Dimens.xs, vertical = Dimens.xxs),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = textColor
+                        )
+                    }
                 }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(Dimens.sm))
 
-            Text(
-                text = "${Formatters.formatUnits(forecast.expectedUnits)} kWh projected",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-
-            Text(
-                text = "Estimated final bill: ${Formatters.formatBDT(forecast.expectedBill)} (${Formatters.formatBDT(forecast.lowBill)} - ${Formatters.formatBDT(forecast.highBill)})",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
-@Composable
-private fun BudgetSection(budget: BudgetUiModel) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = CardShape,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
+            // Main Content Row
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Dimens.spacingMd)
             ) {
-                Text(
-                    text = "Monthly Budget",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Text(
-                    text = "${(budget.percentageUsed * 100).toInt()}% used",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = if (budget.isOverBudget) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold
-                )
+                if (budget != null) {
+                    UsageRing(
+                        progress = budget.percentageUsed,
+                        size = 100.dp,
+                        strokeWidth = 10.dp,
+                        subText = "of budget"
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .size(72.dp)
+                            .clip(PillShape)
+                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.TrendingUp,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(36.dp)
+                        )
+                    }
+                }
+
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(Dimens.xxs)
+                ) {
+                    if (budget != null) {
+                        val spentStr = if (hideAmounts) "৳ ••••" else Formatters.formatBDT(budget.currentSpentBDT)
+                        Text(
+                            text = "Spent: $spentStr",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    if (forecast != null) {
+                        val projBill = if (hideAmounts) "৳ ••••" else Formatters.formatBDT(forecast.expectedBill)
+                        val projUnits = "${Formatters.formatUnits(forecast.expectedUnits)} kWh"
+                        Text(
+                            text = "Projected: $projBill ($projUnits)",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+
+                    if (budget != null) {
+                        val limitStr = if (hideAmounts) "৳ ••••" else Formatters.formatBDT(budget.monthlyLimitBDT)
+                        Text(
+                            text = "Limit: $limitStr",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (budget.isOverBudget) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            LinearProgressIndicator(
-                progress = { budget.percentageUsed },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(8.dp)
-                    .clip(PillShape),
-                color = if (budget.isOverBudget) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
-                trackColor = MaterialTheme.colorScheme.surfaceVariant
+            // Bottom Divider & Insight line
+            Spacer(modifier = Modifier.height(Dimens.xs))
+            HorizontalDivider(
+                thickness = Dimens.dividerThickness,
+                color = MaterialTheme.colorScheme.outlineVariant
             )
+            Spacer(modifier = Modifier.height(Dimens.xs))
 
-            Spacer(modifier = Modifier.height(8.dp))
+            val insightText = buildString {
+                if (budget != null && forecast != null) {
+                    val diff = budget.monthlyLimitBDT.subtract(forecast.expectedBill)
+                    if (diff >= BigDecimal.ZERO) {
+                        append("Projected ${if (hideAmounts) "৳ ••••" else Formatters.formatBDT(diff)} under budget")
+                    } else {
+                        append("Projected to exceed budget by ${if (hideAmounts) "৳ ••••" else Formatters.formatBDT(diff.abs())}")
+                    }
+                } else if (budget != null) {
+                    val remaining = budget.monthlyLimitBDT.subtract(budget.currentSpentBDT)
+                    if (remaining >= BigDecimal.ZERO) {
+                        append("${if (hideAmounts) "৳ ••••" else Formatters.formatBDT(remaining)} remaining")
+                    } else {
+                        append("Over budget by ${if (hideAmounts) "৳ ••••" else Formatters.formatBDT(remaining.abs())}")
+                    }
+                } else if (forecast != null) {
+                    append("Expected bill ${if (hideAmounts) "৳ ••••" else Formatters.formatBDT(forecast.expectedBill)}")
+                }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
+                if (daysLeft != null && daysLeft > 0) {
+                    if (isNotEmpty()) append(" • ")
+                    append("$daysLeft days remaining")
+                }
+            }
+
+            if (insightText.isNotEmpty()) {
                 Text(
-                    text = "Spent: ${Formatters.formatBDT(budget.currentSpentBDT)}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = "Limit: ${Formatters.formatBDT(budget.monthlyLimitBDT)}",
-                    style = MaterialTheme.typography.bodySmall,
+                    text = insightText,
+                    style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -406,7 +530,7 @@ private fun MiniUsageBarChart(dailyUsages: List<DailyUsage>) {
         modifier = Modifier.fillMaxWidth(),
         shape = CardShape,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = Dimens.level1)
     ) {
         val maxUsage = dailyUsages.maxOfOrNull { it.units } ?: BigDecimal("10.0")
         val safeMax = if (maxUsage > BigDecimal.ZERO) maxUsage.toFloat() else 10f
@@ -414,8 +538,8 @@ private fun MiniUsageBarChart(dailyUsages: List<DailyUsage>) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
-                .height(90.dp),
+                .padding(Dimens.cardPaddingStandard)
+                .height(96.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.Bottom
         ) {
@@ -429,15 +553,14 @@ private fun MiniUsageBarChart(dailyUsages: List<DailyUsage>) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth(0.6f)
-                            .height((70 * barFraction).dp)
+                            .height((72 * barFraction).dp)
                             .clip(PillShape)
                             .background(MaterialTheme.colorScheme.primary)
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(Dimens.xxs))
                     Text(
                         text = day.date.dayOfMonth.toString(),
                         style = MaterialTheme.typography.labelSmall,
-                        fontSize = 10.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -447,49 +570,20 @@ private fun MiniUsageBarChart(dailyUsages: List<DailyUsage>) {
 }
 
 @Composable
-private fun RecentReadingsSection(readings: List<Reading>) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = CardShape,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+private fun RecentReadingsSection(
+    readings: List<Reading>,
+    onReadingClick: (ReadingItemUiModel) -> Unit
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(Dimens.cardGap)
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            readings.forEachIndexed { index, reading ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text(
-                            text = "${Formatters.formatUnits(reading.readingValue)} kWh",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "${DateUtils.formatDate(reading.recordedAt)} ${DateUtils.formatTime(reading.recordedAt)}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-
-                    if (reading.note != null) {
-                        Text(
-                            text = reading.note,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.outline
-                        )
-                    }
-                }
-                if (index < readings.size - 1) {
-                    androidx.compose.material3.HorizontalDivider(
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                    )
-                }
-            }
+        readings.forEachIndexed { index, reading ->
+            val prev = if (index < readings.size - 1) readings[index + 1] else null
+            val item = reading.toUiModel(prev)
+            ReadingListItem(
+                item = item,
+                onClick = { onReadingClick(item) }
+            )
         }
     }
 }

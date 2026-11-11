@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
@@ -54,7 +55,9 @@ data class DashboardUiState(
     val budget: BudgetUiModel? = null,
     val past14DaysUsage: List<DailyUsage> = emptyList(),
     val recentReadings: List<Reading> = emptyList(),
-    val hideAmounts: Boolean = false
+    val hideAmounts: Boolean = false,
+    val hasInitialReading: Boolean = false,
+    val showInitialReadingDialog: Boolean = false
 )
 
 @HiltViewModel
@@ -70,6 +73,7 @@ class DashboardViewModel @Inject constructor(
     private val forecastMonthEndUseCase: ForecastMonthEndUseCase
 ) : ViewModel() {
 
+    private var userDismissedInitialDialog: Boolean = false
     private val _uiState = MutableStateFlow(DashboardUiState())
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
 
@@ -147,6 +151,8 @@ class DashboardViewModel @Inject constructor(
         }
 
         val budgetModel = computeBudget(billBreakdown.totalBill, budgetEntity)
+        val hasInitialReading = sortedReadings.isNotEmpty()
+        val showInitialDialog = !hasInitialReading && !userDismissedInitialDialog
 
         return DashboardUiState(
             isLoading = false,
@@ -163,8 +169,52 @@ class DashboardViewModel @Inject constructor(
             budget = budgetModel,
             past14DaysUsage = past14Days,
             recentReadings = sortedReadings.takeLast(3).reversed(),
-            hideAmounts = hideAmounts
+            hideAmounts = hideAmounts,
+            hasInitialReading = hasInitialReading,
+            showInitialReadingDialog = showInitialDialog
         )
+    }
+
+    fun onDismissInitialReadingDialog() {
+        userDismissedInitialDialog = true
+        _uiState.update { it.copy(showInitialReadingDialog = false) }
+    }
+
+    fun onShowInitialReadingDialog() {
+        userDismissedInitialDialog = false
+        _uiState.update { it.copy(showInitialReadingDialog = true) }
+    }
+
+    fun saveInitialReading(
+        readingValue: BigDecimal,
+        recordedAt: Instant,
+        note: String = "Initial Reading"
+    ) {
+        viewModelScope.launch {
+            val activeMeter = meterRepository.getActiveMeterSync()
+            val meterId = activeMeter?.id ?: 1L
+
+            if (activeMeter != null) {
+                meterRepository.updateMeter(activeMeter.copy(startReading = readingValue))
+            }
+
+            val reading = Reading(
+                id = 0,
+                meterId = meterId,
+                readingValue = readingValue.setScale(1, RoundingMode.HALF_UP),
+                recordedAt = recordedAt,
+                note = note.ifBlank { "Initial Reading" },
+                isEstimated = false,
+                isMeterReset = false,
+                createdAt = DateUtils.currentInstant(),
+                updatedAt = DateUtils.currentInstant()
+            )
+            readingRepository.saveReading(reading)
+
+            settingsPreferences.setOnboardingCompleted(true)
+            userDismissedInitialDialog = false
+            _uiState.update { it.copy(showInitialReadingDialog = false) }
+        }
     }
 
     private fun extractRecentDayMetrics(
