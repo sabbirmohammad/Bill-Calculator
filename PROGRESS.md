@@ -305,4 +305,45 @@ Offline-first, privacy-focused Android electricity tracker and bill calculator t
   - Emulator verification: Verified Summary card with chips, Slab list, Edit charges bottom sheet, and saved screenshots to `screenshots/issue8_tariff_safety.png` and `screenshots/issue8_tariff_bottom_sheet.png`. Logcat verified 0 crashes, 0 errors, 0 rate leaks.
 - **Status**: Completed.
 
+### Issue 9: Security & Privacy audit & fixes
+- **Root Cause**:
+  1. **App Lock & Timeout**: The app previously lacked an active full-screen lock overlay upon background-to-foreground transitions, and lacked a configurable timeout (Immediately, 30s, 60s). It also did not verify biometric or device credentials prior to toggling App Lock in Settings.
+  2. **Privacy Mode (`hideAmounts`)**: While partially wired to the dashboard and monthly budget, `hideAmounts` was not hooked to the History summary card, Analytics summary grid/period comparisons, or Bill breakdown receipt & simulator, allowing monetary amounts and itemized bill numbers to remain visible when privacy mode was enabled.
+  3. **Screenshot & Recents Protection**: `screenshotBlock` was not dynamically wired to `FLAG_SECURE` at runtime with an immediate window refresh, and did not explain to users that it protects against recent apps thumbnail exposure.
+  4. **Database Encryption**: The 256-bit AES SQLCipher encryption via MasterKey/KeyStore was active under the hood, but had no transparent, hardware-backed status indicator in Settings to reassure users that their local database is encrypted.
+  5. **Clear All Data**: The previous clear data action was a single simple alert dialog without double confirmation, did not require biometric authentication, and only erased readings while leaving budgets and cycle records orphaned.
+- **Fix Details**:
+  1. **Biometric & Credential Protection (`BiometricAuthHelper.kt` & `AppLockScreen.kt`)**:
+     - Built `BiometricAuthHelper.kt` supporting `BIOMETRIC_STRONG or DEVICE_CREDENTIAL` (biometrics with PIN / pattern / password fallback).
+     - Added biometric verification before enabling or disabling App Lock in Settings.
+     - Created `AppLockScreen.kt` full-screen security overlay in `MainActivity.kt` with unlock button and automatic biometric prompt.
+     - Added `appLockTimeoutSeconds` preference with user choice: Immediately (0s), 30 seconds (30s), 1 minute (60s).
+     - Tracked background timestamps in `MainViewModel` (`onAppBackgrounded` and `onAppForegrounded`) to lock the app when timeout elapses.
+  2. **End-to-End Privacy Mode (`hideAmounts`)**:
+     - Masked currency amounts with `"৳ ••••"` across:
+       - Dashboard Hero Card (`estimatedCost`), Budget Outlook Card (`spent`, `projected`, `limit`, and insight descriptions).
+       - History `MonthSummaryCard` (Est. Cost / Est. Bill).
+       - Analytics `AnalyticsSummaryGrid` (Total Cost) and `PeriodComparisonCard`.
+       - Bill Breakdown `BillSummaryCard` (Current Estimated Bill), `ItemizedReceiptCard` (slab charges, fixed demand/service charges, VAT, and total payable), and `WhatIfSimulatorCard` (simulated bill and potential savings / increase).
+     - Setting changes take effect instantly across all tabs via reactive StateFlow / combine emissions.
+  3. **Screenshot & Multitasking Protection**:
+     - Dynamically sets or clears `FLAG_SECURE` on `MainActivity.window` in real time when toggled.
+     - Clear description: "Prevent capture and hide thumbnail in multitasking".
+  4. **Hardware-Backed Database Encryption Status**:
+     - Added informative status row with "Hardware-Backed" pill badge and "256-bit AES SQLCipher active" description.
+  5. **Two-Step Destructive Wipe Flow**:
+     - Step 1: Warning dialog explaining data loss, with Continue button.
+     - Biometric / credential authentication prompt (if App Lock is active).
+     - Step 2: High-contrast destructive Final Confirmation dialog with "Wipe All Data" button.
+     - Wipes both readings (`ReadingDao.deleteAllReadings()`) and budgets (`BudgetDao.deleteAllBudgets()`).
+  6. **Zero Sensitive Data Logging**:
+     - Audited logcat: 0 passphrase, key, or sensitive rate leaks.
+- **Verification**:
+  - `./gradlew assembleDebug`: Passed.
+  - `./gradlew lintDebug detekt ktlintCheck`: Passed (0 errors, 0 warnings).
+  - `./gradlew testDebugUnitTest`: Passed (105/105 tests passed, including new security tests in `SettingsViewModelTest` and `HistoryViewModelTest`).
+  - `./gradlew connectedDebugAndroidTest`: Passed (11/11 tests passed on `emulator-5554`, including `SecurityAndPrivacyTest`).
+  - Emulator verification: Verified Security & Privacy card, App Lock timeout, Privacy Mode toggle, FLAG_SECURE window flag, Clear All Data 2-step confirmation dialogs. Captured screenshots: `screenshots/issue9_security_verified.png`, `screenshots/issue9_clear_dialog.png`, `screenshots/issue9_clear_dialog_step2.png`. Logcat verified 0 sensitive leaks.
+- **Status**: Completed.
+
 

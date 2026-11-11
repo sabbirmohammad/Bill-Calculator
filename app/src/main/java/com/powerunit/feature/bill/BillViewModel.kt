@@ -36,7 +36,8 @@ data class BillUiState(
     val billDeltaVsActual: BigDecimal? = null,
     val isPastCyclePaid: Boolean = false,
     val useBengaliDigits: Boolean = false,
-    val isBangla: Boolean = false
+    val isBangla: Boolean = false,
+    val hideAmounts: Boolean = false
 )
 
 @HiltViewModel
@@ -77,17 +78,21 @@ class BillViewModel @Inject constructor(
             val prefs = combine(
                 settingsPreferences.billingCycleDay,
                 settingsPreferences.useBengaliDigits,
-                settingsPreferences.appLanguage
-            ) { cycleDay, useBnDigits, lang ->
-                Triple(cycleDay, useBnDigits, lang == "bn")
+                settingsPreferences.appLanguage,
+                settingsPreferences.hideAmounts
+            ) { cycleDay, useBnDigits, lang, hideAmounts ->
+                listOf(cycleDay, useBnDigits, lang == "bn", hideAmounts)
             }
 
             combine(
                 readingRepository.getReadings(meterId),
                 tariffRepository.getActiveTariff(),
                 prefs
-            ) { readings, tariff, triple ->
-                val (cycleDay, useBnDigits, isBangla) = triple
+            ) { readings, tariff, prefsList ->
+                val cycleDay = prefsList[0] as Int
+                val useBnDigits = prefsList[1] as Boolean
+                val isBangla = prefsList[2] as Boolean
+                val hideAmounts = prefsList[3] as Boolean
                 val now = DateUtils.currentInstant()
                 val today = DateUtils.currentDhakaDate()
                 val sorted = readings.sortedBy { it.recordedAt }
@@ -120,7 +125,8 @@ class BillViewModel @Inject constructor(
                     simulatedBill = simulatedBill,
                     billDeltaVsActual = BigDecimal.ZERO,
                     useBengaliDigits = useBnDigits,
-                    isBangla = isBangla
+                    isBangla = isBangla,
+                    hideAmounts = hideAmounts
                 )
             }.collect { newState ->
                 _uiState.update { current ->
@@ -130,7 +136,8 @@ class BillViewModel @Inject constructor(
                         actualCycleUsage = newState.actualCycleUsage,
                         actualBill = newState.actualBill,
                         useBengaliDigits = newState.useBengaliDigits,
-                        isBangla = newState.isBangla
+                        isBangla = newState.isBangla,
+                        hideAmounts = newState.hideAmounts
                     )
                 }
             }

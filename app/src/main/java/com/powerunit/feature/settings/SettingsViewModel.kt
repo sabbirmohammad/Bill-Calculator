@@ -29,6 +29,7 @@ data class SettingsUiState(
     val language: String = "en",
     val useBengaliDigits: Boolean = false,
     val appLockEnabled: Boolean = false,
+    val appLockTimeoutSeconds: Int = 0,
     val hideAmounts: Boolean = false,
     val screenshotBlock: Boolean = false,
     val clearDataSuccess: Boolean = false,
@@ -80,18 +81,18 @@ class SettingsViewModel @Inject constructor(
             combine(
                 settingsPreferences.useBengaliDigits,
                 settingsPreferences.appLockEnabled,
+                settingsPreferences.appLockTimeoutSeconds,
                 settingsPreferences.hideAmounts,
                 settingsPreferences.screenshotBlock
-            ) { bnDigits, appLock, hideAmt, blockScreen ->
-                listOf(bnDigits, appLock, hideAmt, blockScreen)
-            }.collect { values ->
+            ) { bnDigits, appLock, lockTimeout, hideAmt, blockScreen ->
                 _uiState.value = _uiState.value.copy(
-                    useBengaliDigits = values[0],
-                    appLockEnabled = values[1],
-                    hideAmounts = values[2],
-                    screenshotBlock = values[3]
+                    useBengaliDigits = bnDigits,
+                    appLockEnabled = appLock,
+                    appLockTimeoutSeconds = lockTimeout,
+                    hideAmounts = hideAmt,
+                    screenshotBlock = blockScreen
                 )
-            }
+            }.collect { }
         }
 
         viewModelScope.launch {
@@ -180,6 +181,12 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    fun setAppLockTimeoutSeconds(seconds: Int) {
+        viewModelScope.launch {
+            settingsPreferences.setAppLockTimeoutSeconds(seconds)
+        }
+    }
+
     fun setHideAmounts(enabled: Boolean) {
         viewModelScope.launch {
             settingsPreferences.setHideAmounts(enabled)
@@ -195,6 +202,7 @@ class SettingsViewModel @Inject constructor(
     fun clearAllData() {
         viewModelScope.launch {
             database.readingDao().deleteAllReadings()
+            database.budgetDao().deleteAllBudgets()
             _uiState.value = _uiState.value.copy(clearDataSuccess = true)
         }
     }

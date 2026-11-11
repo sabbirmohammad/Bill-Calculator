@@ -132,7 +132,8 @@ private fun AnalyticsContent(
                     totalCost = uiState.totalCost,
                     dailyAverage = uiState.dailyAverage,
                     peakUsage = uiState.peakUsage,
-                    useBengaliDigits = uiState.useBengaliDigits
+                    useBengaliDigits = uiState.useBengaliDigits,
+                    hideAmounts = uiState.hideAmounts
                 )
             }
 
@@ -251,7 +252,8 @@ private fun AnalyticsSummaryGrid(
     totalCost: BigDecimal,
     dailyAverage: BigDecimal,
     peakUsage: ChartBarData?,
-    useBengaliDigits: Boolean = false
+    useBengaliDigits: Boolean = false,
+    hideAmounts: Boolean = false
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -269,7 +271,7 @@ private fun AnalyticsSummaryGrid(
             )
             SummaryTile(
                 title = stringResource(R.string.analytics_total_cost),
-                value = Formatters.formatBDT(totalCost, useBengaliDigits),
+                value = if (hideAmounts) "৳ ••••" else Formatters.formatBDT(totalCost, useBengaliDigits),
                 icon = Icons.Default.AutoAwesome,
                 modifier = Modifier.weight(1f)
             )

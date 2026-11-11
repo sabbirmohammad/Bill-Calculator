@@ -103,6 +103,7 @@ class HistoryViewModelTest {
         coEvery { tariffRepository.getActiveTariff() } returns flowOf(sampleTariff)
         every { settingsPreferences.useBengaliDigits } returns flowOf(false)
         every { settingsPreferences.appLanguage } returns flowOf("en")
+        every { settingsPreferences.hideAmounts } returns flowOf(false)
     }
 
     @After
@@ -217,5 +218,14 @@ class HistoryViewModelTest {
         viewModel.onSelectItemForDetail(item)
 
         assertEquals(item, viewModel.uiState.value.selectedDetailItem)
+    }
+
+    @Test
+    fun hideAmounts_updatesState() = runTest(testDispatcher) {
+        every { settingsPreferences.hideAmounts } returns flowOf(true)
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.hideAmounts)
     }
 }

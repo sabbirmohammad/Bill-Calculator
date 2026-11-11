@@ -188,7 +188,8 @@ fun HistoryScreen(
                             MonthSummaryCard(
                                 summary = summary,
                                 useBengaliDigits = state.useBengaliDigits,
-                                isBangla = isBangla
+                                isBangla = isBangla,
+                                hideAmounts = state.hideAmounts
                             )
                         }
                     }

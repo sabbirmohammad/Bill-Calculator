@@ -264,7 +264,8 @@ fun MonthSummaryCard(
     summary: MonthSummaryUiModel,
     useBengaliDigits: Boolean,
     isBangla: Boolean,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    hideAmounts: Boolean = false
 ) {
     Card(
         modifier = modifier
@@ -299,7 +300,7 @@ fun MonthSummaryCard(
                                 icon = Icons.AutoMirrored.Filled.ReceiptLong,
                                 iconColor = MaterialTheme.colorScheme.secondary,
                                 label = if (isBangla) "আনুমানিক বিল" else "Est. Cost",
-                                value = Formatters.formatMoney(summary.totalCost, includeSymbol = true, useBengaliDigits = useBengaliDigits),
+                                value = if (hideAmounts) "৳ ••••" else Formatters.formatMoney(summary.totalCost, includeSymbol = true, useBengaliDigits = useBengaliDigits),
                                 modifier = Modifier.weight(1f)
                             )
                         }
@@ -344,7 +345,7 @@ fun MonthSummaryCard(
                             icon = Icons.AutoMirrored.Filled.ReceiptLong,
                             iconColor = MaterialTheme.colorScheme.secondary,
                             label = if (isBangla) "আনুমানিক বিল" else "Est. Bill",
-                            value = Formatters.formatMoney(summary.totalCost, includeSymbol = true, useBengaliDigits = useBengaliDigits),
+                            value = if (hideAmounts) "৳ ••••" else Formatters.formatMoney(summary.totalCost, includeSymbol = true, useBengaliDigits = useBengaliDigits),
                             modifier = Modifier.weight(1f)
                         )
                         SummaryStatItem(

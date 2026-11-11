@@ -29,6 +29,7 @@ class SettingsPreferences @Inject constructor(
         val KEY_USE_BENGALI_DIGITS = booleanPreferencesKey("use_bengali_digits")
         val KEY_APP_LANGUAGE = stringPreferencesKey("app_language")
         val KEY_APP_LOCK_ENABLED = booleanPreferencesKey("app_lock_enabled")
+        val KEY_APP_LOCK_TIMEOUT_SECONDS = intPreferencesKey("app_lock_timeout_seconds")
         val KEY_HIDE_AMOUNTS = booleanPreferencesKey("hide_amounts")
         val KEY_SCREENSHOT_BLOCK = booleanPreferencesKey("screenshot_block")
         val KEY_THEME_MODE = stringPreferencesKey("theme_mode")
@@ -45,6 +46,7 @@ class SettingsPreferences @Inject constructor(
     val useBengaliDigits: Flow<Boolean> = context.dataStore.data.map { it[KEY_USE_BENGALI_DIGITS] ?: false }
     val appLanguage: Flow<String> = context.dataStore.data.map { it[KEY_APP_LANGUAGE] ?: "en" }
     val appLockEnabled: Flow<Boolean> = context.dataStore.data.map { it[KEY_APP_LOCK_ENABLED] ?: false }
+    val appLockTimeoutSeconds: Flow<Int> = context.dataStore.data.map { it[KEY_APP_LOCK_TIMEOUT_SECONDS] ?: 0 }
     val hideAmounts: Flow<Boolean> = context.dataStore.data.map { it[KEY_HIDE_AMOUNTS] ?: false }
     val screenshotBlock: Flow<Boolean> = context.dataStore.data.map { it[KEY_SCREENSHOT_BLOCK] ?: false }
     val themeMode: Flow<String> = context.dataStore.data.map { it[KEY_THEME_MODE] ?: "SYSTEM" }
@@ -79,6 +81,10 @@ class SettingsPreferences @Inject constructor(
 
     suspend fun setAppLockEnabled(enabled: Boolean) {
         context.dataStore.edit { it[KEY_APP_LOCK_ENABLED] = enabled }
+    }
+
+    suspend fun setAppLockTimeoutSeconds(seconds: Int) {
+        context.dataStore.edit { it[KEY_APP_LOCK_TIMEOUT_SECONDS] = seconds }
     }
 
     suspend fun setHideAmounts(enabled: Boolean) {

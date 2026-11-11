@@ -37,6 +37,43 @@ class MainViewModel @Inject constructor(
     val appLockEnabled: StateFlow<Boolean> = settingsPreferences.appLockEnabled
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
+    val appLockTimeoutSeconds: StateFlow<Int> = settingsPreferences.appLockTimeoutSeconds
+        .stateIn(viewModelScope, SharingStarted.Eagerly, 0)
+
+    private val _isAppLocked = MutableStateFlow(false)
+    val isAppLocked: StateFlow<Boolean> = _isAppLocked.asStateFlow()
+
+    private var lastBackgroundTimestamp = 0L
+
+    fun onAppForegrounded(isColdStart: Boolean = false) {
+        if (!appLockEnabled.value) {
+            _isAppLocked.value = false
+            return
+        }
+
+        if (isColdStart) {
+            _isAppLocked.value = true
+            return
+        }
+
+        val now = System.currentTimeMillis()
+        val timeoutMs = appLockTimeoutSeconds.value * 1000L
+        if (lastBackgroundTimestamp > 0L && (now - lastBackgroundTimestamp) >= timeoutMs) {
+            _isAppLocked.value = true
+        }
+    }
+
+    fun onAppBackgrounded() {
+        if (appLockEnabled.value) {
+            lastBackgroundTimestamp = System.currentTimeMillis()
+        }
+    }
+
+    fun unlockApp() {
+        _isAppLocked.value = false
+        lastBackgroundTimestamp = 0L
+    }
+
     init {
         viewModelScope.launch {
             // Hard timeout of 1500ms so splash screen can never hang

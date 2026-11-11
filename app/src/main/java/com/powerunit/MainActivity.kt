@@ -75,16 +75,34 @@ class MainActivity : FragmentActivity() {
                 resources.updateConfiguration(conf, resources.displayMetrics)
             }
 
+            val isAppLocked by mainViewModel.isAppLocked.collectAsStateWithLifecycle()
+
             CompositionLocalProvider(
                 LocalConfiguration provides localizedConfig
             ) {
                 WattWiseTheme(darkTheme = isDarkTheme) {
                     Surface(modifier = Modifier.fillMaxSize()) {
-                        PowerUnitAppScaffold()
+                        if (isAppLocked) {
+                            com.powerunit.core.security.AppLockScreen(
+                                onUnlock = mainViewModel::unlockApp
+                            )
+                        } else {
+                            PowerUnitAppScaffold()
+                        }
                     }
                 }
             }
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        mainViewModel.onAppForegrounded(isColdStart = false)
+    }
+
+    override fun onStop() {
+        super.onStop()
+        mainViewModel.onAppBackgrounded()
     }
 
     private fun observeSecuritySettings() {

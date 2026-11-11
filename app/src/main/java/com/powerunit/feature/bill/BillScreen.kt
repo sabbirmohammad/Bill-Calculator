@@ -131,13 +131,15 @@ fun BillScreen(
                 isPaid = state.isPastCyclePaid,
                 useBengaliDigits = state.useBengaliDigits,
                 isBangla = state.isBangla,
+                hideAmounts = state.hideAmounts,
                 onTogglePaid = viewModel::togglePaidStatus
             )
 
             state.actualBill?.let { bill ->
                 ItemizedReceiptCard(
                     bill = bill,
-                    useBengaliDigits = state.useBengaliDigits
+                    useBengaliDigits = state.useBengaliDigits,
+                    hideAmounts = state.hideAmounts
                 )
             }
 
@@ -146,6 +148,7 @@ fun BillScreen(
                 simulatedBill = state.simulatedBill,
                 deltaVsActual = state.billDeltaVsActual,
                 useBengaliDigits = state.useBengaliDigits,
+                hideAmounts = state.hideAmounts,
                 onUnitsChange = viewModel::onSimulatedUnitsChange
             )
 
@@ -161,6 +164,7 @@ private fun BillSummaryCard(
     isPaid: Boolean,
     useBengaliDigits: Boolean = false,
     isBangla: Boolean = false,
+    hideAmounts: Boolean = false,
     onTogglePaid: () -> Unit
 ) {
     Card(
@@ -207,7 +211,7 @@ private fun BillSummaryCard(
             Spacer(modifier = Modifier.height(Dimens.cardTitleToValueGap))
 
             Text(
-                text = Formatters.formatBDT(bill?.totalBill ?: BigDecimal.ZERO, useBengaliDigits),
+                text = if (hideAmounts) "৳ ••••" else Formatters.formatBDT(bill?.totalBill ?: BigDecimal.ZERO, useBengaliDigits),
                 style = NumberLarge,
                 color = MaterialTheme.colorScheme.onPrimaryContainer
             )
@@ -228,7 +232,8 @@ private fun BillSummaryCard(
 @Composable
 private fun ItemizedReceiptCard(
     bill: BillBreakdown,
-    useBengaliDigits: Boolean = false
+    useBengaliDigits: Boolean = false,
+    hideAmounts: Boolean = false
 ) {
     Card(
         modifier = Modifier
@@ -283,7 +288,8 @@ private fun ItemizedReceiptCard(
             // Modern Slab Breakdown Table
             SlabBreakdownTable(
                 slabCharges = bill.slabCharges,
-                useBengaliDigits = useBengaliDigits
+                useBengaliDigits = useBengaliDigits,
+                hideAmounts = hideAmounts
             )
 
             Spacer(modifier = Modifier.height(Dimens.spacingMd))
@@ -291,7 +297,8 @@ private fun ItemizedReceiptCard(
             // Charges & Breakdown Summary Box
             AdditionalChargesCard(
                 bill = bill,
-                useBengaliDigits = useBengaliDigits
+                useBengaliDigits = useBengaliDigits,
+                hideAmounts = hideAmounts
             )
         }
     }
@@ -301,6 +308,7 @@ private fun ItemizedReceiptCard(
 private fun SlabBreakdownTable(
     slabCharges: List<SlabCharge>,
     useBengaliDigits: Boolean = false,
+    hideAmounts: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -365,7 +373,8 @@ private fun SlabBreakdownTable(
                 }
                 SlabTableRow(
                     slab = slab,
-                    useBengaliDigits = useBengaliDigits
+                    useBengaliDigits = useBengaliDigits,
+                    hideAmounts = hideAmounts
                 )
             }
         }
@@ -375,7 +384,8 @@ private fun SlabBreakdownTable(
 @Composable
 private fun SlabTableRow(
     slab: SlabCharge,
-    useBengaliDigits: Boolean = false
+    useBengaliDigits: Boolean = false,
+    hideAmounts: Boolean = false
 ) {
     val isActive = slab.unitsBilled > BigDecimal.ZERO
     val fromStr = slab.fromUnit.stripTrailingZeros().toPlainString()
@@ -453,7 +463,7 @@ private fun SlabTableRow(
             verticalArrangement = Arrangement.spacedBy(1.dp)
         ) {
             Text(
-                text = Formatters.formatBDT(slab.ratePerUnit, useBengaliDigits),
+                text = if (hideAmounts) "৳ ••••" else Formatters.formatBDT(slab.ratePerUnit, useBengaliDigits),
                 style = MaterialTheme.typography.bodyMedium.copy(
                     fontFeatureSettings = "tnum"
                 ),
@@ -470,7 +480,7 @@ private fun SlabTableRow(
 
         // Col 4: Amount
         Text(
-            text = Formatters.formatBDT(slab.amount, useBengaliDigits),
+            text = if (hideAmounts) "৳ ••••" else Formatters.formatBDT(slab.amount, useBengaliDigits),
             style = MaterialTheme.typography.bodyMedium.copy(
                 fontFeatureSettings = "tnum"
             ),
@@ -486,7 +496,8 @@ private fun SlabTableRow(
 @Composable
 private fun AdditionalChargesCard(
     bill: BillBreakdown,
-    useBengaliDigits: Boolean = false
+    useBengaliDigits: Boolean = false,
+    hideAmounts: Boolean = false
 ) {
     Column(
         modifier = Modifier
@@ -501,20 +512,20 @@ private fun AdditionalChargesCard(
     ) {
         ReceiptRow(
             title = stringResource(R.string.energy_subtotal),
-            amount = Formatters.formatBDT(bill.energyCharge, useBengaliDigits),
+            amount = if (hideAmounts) "৳ ••••" else Formatters.formatBDT(bill.energyCharge, useBengaliDigits),
             isHighlighted = true
         )
         ReceiptRow(
             title = stringResource(R.string.demand_charge),
-            amount = Formatters.formatBDT(bill.demandCharge, useBengaliDigits)
+            amount = if (hideAmounts) "৳ ••••" else Formatters.formatBDT(bill.demandCharge, useBengaliDigits)
         )
         ReceiptRow(
             title = stringResource(R.string.service_charge),
-            amount = Formatters.formatBDT(bill.serviceCharge, useBengaliDigits)
+            amount = if (hideAmounts) "৳ ••••" else Formatters.formatBDT(bill.serviceCharge, useBengaliDigits)
         )
         ReceiptRow(
             title = stringResource(R.string.vat),
-            amount = Formatters.formatBDT(bill.vatAmount, useBengaliDigits)
+            amount = if (hideAmounts) "৳ ••••" else Formatters.formatBDT(bill.vatAmount, useBengaliDigits)
         )
 
         Spacer(modifier = Modifier.height(Dimens.xs))
@@ -552,7 +563,7 @@ private fun AdditionalChargesCard(
                 }
                 Spacer(modifier = Modifier.width(Dimens.xs))
                 Text(
-                    text = Formatters.formatBDT(bill.totalBill, useBengaliDigits),
+                    text = if (hideAmounts) "৳ ••••" else Formatters.formatBDT(bill.totalBill, useBengaliDigits),
                     style = NumberMedium,
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                     textAlign = TextAlign.End
@@ -601,6 +612,7 @@ private fun WhatIfSimulatorCard(
     simulatedBill: BillBreakdown?,
     deltaVsActual: BigDecimal?,
     useBengaliDigits: Boolean = false,
+    hideAmounts: Boolean = false,
     onUnitsChange: (BigDecimal) -> Unit
 ) {
     Card(
@@ -667,7 +679,7 @@ private fun WhatIfSimulatorCard(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = Formatters.formatBDT(sim.totalBill, useBengaliDigits),
+                            text = if (hideAmounts) "৳ ••••" else Formatters.formatBDT(sim.totalBill, useBengaliDigits),
                             style = MaterialTheme.typography.titleLarge,
                             color = MaterialTheme.colorScheme.onSurface
                         )
@@ -694,7 +706,7 @@ private fun WhatIfSimulatorCard(
                 val isSaving = deltaVsActual < BigDecimal.ZERO
                 val prefix = if (isSaving) "- " else "+ "
                 val absDelta = deltaVsActual.abs()
-                val deltaText = "$prefix${Formatters.formatBDT(absDelta, useBengaliDigits)}"
+                val deltaText = if (hideAmounts) "$prefix৳ ••••" else "$prefix${Formatters.formatBDT(absDelta, useBengaliDigits)}"
 
                 Box(
                     modifier = Modifier

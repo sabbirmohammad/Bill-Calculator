@@ -123,7 +123,8 @@ data class HistoryUiState(
     val items: List<ReadingItemUiModel> = emptyList(),
     val selectedDetailItem: ReadingItemUiModel? = null,
     val useBengaliDigits: Boolean = false,
-    val appLanguage: String = "en"
+    val appLanguage: String = "en",
+    val hideAmounts: Boolean = false
 )
 
 sealed interface HistoryUiEffect {
@@ -177,9 +178,10 @@ class HistoryViewModel @Inject constructor(
 
             val prefsFlow = combine(
                 settingsPreferences.useBengaliDigits,
-                settingsPreferences.appLanguage
-            ) { useBengaliDigits, appLanguage ->
-                Pair(useBengaliDigits, appLanguage)
+                settingsPreferences.appLanguage,
+                settingsPreferences.hideAmounts
+            ) { useBengaliDigits, appLanguage, hideAmounts ->
+                Triple(useBengaliDigits, appLanguage, hideAmounts)
             }
 
             combine(
@@ -189,14 +191,15 @@ class HistoryViewModel @Inject constructor(
                 _selectedMonth,
                 prefsFlow
             ) { readings, tariff, selectedYear, selectedMonth, prefs ->
-                val (useBengaliDigits, appLanguage) = prefs
+                val (useBengaliDigits, appLanguage, hideAmounts) = prefs
                 processHistoryData(
                     readings = readings,
                     tariff = tariff,
                     selectedYear = selectedYear,
                     selectedMonth = selectedMonth,
                     useBengaliDigits = useBengaliDigits,
-                    appLanguage = appLanguage
+                    appLanguage = appLanguage,
+                    hideAmounts = hideAmounts
                 )
             }.collect { newState ->
                 _uiState.value = newState
@@ -210,7 +213,8 @@ class HistoryViewModel @Inject constructor(
         selectedYear: Int,
         selectedMonth: Int,
         useBengaliDigits: Boolean,
-        appLanguage: String
+        appLanguage: String,
+        hideAmounts: Boolean = false
     ): HistoryUiState {
         val isBangla = appLanguage.equals("bn", ignoreCase = true) || useBengaliDigits
 
@@ -324,7 +328,8 @@ class HistoryViewModel @Inject constructor(
             items = selectedMonthItems,
             selectedDetailItem = _uiState.value.selectedDetailItem,
             useBengaliDigits = useBengaliDigits,
-            appLanguage = appLanguage
+            appLanguage = appLanguage,
+            hideAmounts = hideAmounts
         )
     }
 

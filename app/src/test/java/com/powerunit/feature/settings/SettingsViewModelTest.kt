@@ -1,6 +1,7 @@
 package com.powerunit.feature.settings
 
 import com.powerunit.core.database.PowerUnitDatabase
+import com.powerunit.core.database.dao.BudgetDao
 import com.powerunit.core.database.dao.ReadingDao
 import com.powerunit.core.datastore.SettingsPreferences
 import com.powerunit.core.update.AppUpdateManager
@@ -38,6 +39,7 @@ class SettingsViewModelTest {
     private val workManagerScheduler = mockk<WorkManagerScheduler>(relaxed = true)
     private val database = mockk<PowerUnitDatabase>(relaxed = true)
     private val readingDao = mockk<ReadingDao>(relaxed = true)
+    private val budgetDao = mockk<BudgetDao>(relaxed = true)
     private val appUpdateManager = mockk<AppUpdateManager>(relaxed = true)
 
     private val sampleMeter = Meter(
@@ -54,6 +56,7 @@ class SettingsViewModelTest {
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
         every { database.readingDao() } returns readingDao
+        every { database.budgetDao() } returns budgetDao
         coEvery { meterRepository.getActiveMeterSync() } returns sampleMeter
         coEvery { settingsPreferences.billingCycleDay } returns flowOf(1)
         coEvery { settingsPreferences.reminderEnabled } returns flowOf(true)
@@ -62,6 +65,7 @@ class SettingsViewModelTest {
         coEvery { settingsPreferences.appLanguage } returns flowOf("en")
         coEvery { settingsPreferences.useBengaliDigits } returns flowOf(false)
         coEvery { settingsPreferences.appLockEnabled } returns flowOf(false)
+        coEvery { settingsPreferences.appLockTimeoutSeconds } returns flowOf(0)
         coEvery { settingsPreferences.hideAmounts } returns flowOf(false)
         coEvery { settingsPreferences.screenshotBlock } returns flowOf(false)
         coEvery { settingsPreferences.githubRepo } returns flowOf("sabbirmohammad/Bill-Calculator")
@@ -121,7 +125,7 @@ class SettingsViewModelTest {
     }
 
     @Test
-    fun clearAllData_deletesReadingsFromDatabase() = runTest(testDispatcher) {
+    fun clearAllData_deletesReadingsAndBudgetsFromDatabase() = runTest(testDispatcher) {
         val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -129,7 +133,52 @@ class SettingsViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify { readingDao.deleteAllReadings() }
+        coVerify { budgetDao.deleteAllBudgets() }
         assertTrue(viewModel.uiState.value.clearDataSuccess)
+    }
+
+    @Test
+    fun setAppLockEnabled_updatesPreferences() = runTest(testDispatcher) {
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.setAppLockEnabled(true)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { settingsPreferences.setAppLockEnabled(true) }
+    }
+
+    @Test
+    fun setAppLockTimeoutSeconds_updatesPreferences() = runTest(testDispatcher) {
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.setAppLockTimeoutSeconds(30)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { settingsPreferences.setAppLockTimeoutSeconds(30) }
+    }
+
+    @Test
+    fun setHideAmounts_updatesPreferences() = runTest(testDispatcher) {
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.setHideAmounts(true)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { settingsPreferences.setHideAmounts(true) }
+    }
+
+    @Test
+    fun setScreenshotBlock_updatesPreferences() = runTest(testDispatcher) {
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.setScreenshotBlock(true)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { settingsPreferences.setScreenshotBlock(true) }
     }
 
     @Test

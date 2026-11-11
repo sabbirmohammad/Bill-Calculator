@@ -1,7 +1,9 @@
 package com.powerunit.feature.settings
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -69,6 +72,8 @@ import com.powerunit.BuildConfig
 import com.powerunit.R
 import com.powerunit.core.designsystem.theme.CardShape
 import com.powerunit.core.designsystem.theme.Dimens
+import com.powerunit.core.security.BiometricAuthHelper
+import androidx.fragment.app.FragmentActivity
 import com.powerunit.domain.model.Meter
 
 @Composable
@@ -81,11 +86,13 @@ fun SettingsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
-    var showClearConfirm by remember { mutableStateOf(false) }
+    var clearDataStep by remember { mutableStateOf<Int?>(null) }
+    val context = LocalContext.current
+    val activity = context as? FragmentActivity
 
     LaunchedEffect(uiState.clearDataSuccess) {
         if (uiState.clearDataSuccess) {
-            snackbarHostState.showSnackbar("All readings cleared successfully")
+            snackbarHostState.showSnackbar("All readings and budgets cleared successfully")
             viewModel.clearStatus()
         }
     }
@@ -132,7 +139,6 @@ fun SettingsScreen(
                 }
 
                 item {
-                    val context = LocalContext.current
                     ReminderSettingsSection(
                         enabled = uiState.reminderEnabled,
                         reminderTime = uiState.reminderTime,
@@ -158,9 +164,11 @@ fun SettingsScreen(
                 item {
                     SecuritySettingsSection(
                         appLock = uiState.appLockEnabled,
+                        lockTimeoutSeconds = uiState.appLockTimeoutSeconds,
                         hideAmounts = uiState.hideAmounts,
                         blockScreenshots = uiState.screenshotBlock,
                         onAppLockToggle = viewModel::setAppLockEnabled,
+                        onLockTimeoutChange = viewModel::setAppLockTimeoutSeconds,
                         onHideAmountsToggle = viewModel::setHideAmounts,
                         onBlockScreenshotsToggle = viewModel::setScreenshotBlock
                     )
@@ -169,7 +177,7 @@ fun SettingsScreen(
                 item {
                     DataSettingsSection(
                         onBackupClick = onNavigateToBackup,
-                        onClearClick = { showClearConfirm = true }
+                        onClearClick = { clearDataStep = 1 }
                     )
                 }
 
@@ -195,23 +203,72 @@ fun SettingsScreen(
         }
     }
 
-    if (showClearConfirm) {
+    // Step 1: Warning Dialog
+    if (clearDataStep == 1) {
         AlertDialog(
-            onDismissRequest = { showClearConfirm = false },
+            onDismissRequest = { clearDataStep = null },
             title = { Text(stringResource(R.string.settings_clear_data), style = MaterialTheme.typography.titleLarge) },
-            text = { Text(stringResource(R.string.settings_clear_data_confirm), style = MaterialTheme.typography.bodyMedium) },
+            text = { Text(stringResource(R.string.settings_clear_data_step1_desc), style = MaterialTheme.typography.bodyMedium) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (uiState.appLockEnabled && activity != null && BiometricAuthHelper.canAuthenticate(context)) {
+                            BiometricAuthHelper.authenticate(
+                                activity = activity,
+                                title = "Authorize Data Reset",
+                                subtitle = "Verify identity to proceed with wiping data",
+                                onSuccess = { clearDataStep = 2 },
+                                onError = { clearDataStep = null }
+                            )
+                        } else {
+                            clearDataStep = 2
+                        }
+                    },
+                    modifier = Modifier.testTag("clear_data_continue_btn")
+                ) {
+                    Text(stringResource(R.string.action_continue), style = MaterialTheme.typography.labelLarge)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { clearDataStep = null }) {
+                    Text(stringResource(R.string.action_cancel), style = MaterialTheme.typography.labelLarge)
+                }
+            },
+            shape = CardShape,
+            containerColor = MaterialTheme.colorScheme.surface
+        )
+    }
+
+    // Step 2: Final Destructive Confirmation Dialog
+    if (clearDataStep == 2) {
+        AlertDialog(
+            onDismissRequest = { clearDataStep = null },
+            title = {
+                Text(
+                    text = stringResource(R.string.settings_clear_data_step2_title),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.error
+                )
+            },
+            text = { Text(stringResource(R.string.settings_clear_data_step2_desc), style = MaterialTheme.typography.bodyMedium) },
             confirmButton = {
                 TextButton(
                     onClick = {
                         viewModel.clearAllData()
-                        showClearConfirm = false
-                    }
+                        clearDataStep = null
+                    },
+                    modifier = Modifier.testTag("clear_data_final_btn")
                 ) {
-                    Text(stringResource(R.string.action_delete_all), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelLarge)
+                    Text(
+                        text = stringResource(R.string.action_wipe_everything),
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showClearConfirm = false }) {
+                TextButton(onClick = { clearDataStep = null }) {
                     Text(stringResource(R.string.action_cancel), style = MaterialTheme.typography.labelLarge)
                 }
             },
@@ -603,12 +660,18 @@ private fun DisplaySettingsSection(
 @Composable
 private fun SecuritySettingsSection(
     appLock: Boolean,
+    lockTimeoutSeconds: Int,
     hideAmounts: Boolean,
     blockScreenshots: Boolean,
     onAppLockToggle: (Boolean) -> Unit,
+    onLockTimeoutChange: (Int) -> Unit,
     onHideAmountsToggle: (Boolean) -> Unit,
     onBlockScreenshotsToggle: (Boolean) -> Unit
 ) {
+    val context = LocalContext.current
+    val activity = context as? FragmentActivity
+    var showTimeoutDialog by remember { mutableStateOf(false) }
+
     Card(
         modifier = Modifier.fillMaxWidth().testTag("settings_security_card"),
         shape = CardShape,
@@ -625,17 +688,58 @@ private fun SecuritySettingsSection(
                 action = {
                     Switch(
                         checked = appLock,
-                        onCheckedChange = onAppLockToggle,
+                        onCheckedChange = { desired ->
+                            if (activity != null && BiometricAuthHelper.canAuthenticate(context)) {
+                                val actionTitle = if (desired) "Enable App Lock" else "Disable App Lock"
+                                BiometricAuthHelper.authenticate(
+                                    activity = activity,
+                                    title = actionTitle,
+                                    subtitle = "Verify identity to confirm lock setting",
+                                    onSuccess = { onAppLockToggle(desired) },
+                                    onError = { /* Auth canceled or failed, do not toggle */ }
+                                )
+                            } else {
+                                onAppLockToggle(desired)
+                            }
+                        },
                         modifier = Modifier.testTag("app_lock_switch")
                     )
                 }
             )
 
+            if (appLock) {
+                HorizontalDivider(thickness = Dimens.dividerThickness, color = MaterialTheme.colorScheme.outlineVariant)
+
+                SettingToggleRow(
+                    title = stringResource(R.string.settings_lock_timeout),
+                    subtitle = when (lockTimeoutSeconds) {
+                        30 -> stringResource(R.string.settings_lock_timeout_30s)
+                        60 -> stringResource(R.string.settings_lock_timeout_1m)
+                        else -> stringResource(R.string.settings_lock_timeout_instant)
+                    },
+                    action = {
+                        TextButton(
+                            onClick = { showTimeoutDialog = true },
+                            modifier = Modifier.testTag("app_lock_timeout_btn")
+                        ) {
+                            Text(
+                                when (lockTimeoutSeconds) {
+                                    30 -> stringResource(R.string.settings_lock_timeout_30s)
+                                    60 -> stringResource(R.string.settings_lock_timeout_1m)
+                                    else -> stringResource(R.string.settings_lock_timeout_instant)
+                                },
+                                style = MaterialTheme.typography.labelLarge
+                            )
+                        }
+                    }
+                )
+            }
+
             HorizontalDivider(thickness = Dimens.dividerThickness, color = MaterialTheme.colorScheme.outlineVariant)
 
             SettingToggleRow(
                 title = stringResource(R.string.settings_hide_amounts),
-                subtitle = "Mask currency on cards",
+                subtitle = stringResource(R.string.settings_hide_amounts_desc),
                 action = {
                     Switch(
                         checked = hideAmounts,
@@ -649,7 +753,7 @@ private fun SecuritySettingsSection(
 
             SettingToggleRow(
                 title = stringResource(R.string.settings_screenshot_block),
-                subtitle = "Protect sensitive financial data",
+                subtitle = stringResource(R.string.settings_screenshot_block_desc),
                 action = {
                     Switch(
                         checked = blockScreenshots,
@@ -658,7 +762,87 @@ private fun SecuritySettingsSection(
                     )
                 }
             )
+
+            HorizontalDivider(thickness = Dimens.dividerThickness, color = MaterialTheme.colorScheme.outlineVariant)
+
+            // Database Encryption Row (Active status)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = Dimens.xxs)
+                    .testTag("db_encryption_row"),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.settings_db_encryption),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = stringResource(R.string.settings_db_encryption_desc),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Spacer(modifier = Modifier.width(Dimens.spacingSm))
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.primaryContainer)
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = "Hardware-Backed",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+            }
         }
+    }
+
+    if (showTimeoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showTimeoutDialog = false },
+            title = { Text(stringResource(R.string.settings_lock_timeout), style = MaterialTheme.typography.titleLarge) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(Dimens.spacingXs)) {
+                    listOf(
+                        0 to stringResource(R.string.settings_lock_timeout_instant),
+                        30 to stringResource(R.string.settings_lock_timeout_30s),
+                        60 to stringResource(R.string.settings_lock_timeout_1m)
+                    ).forEach { (seconds, label) ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    onLockTimeoutChange(seconds)
+                                    showTimeoutDialog = false
+                                }
+                                .padding(vertical = Dimens.spacingSm),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = if (lockTimeoutSeconds == seconds) FontWeight.Bold else FontWeight.Normal,
+                                color = if (lockTimeoutSeconds == seconds) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showTimeoutDialog = false }) {
+                    Text(stringResource(R.string.action_cancel), style = MaterialTheme.typography.labelLarge)
+                }
+            },
+            shape = CardShape,
+            containerColor = MaterialTheme.colorScheme.surface
+        )
     }
 }
 
@@ -706,6 +890,7 @@ private fun DataSettingsSection(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { onClearClick() }
+                    .testTag("settings_clear_data_row")
                     .padding(vertical = Dimens.xxs),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically

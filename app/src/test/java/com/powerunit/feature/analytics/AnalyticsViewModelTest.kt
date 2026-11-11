@@ -132,6 +132,7 @@ class AnalyticsViewModelTest {
         coEvery { settingsPreferences.billingCycleDay } returns flowOf(1)
         coEvery { settingsPreferences.useBengaliDigits } returns flowOf(false)
         coEvery { settingsPreferences.appLanguage } returns flowOf("en")
+        coEvery { settingsPreferences.hideAmounts } returns flowOf(false)
     }
 
     @After

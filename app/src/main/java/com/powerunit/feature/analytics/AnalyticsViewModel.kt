@@ -71,7 +71,8 @@ data class AnalyticsUiState(
     val anomalies: List<DailyUsage> = emptyList(),
     val selectedBarIndex: Int? = null,
     val useBengaliDigits: Boolean = false,
-    val isBangla: Boolean = false
+    val isBangla: Boolean = false,
+    val hideAmounts: Boolean = false
 )
 
 @HiltViewModel
@@ -93,6 +94,7 @@ class AnalyticsViewModel @Inject constructor(
     private var cachedTariff: Tariff? = null
     private var cachedUseBengaliDigits: Boolean = false
     private var cachedIsBangla: Boolean = false
+    private var cachedHideAmounts: Boolean = false
 
     init {
         loadData()
@@ -106,20 +108,22 @@ class AnalyticsViewModel @Inject constructor(
             val prefsFlow = combine(
                 settingsPreferences.billingCycleDay,
                 settingsPreferences.useBengaliDigits,
-                settingsPreferences.appLanguage
-            ) { cycleDay, useBnDigits, lang ->
-                Triple(cycleDay, useBnDigits, lang == "bn")
+                settingsPreferences.appLanguage,
+                settingsPreferences.hideAmounts
+            ) { cycleDay, useBnDigits, lang, hideAmounts ->
+                listOf(cycleDay, useBnDigits, lang == "bn", hideAmounts)
             }
 
             combine(
                 readingRepository.getReadings(meterId),
                 tariffRepository.getActiveTariff(),
                 prefsFlow
-            ) { readings, tariff, triple ->
+            ) { readings, tariff, prefs ->
                 cachedReadings = readings
                 cachedTariff = tariff
-                cachedUseBengaliDigits = triple.second
-                cachedIsBangla = triple.third
+                cachedUseBengaliDigits = prefs[1] as Boolean
+                cachedIsBangla = prefs[2] as Boolean
+                cachedHideAmounts = prefs[3] as Boolean
                 recomputeState()
             }.collect { newState ->
                 _uiState.value = newState
@@ -198,7 +202,8 @@ class AnalyticsViewModel @Inject constructor(
             slabDonutItems = slabDonutItems,
             anomalies = anomalies,
             useBengaliDigits = cachedUseBengaliDigits,
-            isBangla = cachedIsBangla
+            isBangla = cachedIsBangla,
+            hideAmounts = cachedHideAmounts
         )
     }
 
