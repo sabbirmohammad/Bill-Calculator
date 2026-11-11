@@ -47,6 +47,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.powerunit.R
 import com.powerunit.core.common.DateUtils
 import com.powerunit.core.common.Formatters
+import com.powerunit.core.designsystem.component.DashboardSkeleton
 import com.powerunit.core.designsystem.component.GradientHeroCard
 import com.powerunit.core.designsystem.component.SectionHeader
 import com.powerunit.core.designsystem.component.StatCard
@@ -89,6 +90,11 @@ fun DashboardScreen(
                 onNavigateToHistory()
             }
         )
+    }
+
+    if (state.isLoading) {
+        DashboardSkeleton()
+        return
     }
 
     if (state.showInitialReadingDialog && !state.hasInitialReading) {

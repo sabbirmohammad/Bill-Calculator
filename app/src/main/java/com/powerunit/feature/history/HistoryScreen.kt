@@ -70,6 +70,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.powerunit.core.common.Formatters
+import com.powerunit.core.designsystem.component.HistorySkeleton
 import com.powerunit.core.designsystem.component.EmptyState
 import com.powerunit.core.designsystem.theme.Dimens
 import java.math.BigDecimal
@@ -108,6 +109,11 @@ fun HistoryScreen(
             onEdit = onNavigateToEditReading,
             onDelete = { item -> viewModel.deleteReading(item) }
         )
+    }
+
+    if (state.isLoading) {
+        HistorySkeleton()
+        return
     }
 
     Box(

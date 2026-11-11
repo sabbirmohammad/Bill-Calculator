@@ -26,7 +26,7 @@ import androidx.compose.material.icons.filled.TableChart
 import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
+import com.powerunit.core.designsystem.component.AnalyticsSkeleton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -71,12 +71,7 @@ fun AnalyticsScreen(
         color = MaterialTheme.colorScheme.background
     ) {
         if (uiState.isLoading) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-            }
+            AnalyticsSkeleton()
         } else {
             AnalyticsContent(
                 uiState = uiState,

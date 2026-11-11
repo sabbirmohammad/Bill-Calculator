@@ -55,6 +55,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.powerunit.R
 import com.powerunit.core.common.Formatters
+import com.powerunit.core.designsystem.component.BillSkeleton
 import com.powerunit.core.designsystem.theme.CardShape
 import com.powerunit.core.designsystem.theme.Dimens
 import com.powerunit.core.designsystem.theme.NumberLarge
@@ -110,6 +111,11 @@ fun BillScreen(
             )
         }
     ) { paddingValues ->
+        if (state.isLoading) {
+            BillSkeleton(modifier = Modifier.padding(paddingValues))
+            return@Scaffold
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()

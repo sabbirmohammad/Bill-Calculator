@@ -1,4 +1,10 @@
 <resources>
+    <style name="Theme.WattWise.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">#0B1020</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+        <item name="postSplashScreenTheme">@style/Theme.WattWise</item>
+    </style>
+
     <style name="Theme.WattWise" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
