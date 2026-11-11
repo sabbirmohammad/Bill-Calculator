@@ -158,5 +158,23 @@ Offline-first, privacy-focused Android electricity tracker and bill calculator t
   - Emulator verification: Verified hero card with clean cycle progress at 40%, smooth animation, zero white line artifacts or corner defects. Screenshot saved to `screenshots/issue2_hero_card.png`.
 - **Status**: Completed.
 
+### Issue 3: Three cards under hero (Today / Yesterday / Average daily)
+- **Root Cause**:
+  - The previous layout used three separate `StatCard` composables inside a `Row(horizontalArrangement = Arrangement.spacedBy(cardGap))`. Each card had independent borders, elevation shadows, and padding, causing text to squeeze and wrap awkwardly on narrow devices and completely break at high font scales (1.3x+).
+- **Fix Details**:
+  1. Created a unified `UsageSummaryCard` component (`UsageSummaryCard.kt`) presenting Today, Yesterday, and Daily Avg in a single cohesive card.
+  2. Implemented 3 equal-weight columns separated by subtle 1dp vertical dividers (`MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)`).
+  3. Included circular tinted icon wells (`primary.copy(alpha = 0.12f)`), muted `labelMedium` labels, bold `NumberMedium` values with tabular figures, and baseline-aligned "kWh" unit suffixes.
+  4. Added responsive `BoxWithConstraints`: automatically adapts from a 3-column horizontal layout into a clean stacked 3-row list with horizontal dividers when `maxWidth < 280.dp` or `fontScale > 1.3f`.
+  5. Tested and verified on 1.0x, 1.5x, and 2.0x font scales.
+- **Verification**:
+  - `./gradlew assembleDebug`: Passed.
+  - `./gradlew lintDebug detekt ktlintCheck`: Passed (0 errors, 0 warnings).
+  - `./gradlew testDebugUnitTest`: Passed (68/68 tests passed).
+  - `./gradlew connectedDebugAndroidTest`: Passed (9/9 tests passed on `emulator-5554`).
+  - Emulator verification: Verified 3-column layout at 1.0x and stacked 3-row layout at 1.5x/2.0x font scale. Screenshots saved to `screenshots/issue3_font_1_0.png`, `screenshots/issue3_font_1_5.png`, `screenshots/issue3_font_2_0.png`.
+- **Status**: Completed.
+
+
 
 

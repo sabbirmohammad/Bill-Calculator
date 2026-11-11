@@ -52,6 +52,7 @@ import com.powerunit.core.designsystem.component.GradientHeroCard
 import com.powerunit.core.designsystem.component.SectionHeader
 import com.powerunit.core.designsystem.component.StatCard
 import com.powerunit.core.designsystem.component.UsageRing
+import com.powerunit.core.designsystem.component.UsageSummaryCard
 import com.powerunit.core.designsystem.theme.ButtonShape
 import com.powerunit.core.designsystem.theme.CardShape
 import com.powerunit.core.designsystem.theme.Dimens
@@ -326,30 +327,14 @@ private fun RecordTodayPromptBanner(onRecordClick: () -> Unit) {
 
 @Composable
 private fun QuickStatsSection(state: DashboardUiState) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(Dimens.cardGap)
-    ) {
-        StatCard(
-            modifier = Modifier.weight(1f),
-            title = "Today",
-            value = Formatters.formatUnits(state.todayUsage),
-            unit = "kWh"
-        )
-        StatCard(
-            modifier = Modifier.weight(1f),
-            title = "Yesterday",
-            value = Formatters.formatUnits(state.yesterdayUsage),
-            unit = "kWh",
-            trendPercent = state.usageTrendPercent?.toDouble()
-        )
-        StatCard(
-            modifier = Modifier.weight(1f),
-            title = "Daily Avg",
-            value = Formatters.formatUnits(state.dailyAverage),
-            unit = "kWh"
-        )
-    }
+    UsageSummaryCard(
+        todayUnits = Formatters.formatUnits(state.todayUsage),
+        yesterdayUnits = Formatters.formatUnits(state.yesterdayUsage),
+        dailyAverageUnits = Formatters.formatUnits(state.dailyAverage),
+        unitSymbol = "kWh",
+        todayTrendPercent = state.usageTrendPercent?.toDouble(),
+        modifier = Modifier.testTag("dashboard_usage_summary_card")
+    )
 }
 
 @Composable
