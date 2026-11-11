@@ -157,6 +157,7 @@ dependencies {
     testImplementation(libs.turbine)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.room.testing)
+    testImplementation("org.json:json:20240303")
 
     // Instrumented Testing
     androidTestImplementation(libs.androidx.test.core)

@@ -44,6 +44,7 @@ import com.powerunit.R
 import com.powerunit.core.designsystem.theme.ButtonShape
 import com.powerunit.feature.addreading.AddReadingScreen
 import com.powerunit.feature.analytics.AnalyticsScreen
+import com.powerunit.feature.backup.BackupScreen
 import com.powerunit.feature.settings.SettingsScreen
 import com.powerunit.feature.tariff.TariffEditorScreen
 import com.powerunit.feature.bill.BillScreen
@@ -217,7 +218,13 @@ fun PowerUnitAppScaffold(
                     }
                     composable(Screen.Settings.route) {
                         SettingsScreen(
-                            onNavigateToTariffEditor = { navController.navigate("tariff_editor") }
+                            onNavigateToTariffEditor = { navController.navigate("tariff_editor") },
+                            onNavigateToBackup = { navController.navigate("backup") }
+                        )
+                    }
+                    composable("backup") {
+                        BackupScreen(
+                            onNavigateBack = { navController.popBackStack() }
                         )
                     }
                     composable("tariff_editor") {

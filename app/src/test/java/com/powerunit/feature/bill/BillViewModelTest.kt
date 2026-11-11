@@ -2,6 +2,7 @@ package com.powerunit.feature.bill
 
 import com.powerunit.core.common.DateUtils
 import com.powerunit.core.datastore.SettingsPreferences
+import com.powerunit.core.export.ExportManager
 import com.powerunit.domain.model.Meter
 import com.powerunit.domain.model.MeterType
 import com.powerunit.domain.model.Reading
@@ -43,6 +44,7 @@ class BillViewModelTest {
     private val calculateDailyUsageUseCase = com.powerunit.domain.usecase.CalculateDailyUsageUseCase()
     private val calculateCycleUsageUseCase = CalculateCycleUsageUseCase()
     private val calculateBillUseCase = CalculateBillUseCase()
+    private val exportManager = mockk<ExportManager>(relaxed = true)
 
     private val sampleMeter = Meter(
         id = 1L,
@@ -119,7 +121,8 @@ class BillViewModelTest {
             settingsPreferences = settingsPreferences,
             calculateDailyUsageUseCase = calculateDailyUsageUseCase,
             calculateCycleUsageUseCase = calculateCycleUsageUseCase,
-            calculateBillUseCase = calculateBillUseCase
+            calculateBillUseCase = calculateBillUseCase,
+            exportManager = exportManager
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -139,7 +142,8 @@ class BillViewModelTest {
             settingsPreferences = settingsPreferences,
             calculateDailyUsageUseCase = calculateDailyUsageUseCase,
             calculateCycleUsageUseCase = calculateCycleUsageUseCase,
-            calculateBillUseCase = calculateBillUseCase
+            calculateBillUseCase = calculateBillUseCase,
+            exportManager = exportManager
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -160,7 +164,8 @@ class BillViewModelTest {
             settingsPreferences = settingsPreferences,
             calculateDailyUsageUseCase = calculateDailyUsageUseCase,
             calculateCycleUsageUseCase = calculateCycleUsageUseCase,
-            calculateBillUseCase = calculateBillUseCase
+            calculateBillUseCase = calculateBillUseCase,
+            exportManager = exportManager
         )
         testDispatcher.scheduler.advanceUntilIdle()
 

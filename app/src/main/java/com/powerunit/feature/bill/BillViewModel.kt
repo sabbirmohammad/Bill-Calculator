@@ -2,8 +2,10 @@ package com.powerunit.feature.bill
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import android.content.Intent
 import com.powerunit.core.common.DateUtils
 import com.powerunit.core.datastore.SettingsPreferences
+import com.powerunit.core.export.ExportManager
 import com.powerunit.domain.model.BillBreakdown
 import com.powerunit.domain.model.CycleUsage
 import com.powerunit.domain.model.Tariff
@@ -43,7 +45,8 @@ class BillViewModel @Inject constructor(
     private val settingsPreferences: SettingsPreferences,
     private val calculateDailyUsageUseCase: CalculateDailyUsageUseCase,
     private val calculateCycleUsageUseCase: CalculateCycleUsageUseCase,
-    private val calculateBillUseCase: CalculateBillUseCase
+    private val calculateBillUseCase: CalculateBillUseCase,
+    private val exportManager: ExportManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(BillUiState())
@@ -51,6 +54,17 @@ class BillViewModel @Inject constructor(
 
     init {
         loadBillData()
+    }
+
+    fun exportPdfStatement(onReady: (Intent) -> Unit) {
+        viewModelScope.launch {
+            val meter = meterRepository.getActiveMeterSync()
+            val bill = _uiState.value.actualBill ?: return@launch
+            val cycle = _uiState.value.actualCycleUsage
+            val file = exportManager.exportBillToPdf(bill, meter, cycle)
+            val intent = exportManager.getShareIntent(file, "application/pdf")
+            onReady(intent)
+        }
     }
 
     private fun loadBillData() {

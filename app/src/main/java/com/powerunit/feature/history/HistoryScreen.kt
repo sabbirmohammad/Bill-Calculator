@@ -1,5 +1,6 @@
 package com.powerunit.feature.history
 
+import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -20,8 +21,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -47,6 +50,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -66,6 +70,7 @@ fun HistoryScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
 
     LaunchedEffect(Unit) {
         viewModel.effects.collect { effect ->
@@ -84,48 +89,11 @@ fun HistoryScreen(
         }
     }
 
-    if (state.selectedDetailItem != null) {
-        val detail = state.selectedDetailItem!!
-        AlertDialog(
-            onDismissRequest = { viewModel.onSelectItemForDetail(null) },
-            title = { Text(text = "Reading Details") },
-            text = {
-                Column {
-                    Text(
-                        text = "${Formatters.formatUnits(detail.readingValue)} kWh",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(text = "Date: ${detail.formattedDate} at ${detail.formattedTime}")
-                    Text(text = "Units Delta: +${Formatters.formatUnits(detail.unitsDelta)} kWh")
-                    Text(text = "Estimated Cost: ${Formatters.formatMoney(detail.costEstimate)}")
-                    if (detail.note != null) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(text = "Note: ${detail.note}", style = MaterialTheme.typography.bodyMedium)
-                    }
-                    if (detail.isMeterReset) {
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(text = "• Flagged as Meter Reset", color = MaterialTheme.colorScheme.tertiary)
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        viewModel.onSelectItemForDetail(null)
-                        onNavigateToEditReading(detail.id)
-                    }
-                ) {
-                    Text("Edit")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { viewModel.onSelectItemForDetail(null) }) {
-                    Text("Close")
-                }
-            }
+    state.selectedDetailItem?.let { detail ->
+        ReadingDetailDialog(
+            detail = detail,
+            onDismiss = { viewModel.onSelectItemForDetail(null) },
+            onEdit = onNavigateToEditReading
         )
     }
 
@@ -138,65 +106,22 @@ fun HistoryScreen(
                 .padding(paddingValues)
                 .background(MaterialTheme.colorScheme.background)
         ) {
-            // Search Bar & Filter Row
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surface)
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
-            ) {
-                OutlinedTextField(
-                    value = state.searchQuery,
-                    onValueChange = { viewModel.onSearchQueryChange(it) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("history_search_field"),
-                    placeholder = { Text("Search by date, note, or reading...") },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                    trailingIcon = {
-                        if (state.searchQuery.isNotBlank()) {
-                            IconButton(onClick = { viewModel.onSearchQueryChange("") }) {
-                                Icon(Icons.Default.Close, contentDescription = "Clear")
-                            }
-                        }
-                    },
-                    shape = InputShape,
-                    singleLine = true
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    item {
-                        FilterChip(
-                            selected = state.activeFilter == HistoryFilter.ALL,
-                            onClick = { viewModel.onFilterChange(HistoryFilter.ALL) },
-                            label = { Text("All") }
-                        )
+            HistorySearchAndFilters(
+                searchQuery = state.searchQuery,
+                activeFilter = state.activeFilter,
+                onSearchChange = viewModel::onSearchQueryChange,
+                onFilterChange = viewModel::onFilterChange,
+                onExportCsv = {
+                    viewModel.exportCsv { intent ->
+                        context.startActivity(Intent.createChooser(intent, "Export CSV"))
                     }
-                    item {
-                        FilterChip(
-                            selected = state.activeFilter == HistoryFilter.ESTIMATED_ONLY,
-                            onClick = { viewModel.onFilterChange(HistoryFilter.ESTIMATED_ONLY) },
-                            label = { Text("Estimated") }
-                        )
-                    }
-                    item {
-                        FilterChip(
-                            selected = state.activeFilter == HistoryFilter.RESET_ONLY,
-                            onClick = { viewModel.onFilterChange(HistoryFilter.RESET_ONLY) },
-                            label = { Text("Resets") }
-                        )
-                    }
-                    item {
-                        FilterChip(
-                            selected = state.activeFilter == HistoryFilter.HIGH_USAGE,
-                            onClick = { viewModel.onFilterChange(HistoryFilter.HIGH_USAGE) },
-                            label = { Text("High Usage") }
-                        )
+                },
+                onExportPdf = {
+                    viewModel.exportPdf { intent ->
+                        context.startActivity(Intent.createChooser(intent, "Export PDF"))
                     }
                 }
-            }
+            )
 
             // Readings List or Empty State
             if (state.monthGroups.isEmpty()) {
@@ -370,5 +295,151 @@ private fun BadgeChip(label: String, color: Color) {
             .padding(horizontal = 8.dp, vertical = 2.dp)
     ) {
         Text(text = label, style = MaterialTheme.typography.labelSmall, color = color)
+    }
+}
+
+@Composable
+private fun ReadingDetailDialog(
+    detail: ReadingItemUiModel,
+    onDismiss: () -> Unit,
+    onEdit: (Long) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = "Reading Details") },
+        text = {
+            Column {
+                Text(
+                    text = "${Formatters.formatUnits(detail.readingValue)} kWh",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(text = "Date: ${detail.formattedDate} at ${detail.formattedTime}")
+                Text(text = "Units Delta: +${Formatters.formatUnits(detail.unitsDelta)} kWh")
+                Text(text = "Estimated Cost: ${Formatters.formatMoney(detail.costEstimate)}")
+                if (detail.note != null) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(text = "Note: ${detail.note}", style = MaterialTheme.typography.bodyMedium)
+                }
+                if (detail.isMeterReset) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(text = "• Flagged as Meter Reset", color = MaterialTheme.colorScheme.tertiary)
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    onDismiss()
+                    onEdit(detail.id)
+                }
+            ) {
+                Text("Edit")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Close")
+            }
+        }
+    )
+}
+
+@Composable
+private fun HistorySearchAndFilters(
+    searchQuery: String,
+    activeFilter: HistoryFilter,
+    onSearchChange: (String) -> Unit,
+    onFilterChange: (HistoryFilter) -> Unit,
+    onExportCsv: () -> Unit,
+    onExportPdf: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "History",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+            Row {
+                IconButton(
+                    onClick = onExportCsv,
+                    modifier = Modifier.testTag("history_export_csv_btn")
+                ) {
+                    Icon(Icons.Default.FileDownload, contentDescription = "Export CSV")
+                }
+                IconButton(
+                    onClick = onExportPdf,
+                    modifier = Modifier.testTag("history_export_pdf_btn")
+                ) {
+                    Icon(Icons.Default.PictureAsPdf, contentDescription = "Export PDF Statement")
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = onSearchChange,
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("history_search_field"),
+            placeholder = { Text("Search by date, note, or reading...") },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+            trailingIcon = {
+                if (searchQuery.isNotBlank()) {
+                    IconButton(onClick = { onSearchChange("") }) {
+                        Icon(Icons.Default.Close, contentDescription = "Clear")
+                    }
+                }
+            },
+            shape = InputShape,
+            singleLine = true
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            item {
+                FilterChip(
+                    selected = activeFilter == HistoryFilter.ALL,
+                    onClick = { onFilterChange(HistoryFilter.ALL) },
+                    label = { Text("All") }
+                )
+            }
+            item {
+                FilterChip(
+                    selected = activeFilter == HistoryFilter.ESTIMATED_ONLY,
+                    onClick = { onFilterChange(HistoryFilter.ESTIMATED_ONLY) },
+                    label = { Text("Estimated") }
+                )
+            }
+            item {
+                FilterChip(
+                    selected = activeFilter == HistoryFilter.RESET_ONLY,
+                    onClick = { onFilterChange(HistoryFilter.RESET_ONLY) },
+                    label = { Text("Resets") }
+                )
+            }
+            item {
+                FilterChip(
+                    selected = activeFilter == HistoryFilter.HIGH_USAGE,
+                    onClick = { onFilterChange(HistoryFilter.HIGH_USAGE) },
+                    label = { Text("High Usage") }
+                )
+            }
+        }
     }
 }

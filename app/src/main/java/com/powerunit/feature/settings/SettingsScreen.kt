@@ -55,6 +55,7 @@ import com.powerunit.domain.model.Meter
 @Composable
 fun SettingsScreen(
     onNavigateToTariffEditor: () -> Unit,
+    onNavigateToBackup: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
@@ -79,6 +80,7 @@ fun SettingsScreen(
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
+                    .testTag("settings_lazy_column")
                     .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
@@ -135,7 +137,10 @@ fun SettingsScreen(
                 }
 
                 item {
-                    DataSettingsSection(onClearClick = { showClearConfirm = true })
+                    DataSettingsSection(
+                        onBackupClick = onNavigateToBackup,
+                        onClearClick = { showClearConfirm = true }
+                    )
                 }
 
                 item {
@@ -457,7 +462,10 @@ private fun SecuritySettingsSection(
 }
 
 @Composable
-private fun DataSettingsSection(onClearClick: () -> Unit) {
+private fun DataSettingsSection(
+    onBackupClick: () -> Unit,
+    onClearClick: () -> Unit
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = CardShape,
@@ -467,6 +475,31 @@ private fun DataSettingsSection(onClearClick: () -> Unit) {
         Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
             SectionTitle(icon = Icons.Default.Delete, title = stringResource(R.string.settings_section_data))
             Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onBackupClick() }
+                    .testTag("settings_backup_row")
+                    .padding(vertical = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = "Encrypted Backup & Restore",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = "Export and restore encrypted data (.wattwise)",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
             Row(
                 modifier = Modifier

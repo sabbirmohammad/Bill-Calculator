@@ -13,7 +13,7 @@ Offline-first, privacy-focused Android electricity tracker and bill calculator t
 | **Phase 4** | Dashboard & Bill: Hero Card, Stats, Forecast, Budget, Bill Breakdown | Completed | Passed | Passed (0 warnings) | Passed (47/47) | Passed (6/6) | Verified on Emulator | `phase 4: dashboard with live cycle metrics and bill breakdown with what-if simulator` |
 | **Phase 5** | Analytics: Custom Compose Charts, Heatmap, Slab Donut, Anomalies | Completed | Passed | Passed (0 warnings) | Passed (52/52) | Passed (7/7) | Verified on Emulator | `phase 5: analytics custom compose charts, heatmap, slab donut, and anomaly detection` |
 | **Phase 6** | Settings, Tariff Editor, WorkManager, Glance Widget, App Lock | Completed | Passed | Passed (0 warnings) | Passed (60/60) | Passed (8/8) | Verified on Emulator | `phase 6: settings, tariff editor, workmanager reminders, glance widget, and security lock` |
-| **Phase 7** | Backup/Restore, CSV/PDF Export, Localization (EN/BN), A11y Pass | Pending | Pending | Pending | Pending | Pending | Pending | Pending |
+| **Phase 7** | Backup/Restore, CSV/PDF Export, Localization (EN/BN), A11y Pass | Completed | Passed | Passed (0 warnings) | Passed (67/67) | Passed (9/9) | Verified on Emulator | `phase 7: encrypted backup and restore, csv and pdf export, full bangla localization, and accessibility pass` |
 
 ## Execution Log & Verification History
 - **Phase 1**:
@@ -81,3 +81,25 @@ Offline-first, privacy-focused Android electricity tracker and bill calculator t
   - Static checks: `./gradlew lintDebug detekt ktlintCheck` passed with 0 errors and 0 warnings.
   - Connected UI tests: 8/8 tests passed on emulator (including `SettingsAndTariffTest`).
   - Runtime verification: Verified on emulator, navigated to Settings, toggled preferences, opened Tariff Editor, captured screenshots: `screenshots/phase6_settings.png`, `screenshots/phase6_tariff_editor.png`. Logcat verified 0 crashes/exceptions.
+- **Phase 7**:
+  - Encrypted Backup and Restore (`BackupManager`):
+    - Full SQLite / Room database JSON export and import.
+    - Password-based encryption using PBKDF2WithHmacSHA256 (10,000 iterations, 256-bit key) + AES-256-GCM authenticated cipher with 16-byte random salt and 12-byte IV.
+    - Backup file container format: `[SALT: 16 bytes][IV: 12 bytes][CIPHERTEXT + TAG]`.
+    - Tamper detection and bad-tag authentication failure protection.
+  - Export System (`ExportManager`):
+    - RFC 4180 CSV export of all readings with proper escaping, timestamps, notes, and meter identity.
+    - Native Android `PdfDocument` generation for formal electricity bill statements with tabular slab itemization, energy charges, fixed utility charges, VAT, and total payable in BDT.
+    - Android `FileProvider` integration configured in `AndroidManifest.xml` (`file_paths.xml`) for secure system share intents.
+  - UI Integration:
+    - History screen updated with CSV and PDF export action buttons.
+    - Bill Breakdown screen updated with PDF Statement export action button in TopAppBar.
+    - Settings screen updated with "Encrypted Backup & Restore" navigation entry point.
+    - Dedicated `BackupScreen` with passphrase validation, loading indicator, and share intent triggers.
+  - Localization & Accessibility:
+    - 100% string resource coverage across `values/strings.xml` and `values-bn/strings.xml` for full English and Bengali support.
+    - Accessibility semantics, test tags, content descriptions, and large text layout resilience.
+  - Unit tests: 67/67 unit tests passed (+7 tests for `BackupManagerTest`, `ExportManagerTest`, `BackupViewModelTest`).
+  - Static checks: `./gradlew lintDebug detekt ktlintCheck` passed with 0 errors and 0 warnings.
+  - Connected UI tests: 9/9 tests passed on emulator (including `BackupAndExportTest`).
+  - Runtime verification: Verified on emulator, captured screenshots: `screenshots/phase7_export_history.png`, `screenshots/phase7_backup.png`. Logcat verified 0 crashes/exceptions.

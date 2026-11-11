@@ -2,7 +2,9 @@ package com.powerunit.feature.history
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import android.content.Intent
 import com.powerunit.core.common.DateUtils
+import com.powerunit.core.export.ExportManager
 import com.powerunit.domain.model.Reading
 import com.powerunit.domain.model.Tariff
 import com.powerunit.domain.repository.MeterRepository
@@ -15,6 +17,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -66,7 +69,8 @@ class HistoryViewModel @Inject constructor(
     private val readingRepository: ReadingRepository,
     private val meterRepository: MeterRepository,
     private val tariffRepository: TariffRepository,
-    private val calculateBillUseCase: CalculateBillUseCase
+    private val calculateBillUseCase: CalculateBillUseCase,
+    private val exportManager: ExportManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HistoryUiState())
@@ -79,6 +83,38 @@ class HistoryViewModel @Inject constructor(
 
     init {
         loadReadings()
+    }
+
+    fun exportCsv(onReady: (Intent) -> Unit) {
+        viewModelScope.launch {
+            val meter = meterRepository.getActiveMeterSync()
+            val meterId = meter?.id ?: 1L
+            val readings = readingRepository.getReadings(meterId).first()
+            val file = exportManager.exportReadingsToCsv(readings, meter?.name ?: "Main Meter")
+            val intent = exportManager.getShareIntent(file, "text/csv")
+            onReady(intent)
+        }
+    }
+
+    fun exportPdf(onReady: (Intent) -> Unit) {
+        viewModelScope.launch {
+            val meter = meterRepository.getActiveMeterSync()
+            val meterId = meter?.id ?: 1L
+            val tariff = tariffRepository.getActiveTariff().first() ?: Tariff(
+                name = "Default",
+                effectiveFrom = DateUtils.currentInstant(),
+                vatPercent = BigDecimal("5.0"),
+                serviceChargeFlat = BigDecimal("10.00"),
+                demandChargeFlat = BigDecimal("35.00"),
+                isActive = true
+            )
+            val readings = readingRepository.getReadings(meterId).first()
+            val totalUnits = readings.fold(BigDecimal.ZERO) { acc, r -> acc + r.readingValue }
+            val bill = calculateBillUseCase(totalUnits.coerceAtLeast(BigDecimal.ONE), tariff)
+            val file = exportManager.exportBillToPdf(bill, meter, null)
+            val intent = exportManager.getShareIntent(file, "application/pdf")
+            onReady(intent)
+        }
     }
 
     private fun loadReadings() {

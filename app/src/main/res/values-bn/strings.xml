@@ -102,4 +102,20 @@
     <string name="notification_channel_alerts_desc">বাজেট সীমার কাছাকাছি পৌঁছালে সতর্কতা</string>
     <string name="notification_budget_warning_title">বাজেট সীমা সতর্কতা</string>
     <string name="notification_budget_warning_body">আপনি মাসিক বাজেটের %1$s%% বিদ্যুৎ ব্যবহার করেছেন।</string>
+
+    <!-- Backup and Export -->
+    <string name="backup_title">ব্যাকআপ ও রিস্টোর</string>
+    <string name="backup_create_title">এনক্রিপ্টেড ব্যাকআপ তৈরি</string>
+    <string name="backup_create_desc">AES-256-GCM এনক্রিপশনের মাধ্যমে সমস্ত রিডিং, মিটার ও ট্যারিফ ব্যাকআপ করুন। পরে রিস্টোর করতে পাসফ্রেজটি মনে রাখুন।</string>
+    <string name="backup_passphrase_label">ব্যাকআপ পাসফ্রেজ</string>
+    <string name="backup_btn_create">এনক্রিপ্ট ও ব্যাকআপ সংরক্ষণ</string>
+    <string name="backup_btn_share">ব্যাকআপ ফাইল শেয়ার করুন</string>
+    <string name="backup_restore_title">ব্যাকআপ থেকে রিস্টোর</string>
+    <string name="backup_restore_desc">সংরক্ষিত .wattwise ব্যাকআপ ফাইল থেকে তথ্য ডিক্রিপ্ট ও রিস্টোর করুন।</string>
+    <string name="backup_restore_passphrase_label">ডিক্রিপ্ট করতে পাসফ্রেজ দিন</string>
+    <string name="backup_btn_restore">ডিক্রিপ্ট ও রিস্টোর করুন</string>
+    <string name="backup_security_notice">ওয়াটওয়াইজ PBKDF2 কি ডেরিভেশন এবং AES-256-GCM অথেনটিকেশন ব্যবহার করে। আপনার পাসফ্রেজ ছাড়া ব্যাকআপ কখনোই আনলক করা সম্ভব নয়।</string>
+    <string name="export_csv">CSV এক্সপোর্ট</string>
+    <string name="export_pdf">PDF এক্সপোর্ট</string>
+    <string name="export_share_bill">বিলের বিবরণ শেয়ার করুন</string>
 </resources>

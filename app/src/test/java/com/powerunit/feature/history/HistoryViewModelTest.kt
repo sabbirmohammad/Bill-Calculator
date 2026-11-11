@@ -1,6 +1,7 @@
 package com.powerunit.feature.history
 
 import com.powerunit.core.common.DateUtils
+import com.powerunit.core.export.ExportManager
 import com.powerunit.domain.model.Meter
 import com.powerunit.domain.model.MeterType
 import com.powerunit.domain.model.Reading
@@ -38,6 +39,7 @@ class HistoryViewModelTest {
     private val meterRepository = mockk<MeterRepository>(relaxed = true)
     private val tariffRepository = mockk<TariffRepository>(relaxed = true)
     private val calculateBillUseCase = CalculateBillUseCase()
+    private val exportManager = mockk<ExportManager>(relaxed = true)
 
     private val sampleMeter = Meter(
         id = 1L,
@@ -107,7 +109,8 @@ class HistoryViewModelTest {
             readingRepository = readingRepository,
             meterRepository = meterRepository,
             tariffRepository = tariffRepository,
-            calculateBillUseCase = calculateBillUseCase
+            calculateBillUseCase = calculateBillUseCase,
+            exportManager = exportManager
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -124,7 +127,8 @@ class HistoryViewModelTest {
             readingRepository = readingRepository,
             meterRepository = meterRepository,
             tariffRepository = tariffRepository,
-            calculateBillUseCase = calculateBillUseCase
+            calculateBillUseCase = calculateBillUseCase,
+            exportManager = exportManager
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -143,7 +147,8 @@ class HistoryViewModelTest {
             readingRepository = readingRepository,
             meterRepository = meterRepository,
             tariffRepository = tariffRepository,
-            calculateBillUseCase = calculateBillUseCase
+            calculateBillUseCase = calculateBillUseCase,
+            exportManager = exportManager
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -165,7 +170,8 @@ class HistoryViewModelTest {
             readingRepository = readingRepository,
             meterRepository = meterRepository,
             tariffRepository = tariffRepository,
-            calculateBillUseCase = calculateBillUseCase
+            calculateBillUseCase = calculateBillUseCase,
+            exportManager = exportManager
         )
         testDispatcher.scheduler.advanceUntilIdle()
 

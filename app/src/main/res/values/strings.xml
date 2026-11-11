@@ -102,4 +102,20 @@
     <string name="notification_channel_alerts_desc">Alerts when consumption approaches budget limits</string>
     <string name="notification_budget_warning_title">Budget Threshold Warning</string>
     <string name="notification_budget_warning_body">You have used %1$s%% of your monthly electricity budget.</string>
+
+    <!-- Backup and Export -->
+    <string name="backup_title">Backup &amp; Restore</string>
+    <string name="backup_create_title">Create Encrypted Backup</string>
+    <string name="backup_create_desc">Export all readings, meters, and tariffs encrypted with AES-256-GCM. Save the passphrase to restore later.</string>
+    <string name="backup_passphrase_label">Backup Passphrase</string>
+    <string name="backup_btn_create">Encrypt &amp; Save Backup</string>
+    <string name="backup_btn_share">Share Backup File</string>
+    <string name="backup_restore_title">Restore from Backup</string>
+    <string name="backup_restore_desc">Decrypt and restore readings from a saved .wattwise backup file.</string>
+    <string name="backup_restore_passphrase_label">Passphrase to Decrypt</string>
+    <string name="backup_btn_restore">Decrypt &amp; Restore</string>
+    <string name="backup_security_notice">WattWise uses PBKDF2 key derivation and AES-256-GCM authentication. Backups are completely portable and cannot be decrypted without your passphrase.</string>
+    <string name="export_csv">Export CSV</string>
+    <string name="export_pdf">Export PDF</string>
+    <string name="export_share_bill">Share Bill Statement</string>
 </resources>
