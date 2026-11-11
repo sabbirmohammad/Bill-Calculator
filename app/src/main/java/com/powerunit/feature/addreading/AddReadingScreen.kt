@@ -118,7 +118,8 @@ fun AddReadingScreen(
                             state.readingId != null -> "Edit Reading"
                             else -> "Add Reading"
                         },
-                        style = MaterialTheme.typography.titleLarge
+                        style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.testTag("add_reading_title")
                     )
                 },
                 navigationIcon = {

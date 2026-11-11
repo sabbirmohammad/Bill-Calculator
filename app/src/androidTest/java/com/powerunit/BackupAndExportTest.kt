@@ -36,14 +36,14 @@ class BackupAndExportTest {
     @Test
     fun historyScreen_displaysExportButtons_andSettingsNavigatesToBackup() {
         // Tap History tab on bottom navigation bar
-        composeTestRule.onNodeWithText("History").performClick()
+        composeTestRule.onNodeWithTag("nav_history").performClick()
         composeTestRule.waitForIdle()
 
         // Verify PDF export button exists
         composeTestRule.onNodeWithTag("history_export_pdf_btn").assertIsDisplayed()
 
         // Tap Settings tab
-        composeTestRule.onNodeWithText("Settings").performClick()
+        composeTestRule.onNodeWithTag("nav_settings").performClick()
         composeTestRule.waitForIdle()
 
         // Swipe up on lazy column to reveal Data section

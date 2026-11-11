@@ -52,7 +52,7 @@ class ReadingFlowTest {
         composeTestRule.waitForIdle()
 
         // Verify Add Reading screen components
-        composeTestRule.onNodeWithText("Add Reading").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("add_reading_title").assertIsDisplayed()
         composeTestRule.onNodeWithTag("reading_input_field").assertIsDisplayed()
         composeTestRule.onNodeWithTag("save_reading_btn").assertIsDisplayed()
 

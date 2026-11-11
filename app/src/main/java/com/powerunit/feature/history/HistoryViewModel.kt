@@ -109,6 +109,9 @@ class HistoryViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(HistoryUiState())
     val uiState: StateFlow<HistoryUiState> = _uiState.asStateFlow()
 
+    private val _searchQuery = MutableStateFlow("")
+    private val _activeFilter = MutableStateFlow(HistoryFilter.ALL)
+
     private val _effects = Channel<HistoryUiEffect>(Channel.BUFFERED)
     val effects = _effects.receiveAsFlow()
 
@@ -147,11 +150,12 @@ class HistoryViewModel @Inject constructor(
             combine(
                 readingRepository.getReadings(meterId),
                 tariffRepository.getActiveTariff(),
-                _uiState
-            ) { readings, tariff, state ->
+                _searchQuery,
+                _activeFilter
+            ) { readings, tariff, searchQuery, activeFilter ->
                 val hasEstimated = readings.any { it.isEstimated }
                 val hasResets = readings.any { it.isMeterReset }
-                val groups = processReadings(readings, tariff, state.searchQuery, state.activeFilter)
+                val groups = processReadings(readings, tariff, searchQuery, activeFilter)
                 Triple(groups, hasEstimated, hasResets)
             }.collect { (groups, hasEstimated, hasResets) ->
                 _uiState.update {
@@ -167,10 +171,12 @@ class HistoryViewModel @Inject constructor(
     }
 
     fun onSearchQueryChange(query: String) {
+        _searchQuery.value = query
         _uiState.update { it.copy(searchQuery = query) }
     }
 
     fun onFilterChange(filter: HistoryFilter) {
+        _activeFilter.value = filter
         _uiState.update { it.copy(activeFilter = filter) }
     }
 

@@ -123,11 +123,20 @@ Offline-first, privacy-focused Android electricity tracker and bill calculator t
   1. `androidx.core:core-splashscreen` API was not integrated; no starting splash theme with `Theme.SplashScreen` and no `setKeepOnScreenCondition { !appReady }` were registered in `MainActivity`. The system splash was dismissed immediately upon the first drawn frame.
   2. `MainActivity.kt` initialized `WattWiseTheme` without collecting `settingsPreferences.themeMode`, defaulting to `isSystemInDarkTheme()`, which caused a light/dark flash when user preferences differed from system settings.
   3. `DashboardScreen.kt`, `HistoryScreen.kt`, and `BillScreen.kt` lacked loading guard branches; when their respective ViewModels emitted initial default states (`isLoading = true` with 0 usage/units or empty reading lists), the composables immediately rendered real empty states (`InitialReadingRequiredBanner` / `EmptyState` / 0 kWh) before Room and DataStore emitted the actual cached records.
-- **Fix Plan**:
-  1. Add `androidx.core:core-splashscreen` dependency.
-  2. Define `Theme.WattWise.Starting` in `themes.xml` with parent `Theme.SplashScreen` and set it on `MainActivity` in `AndroidManifest.xml`.
-  3. Create `MainViewModel` to collect preferences (`themeMode`, `appLanguage`, `onboardingCompleted`, `appLockEnabled`) and initial Room data emission, holding `isAppReady` until first emission arrives (with a 1500ms safety timeout).
-  4. Call `installSplashScreen().setKeepOnScreenCondition { !mainViewModel.isAppReady.value }` in `MainActivity.onCreate`.
-  5. Pass collected `themeMode` to `WattWiseTheme(darkTheme = isDark)` at the root.
-  6. Add full skeleton shimmer placeholders (`DashboardSkeleton`, `HistorySkeleton`, `BillSkeleton`, `AnalyticsSkeleton`) in `SkeletonShimmer.kt` and guard screen composables so empty states and zero values are NEVER rendered while `isLoading` is true.
+- **Fix Details**:
+  1. Added `androidx.core:core-splashscreen:1.0.1` to `libs.versions.toml` and `app/build.gradle.kts`.
+  2. Defined `Theme.WattWise.Starting` in `themes.xml` with parent `Theme.SplashScreen` and configured `MainActivity` in `AndroidManifest.xml`.
+  3. Created `MainViewModel` to collect preferences (`themeMode`, `appLanguage`, `onboardingCompleted`, `appLockEnabled`) and active meter data before releasing `isAppReady`.
+  4. Installed splash screen in `MainActivity.kt` with `setKeepOnScreenCondition { !mainViewModel.isAppReady.value }`.
+  5. Connected `mainViewModel.themeMode` to root `WattWiseTheme(darkTheme = isDarkTheme)`.
+  6. Added comprehensive skeleton shimmer components (`DashboardSkeleton`, `HistorySkeleton`, `BillSkeleton`, `AnalyticsSkeleton`, `UsageSummarySkeleton`, `BudgetOutlookSkeleton`, `ReadingItemSkeleton`) and loading guards in screen composables.
+  7. Resolved feedback loop in `HistoryViewModel` by decoupling `_searchQuery` and `_activeFilter` from combined state emissions.
+- **Verification**:
+  - `./gradlew assembleDebug`: Passed.
+  - `./gradlew lintDebug detekt ktlintCheck`: Passed (0 errors, 0 warnings).
+  - `./gradlew testDebugUnitTest`: Passed (68/68 tests passed, including `MainViewModelTest`).
+  - `./gradlew connectedDebugAndroidTest`: Passed (9/9 tests passed on `emulator-5554`).
+  - Cold start verification on emulator: 10 consecutive cold starts via `am force-stop` and `am start -W`. Verified smooth transition from system splash to content with zero empty flash or crash. Screenshot saved to `screenshots/issue1_verified.png`.
+- **Status**: Completed.
+
 
