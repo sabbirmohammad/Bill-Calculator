@@ -1,0 +1,51 @@
+# Gradle files
+.gradle/
+build/
+*/build/
+gradle-app.setting
+!gradle/wrapper/gradle-wrapper.jar
+
+# Kotlin compiler & daemon
+.kotlin/
+
+# Local configuration file (sdk path, personal configs)
+local.properties
+
+# Log files
+*.log
+*.hprof
+
+# Android Studio / IntelliJ IDEA
+*.iml
+.idea/
+.idea_modules/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Keystore & Signing files
+*.jks
+*.keystore
+!app/debug.keystore
+signing.properties
+secrets.properties
+
+# Google Services & Credentials
+google-services.json
+GoogleService-Info.plist
+
+# OS specific files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Agent teamwork logs
+.agents/
+
+# Build artifacts & APKs
+*.apk
+release-output/
