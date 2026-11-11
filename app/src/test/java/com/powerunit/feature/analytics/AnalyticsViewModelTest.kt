@@ -130,6 +130,8 @@ class AnalyticsViewModelTest {
         coEvery { readingRepository.getReadings(1L) } returns flowOf(sampleReadings)
         coEvery { tariffRepository.getActiveTariff() } returns flowOf(sampleTariff)
         coEvery { settingsPreferences.billingCycleDay } returns flowOf(1)
+        coEvery { settingsPreferences.useBengaliDigits } returns flowOf(false)
+        coEvery { settingsPreferences.appLanguage } returns flowOf("en")
     }
 
     @After

@@ -1,11 +1,13 @@
 package com.powerunit.feature.settings
 
+import android.content.Context
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.powerunit.core.database.PowerUnitDatabase
 import com.powerunit.core.datastore.SettingsPreferences
+import com.powerunit.core.reminder.ReminderNotificationHelper
 import com.powerunit.core.worker.WorkManagerScheduler
 import com.powerunit.core.update.AppUpdateManager
 import com.powerunit.domain.model.Meter
@@ -147,6 +149,10 @@ class SettingsViewModel @Inject constructor(
                 workManagerScheduler.scheduleDailyReminder(time)
             }
         }
+    }
+
+    fun sendTestNotification(context: Context) {
+        ReminderNotificationHelper.showReminderNotification(context)
     }
 
     fun setThemeMode(mode: String) {

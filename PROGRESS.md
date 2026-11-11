@@ -245,3 +245,26 @@ Offline-first, privacy-focused Android electricity tracker and bill calculator t
   - `./gradlew connectedDebugAndroidTest`: Passed (9/9 tests passed on `emulator-5554`).
   - Emulator verification: Verified live instant Theme toggle (System -> Light -> Dark), Language switch (English -> Bangla), Bengali digits live preview toggle ("12,345.6 kWh • ৳2,500.00" -> "১২,৩৪৫.৬ kWh • ৳২,৫০০.০০"), and full Dashboard and Settings bilingual rendering. Screenshots saved to `screenshots/issue6_dashboard_en.png`, `screenshots/issue6_dashboard_bn.png`, `screenshots/issue6_settings_bn.png`, `screenshots/issue6_settings_dark.png`. Logcat verified 0 crashes.
 - **Status**: Completed.
+
+### Issue 7: Daily reminder
+- **Root Cause**:
+  1. The app previously scheduled daily reminders using only WorkManager periodic work (`PeriodicWorkRequest`), which Android's WorkManager can defer by up to several hours due to doze mode, battery saver, and the minimum 15-minute periodic interval flex window, rather than firing at the exact user-specified time (e.g. 9:00 PM).
+  2. The notification channel (`reminders_channel`) had only DEFAULT importance, lacked vibration / sound attributes, and there was no BroadcastReceiver listening for system boot (`BOOT_COMPLETED`), timezone change (`TIMEZONE_CHANGED`), or time adjustments (`TIME_SET`) to restore alarm schedules across device restarts.
+  3. No permission check or user warning existed if `POST_NOTIFICATIONS` permission was revoked on Android 13+.
+  4. Time format in Settings displayed 24h format instead of 12-hour AM/PM with a system time picker dial, and there was no way for users to test or verify notifications directly.
+- **Fix Details**:
+  1. Created `ReminderNotificationHelper.kt`: High importance notification channel (`reminders_channel`, `IMPORTANCE_HIGH`), setting sound, vibration, small icon (`R.mipmap.ic_launcher`), title, body, and deep-link PendingIntent opening `MainActivity` with navigation argument directly to `add_reading`.
+  2. Created `DailyReminderReceiver.kt`: Catches `ACTION_TRIGGER_REMINDER` to verify if today's reading is already recorded; if not, posts the reminder notification and reschedules the next day's alarm via `WorkManagerScheduler`. Also handles `BOOT_COMPLETED`, `TIME_SET`, `TIMEZONE_CHANGED`, and `MY_PACKAGE_REPLACED` to automatically reinstate the alarm.
+  3. Updated `WorkManagerScheduler.kt`: Calculates exact next occurrence and schedules exact alarm via `AlarmManager.setExactAndAllowWhileIdle` (or `setAndAllowWhileIdle` if exact alarm permission is restricted), backed by WorkManager periodic worker as a secondary fallback.
+  4. Updated `DailyReminderWorker.kt`: Injected `ReadingRepository` & `MeterRepository` so background execution checks whether today's reading was already recorded before posting, avoiding nagging notifications.
+  5. Added permissions to `AndroidManifest.xml`: `POST_NOTIFICATIONS`, `RECEIVE_BOOT_COMPLETED`, `SCHEDULE_EXACT_ALARM`, and registered `DailyReminderReceiver`.
+  6. Added 12-hour AM/PM format support with system `TimePickerDialog` in `SettingsScreen.kt`, notification permission warning banner with link to system app settings, and "Send test notification" debug button (`send_test_notification_btn`).
+  7. Added unit tests in `DailyReminderWorkerTest.kt` verifying reminder suppression when reading is present and delivery when reading is missing.
+- **Verification**:
+  - `./gradlew assembleDebug`: Passed.
+  - `./gradlew lintDebug detekt ktlintCheck`: Passed (0 errors, 0 warnings).
+  - `./gradlew testDebugUnitTest`: Passed (87/87 tests passed).
+  - `./gradlew connectedDebugAndroidTest`: Passed (9/9 tests passed on `emulator-5554`).
+  - Emulator verification: Verified notification posted to system tray via `dumpsys notification` (`AggregatedStats{key='com.powerunit.debug', numEnqueuedByApp=1, numPostedByApp=1}`, `channel=reminders_channel`, `importance=4`). Verified `AlarmManager` registered `*walarm*:com.powerunit.ACTION_TRIGGER_REMINDER` with `RTC_WAKEUP`. Screenshots saved to `screenshots/issue7_reminder.png` and `screenshots/issue7_notification_shade.png`.
+- **Status**: Completed.
+

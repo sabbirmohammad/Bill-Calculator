@@ -84,6 +84,11 @@
     <string name="settings_tariff_editor_desc">Customize government slabs, charges, and VAT</string>
     <string name="settings_reminder_toggle">Daily Meter Reminder</string>
     <string name="settings_reminder_time">Reminder Time</string>
+    <string name="settings_notifications_disabled_title">Notifications are disabled</string>
+    <string name="settings_notifications_disabled_desc">Grant notification permission to receive daily meter reading reminders.</string>
+    <string name="settings_enable_notifications">Enable Notifications</string>
+    <string name="settings_send_test_notification">Send test notification</string>
+    <string name="settings_test_notification_sent">Test notification sent</string>
     <string name="settings_theme_mode">Theme</string>
     <string name="theme_system">System</string>
     <string name="theme_light">Light</string>

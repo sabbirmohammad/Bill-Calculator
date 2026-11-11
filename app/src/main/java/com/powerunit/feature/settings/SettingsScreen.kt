@@ -27,6 +27,18 @@ import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
+import android.content.Intent
+import android.provider.Settings
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.NotificationsOff
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.core.app.NotificationManagerCompat
+import java.util.Locale
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -120,12 +132,15 @@ fun SettingsScreen(
                 }
 
                 item {
+                    val context = LocalContext.current
                     ReminderSettingsSection(
                         enabled = uiState.reminderEnabled,
                         reminderTime = uiState.reminderTime,
                         useBengaliDigits = uiState.useBengaliDigits,
                         isBangla = uiState.language == "bn",
-                        onToggle = viewModel::setReminderEnabled
+                        onToggle = viewModel::setReminderEnabled,
+                        onTimeChange = viewModel::setReminderTime,
+                        onSendTestNotification = { viewModel.sendTestNotification(context) }
                     )
                 }
 
@@ -336,8 +351,15 @@ private fun ReminderSettingsSection(
     reminderTime: String,
     useBengaliDigits: Boolean,
     isBangla: Boolean,
-    onToggle: (Boolean) -> Unit
+    onToggle: (Boolean) -> Unit,
+    onTimeChange: (String) -> Unit,
+    onSendTestNotification: () -> Unit
 ) {
+    val context = LocalContext.current
+    val areNotificationsEnabled = remember(enabled) {
+        NotificationManagerCompat.from(context).areNotificationsEnabled()
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth().testTag("settings_reminders_card"),
         shape = CardShape,
@@ -348,6 +370,58 @@ private fun ReminderSettingsSection(
             SectionTitle(icon = Icons.Default.Alarm, title = stringResource(R.string.settings_section_reminders))
             Spacer(modifier = Modifier.height(Dimens.spacingSm))
 
+            // Permission Warning Banner if notifications are disabled
+            if (enabled && !areNotificationsEnabled) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = Dimens.spacingSm),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f))
+                ) {
+                    Column(modifier = Modifier.padding(Dimens.spacingSm)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.NotificationsOff,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(Dimens.iconSizeSmall)
+                            )
+                            Spacer(modifier = Modifier.width(Dimens.spacingXs))
+                            Text(
+                                text = stringResource(R.string.settings_notifications_disabled_title),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(Dimens.spacingXxs))
+                        Text(
+                            text = stringResource(R.string.settings_notifications_disabled_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.85f)
+                        )
+                        Spacer(modifier = Modifier.height(Dimens.spacingXs))
+                        OutlinedButton(
+                            onClick = {
+                                val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                                    putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                                }
+                                context.startActivity(intent)
+                            },
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text(
+                                text = stringResource(R.string.settings_enable_notifications),
+                                style = MaterialTheme.typography.labelMedium
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Reminder Toggle Row
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -359,11 +433,9 @@ private fun ReminderSettingsSection(
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface
                     )
-                    val formattedTime = Formatters.formatTime12h(reminderTime, useBengaliDigits, isBangla)
-                    val timeLabel = if (isBangla) "প্রতিদিন $formattedTime" else "Every day at $formattedTime"
                     Text(
-                        text = timeLabel,
-                        style = MaterialTheme.typography.bodyMedium,
+                        text = if (isBangla) "প্রতিদিন মিটার রিডিং লেখার তাগিদ দিন" else "Get a daily alert to record meter reading",
+                        style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -372,6 +444,81 @@ private fun ReminderSettingsSection(
                     onCheckedChange = onToggle,
                     modifier = Modifier.testTag("reminder_switch")
                 )
+            }
+
+            if (enabled) {
+                Spacer(modifier = Modifier.height(Dimens.spacingXs))
+                HorizontalDivider(thickness = Dimens.dividerThickness, color = MaterialTheme.colorScheme.outlineVariant)
+                Spacer(modifier = Modifier.height(Dimens.spacingXs))
+
+                // Time Picker Row (12h format dial picker)
+                val parts = reminderTime.split(":")
+                val initialHour = parts.getOrNull(0)?.toIntOrNull() ?: 21
+                val initialMinute = parts.getOrNull(1)?.toIntOrNull() ?: 0
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            android.app.TimePickerDialog(
+                                context,
+                                { _, hourOfDay, minute ->
+                                    val formatted = String.format(Locale.US, "%02d:%02d", hourOfDay, minute)
+                                    onTimeChange(formatted)
+                                },
+                                initialHour,
+                                initialMinute,
+                                false // 12-hour AM/PM format
+                            ).show()
+                        }
+                        .padding(vertical = Dimens.xxs)
+                        .testTag("reminder_time_picker_row"),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = stringResource(R.string.settings_reminder_time),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        val formattedTime = Formatters.formatTime12h(reminderTime, useBengaliDigits, isBangla)
+                        Text(
+                            text = if (isBangla) "প্রতিদিন $formattedTime" else "Every day at $formattedTime",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Icon(
+                        imageVector = Icons.Default.AccessTime,
+                        contentDescription = "Select reminder time",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(Dimens.iconSizeSmall)
+                    )
+                }
+
+                // Debug Send Test Notification Button
+                if (BuildConfig.DEBUG) {
+                    Spacer(modifier = Modifier.height(Dimens.spacingSm))
+                    OutlinedButton(
+                        onClick = onSendTestNotification,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("send_test_notification_btn"),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.NotificationsActive,
+                            contentDescription = null,
+                            modifier = Modifier.size(Dimens.iconSizeSmall)
+                        )
+                        Spacer(modifier = Modifier.width(Dimens.spacingXs))
+                        Text(
+                            text = stringResource(R.string.settings_send_test_notification),
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                    }
+                }
             }
         }
     }
