@@ -1,3 +1,5 @@
+import java.time.LocalDate
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.compose.compiler)
@@ -12,12 +14,17 @@ android {
     namespace = "com.powerunit"
     compileSdk = 36
 
+    val propVersionName = providers.gradleProperty("app.versionName").getOrElse("1.0.0")
+    val propVersionCode = providers.gradleProperty("app.versionCode").map { it.toInt() }.getOrElse(28)
+
     defaultConfig {
         applicationId = "com.powerunit"
         minSdk = 26
         targetSdk = 35
-        versionCode = 5
-        versionName = "1.0.4"
+        versionCode = propVersionCode
+        versionName = propVersionName
+
+        buildConfigField("String", "BUILD_DATE", "\"${LocalDate.now()}\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

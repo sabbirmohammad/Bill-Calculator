@@ -1,11 +1,13 @@
 package com.powerunit
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.BeforeClass
 import org.junit.Rule
@@ -64,5 +66,18 @@ class SettingsAndTariffTest {
 
         // Confirm back on Settings
         composeTestRule.onNodeWithTag("settings_meter_card").assertIsDisplayed()
+    }
+
+    @Test
+    fun settingsTab_displaysVersionAndBuildInfo() {
+        composeTestRule.onNodeWithTag("nav_settings").performClick()
+        composeTestRule.waitForIdle()
+
+        composeTestRule.onNodeWithTag("settings_lazy_column")
+            .performScrollToNode(hasTestTag("settings_about_card"))
+        composeTestRule.onNodeWithTag("settings_about_card").assertIsDisplayed()
+        composeTestRule.onNodeWithText("WattWise").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Version 1.0.0 (build 28) • Debug").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Build Date: ${BuildConfig.BUILD_DATE}").assertIsDisplayed()
     }
 }

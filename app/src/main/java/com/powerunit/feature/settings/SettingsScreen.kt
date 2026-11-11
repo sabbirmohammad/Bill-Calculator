@@ -917,7 +917,7 @@ private fun AboutSettingsSection(
     onNavigateToDesignGallery: () -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().testTag("settings_about_card"),
         shape = CardShape,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = Dimens.level1)
@@ -926,15 +926,31 @@ private fun AboutSettingsSection(
             SectionTitle(icon = Icons.Default.Info, title = stringResource(R.string.settings_section_about))
             Spacer(modifier = Modifier.height(Dimens.xs))
 
+            val buildTypeStr = BuildConfig.BUILD_TYPE.replaceFirstChar { it.uppercase() }
+            val versionInfo = "Version ${BuildConfig.VERSION_NAME} (build ${BuildConfig.VERSION_CODE})"
+
             Text(
-                text = "WattWise v1.0.0",
+                text = "WattWise",
                 style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(Dimens.xxs))
             Text(
+                text = "$versionInfo • $buildTypeStr",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = "Build Date: ${BuildConfig.BUILD_DATE}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+            )
+            Spacer(modifier = Modifier.height(Dimens.xs))
+            Text(
                 text = stringResource(R.string.settings_privacy_pledge),
                 style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.primary
             )
 

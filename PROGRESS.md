@@ -346,4 +346,31 @@ Offline-first, privacy-focused Android electricity tracker and bill calculator t
   - Emulator verification: Verified Security & Privacy card, App Lock timeout, Privacy Mode toggle, FLAG_SECURE window flag, Clear All Data 2-step confirmation dialogs. Captured screenshots: `screenshots/issue9_security_verified.png`, `screenshots/issue9_clear_dialog.png`, `screenshots/issue9_clear_dialog_step2.png`. Logcat verified 0 sensitive leaks.
 - **Status**: Completed.
 
+### Issue 10: About: Version number auto-updating
+- **Root Cause**:
+  1. The About section in `SettingsScreen.kt` had hardcoded text `"WattWise v1.0.0"` and did not dynamically query build metadata from Android Gradle Plugin `BuildConfig`.
+  2. In `app/build.gradle.kts`, `versionCode` (5) and `versionName` ("1.0.4") were hardcoded and diverged from `gradle.properties` without a single unified source of truth.
+  3. No build timestamp or build variant indicator was provided to assist with release tracking and debugging.
+- **Fix Details**:
+  1. **Single Source of Truth in `gradle.properties`**:
+     - Configured `app.versionName=1.0.0` and `app.versionCode=28`.
+     - In `app/build.gradle.kts`, dynamically wired `versionName` and `versionCode` using `providers.gradleProperty("app.versionName")` and `providers.gradleProperty("app.versionCode")`.
+  2. **Injected Build Metadata**:
+     - Injected `buildConfigField("String", "BUILD_DATE", "\"${LocalDate.now()}\"")` in `defaultConfig`.
+  3. **Dynamic About Section in `SettingsScreen.kt`**:
+     - Displayed dynamic application name: `"WattWise"`.
+     - Displayed dynamic version & build type: `"Version ${BuildConfig.VERSION_NAME} (build ${BuildConfig.VERSION_CODE}) • ${buildTypeStr}"` (e.g. `"Version 1.0.0 (build 28) • Debug"`).
+     - Displayed build date: `"Build Date: ${BuildConfig.BUILD_DATE}"`.
+     - Preserved privacy pledge: `"100% Offline • Zero Trackers • Zero Cloud Sync"`.
+     - Added test tag `settings_about_card` for reliable UI automation and regression prevention.
+  4. **Automated Testing**:
+     - Added instrumented test `settingsTab_displaysVersionAndBuildInfo` in `SettingsAndTariffTest.kt` verifying display of dynamic version name, build code, build type, and build date.
+- **Verification**:
+  - `./gradlew assembleDebug`: Passed.
+  - `./gradlew lintDebug detekt ktlintCheck`: Passed (0 errors, 0 warnings).
+  - `./gradlew testDebugUnitTest`: Passed (105/105 tests passed).
+  - `./gradlew connectedDebugAndroidTest`: Passed (12/12 tests passed on `emulator-5554`, including `SettingsAndTariffTest`).
+  - Emulator verification: Verified About card with dynamic version, build code, build type, and build date. Captured screenshot: `screenshots/issue10_version.png`. Logcat verified 0 crashes, 0 errors.
+- **Status**: Completed.
+
 
