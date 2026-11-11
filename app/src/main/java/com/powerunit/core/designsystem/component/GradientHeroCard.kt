@@ -1,5 +1,8 @@
 package com.powerunit.core.designsystem.component
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -20,13 +23,17 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.powerunit.core.designsystem.theme.Dimens
@@ -67,16 +74,26 @@ fun GradientHeroCard(
     val whiteSecondary = Color.White.copy(alpha = 0.78f)
     val trackWhite = Color.White.copy(alpha = 0.24f)
 
+    val animatedProgress by animateFloatAsState(
+        targetValue = cycleProgress.coerceIn(0f, 1f),
+        animationSpec = tween(durationMillis = 600, easing = FastOutSlowInEasing),
+        label = "heroCycleProgress"
+    )
+
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .defaultMinSize(minHeight = 200.dp),
+            .defaultMinSize(minHeight = 200.dp)
+            .clip(HeroShape),
         shape = HeroShape,
-        elevation = CardDefaults.cardElevation(defaultElevation = Dimens.level3)
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+        elevation = CardDefaults.cardElevation(defaultElevation = Dimens.level3),
+        border = null
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
+                .clip(HeroShape)
                 .background(gradient)
         ) {
             // Optional background sparkline at 20% opacity (only drawn when there is meaningful variation across at least 2 points)
@@ -162,29 +179,51 @@ fun GradientHeroCard(
 
                 Spacer(modifier = Modifier.height(Dimens.spacingMd))
 
-                // Bottom: Cycle progress bar (6dp tall) + cycle text
+                // Bottom: Cycle progress bar (6dp tall PillShape) + cycle text and percentage
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    Box(
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = cycleDayText,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = whiteSecondary
+                        )
+                        val percentInt = (animatedProgress * 100).toInt()
+                        Text(
+                            text = "$percentInt%",
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                            color = whitePrimary
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(Dimens.spacingXs))
+
+                    Canvas(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(6.dp)
                             .clip(RoundedCornerShape(3.dp))
-                            .background(trackWhite)
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth(cycleProgress.coerceIn(0f, 1f))
-                                .height(6.dp)
-                                .clip(RoundedCornerShape(3.dp))
-                                .background(whitePrimary)
+                        val cornerRadius = CornerRadius(size.height / 2f, size.height / 2f)
+                        // Background track
+                        drawRoundRect(
+                            color = trackWhite,
+                            size = size,
+                            cornerRadius = cornerRadius
                         )
+                        // Fill track
+                        if (animatedProgress > 0f) {
+                            val fillWidth = size.width * animatedProgress
+                            drawRoundRect(
+                                color = whitePrimary,
+                                size = Size(width = fillWidth, height = size.height),
+                                cornerRadius = cornerRadius
+                            )
+                        }
                     }
-                    Spacer(modifier = Modifier.height(Dimens.xxs))
-                    Text(
-                        text = cycleDayText,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = whiteSecondary
-                    )
                 }
             }
         }

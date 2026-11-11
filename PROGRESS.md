@@ -139,4 +139,24 @@ Offline-first, privacy-focused Android electricity tracker and bill calculator t
   - Cold start verification on emulator: 10 consecutive cold starts via `am force-stop` and `am start -W`. Verified smooth transition from system splash to content with zero empty flash or crash. Screenshot saved to `screenshots/issue1_verified.png`.
 - **Status**: Completed.
 
+### Issue 2: Dashboard Hero Card (odd white line under progress bar)
+- **Root Cause**:
+  1. The progress bar previously used nested `Box` composables with percentage-based fractional width (`fillMaxWidth(cycleProgress)`), which caused edge aliasing and subpixel clipping artifacts resembling a white hairline or dot when progress was small.
+  2. The hero card had no explicit `clip(HeroShape)` on the container card, allowing card container color bleeding and corner anti-aliasing artifacts against the gradient background.
+  3. In `DashboardScreen.kt`, the hero card was erroneously passed `state.budget?.percentageUsed` instead of the actual cycle progress fraction (`daysElapsed / totalDays`), causing visual misalignment between the text ("Day X of Y") and the progress bar.
+- **Fix Details**:
+  1. Replaced the nested Box layout with a custom Canvas drawing a clean PillShape track (`Color.White.copy(alpha = 0.24f)`) and animated progress fill (`Color.White`) using `animateFloatAsState` (600ms `FastOutSlowInEasing`).
+  2. Added `.clip(RoundedCornerShape(3.dp))` to strictly contain the Canvas track and fill with zero bleeding or stop-indicator dots.
+  3. Added aligned row above the progress bar with cycle info ("Day X of Y • Z days left") on the left and percentage ("40%") on the right.
+  4. Updated Card in `GradientHeroCard.kt` to explicitly use `containerColor = Color.Transparent`, `border = null`, and `clip(HeroShape)` on both Card and internal gradient Box to eliminate hairline borders or corner clipping leaks.
+  5. Updated `DashboardScreen.kt` to calculate and pass true cycle progress (`(daysElapsed / totalDays).coerceIn(0f, 1f)`).
+- **Verification**:
+  - `./gradlew assembleDebug`: Passed.
+  - `./gradlew lintDebug detekt ktlintCheck`: Passed (0 errors, 0 warnings).
+  - `./gradlew testDebugUnitTest`: Passed (68/68 tests passed).
+  - `./gradlew connectedDebugAndroidTest`: Passed (9/9 tests passed on `emulator-5554`).
+  - Emulator verification: Verified hero card with clean cycle progress at 40%, smooth animation, zero white line artifacts or corner defects. Screenshot saved to `screenshots/issue2_hero_card.png`.
+- **Status**: Completed.
+
+
 

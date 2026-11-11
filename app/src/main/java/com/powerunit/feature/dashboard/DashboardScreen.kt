@@ -245,10 +245,19 @@ private fun HeroUsageCard(
     val totalUnits = state.cycleUsage?.totalUnitsSoFar ?: BigDecimal.ZERO
     val unitsStr = Formatters.formatUnits(totalUnits)
     val billStr = if (state.hideAmounts) "৳ ••••" else Formatters.formatBDT(state.billBreakdown?.totalBill ?: BigDecimal.ZERO)
-    val totalDays = (state.cycleUsage?.daysElapsed ?: 0) + (state.cycleUsage?.daysLeft ?: 0)
-    val cycleInfo = state.cycleUsage?.let {
-        "Day ${it.daysElapsed} of $totalDays • ${it.daysLeft} days left"
-    } ?: "Current Cycle"
+    val daysElapsed = state.cycleUsage?.daysElapsed ?: 0
+    val daysLeft = state.cycleUsage?.daysLeft ?: 0
+    val totalDays = daysElapsed + daysLeft
+    val cycleInfo = if (totalDays > 0) {
+        "Day $daysElapsed of $totalDays • $daysLeft days left"
+    } else {
+        "Current Cycle"
+    }
+    val cycleProgressFraction = if (totalDays > 0) {
+        (daysElapsed.toFloat() / totalDays.toFloat()).coerceIn(0f, 1f)
+    } else {
+        0.36f
+    }
 
     GradientHeroCard(
         monthLabel = "Current Billing Cycle",
@@ -257,7 +266,7 @@ private fun HeroUsageCard(
         estimatedCost = billStr,
         trendPercent = state.usageTrendPercent?.toDouble(),
         cycleDayText = cycleInfo,
-        cycleProgress = state.budget?.percentageUsed ?: 0.36f,
+        cycleProgress = cycleProgressFraction,
         sparklinePoints = null,
         modifier = Modifier
             .testTag("dashboard_hero_card")
