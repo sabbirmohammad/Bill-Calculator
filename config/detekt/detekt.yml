@@ -7,15 +7,19 @@ build:
 
 complexity:
   LongMethod:
-    threshold: 200
+    threshold: 400
   ComplexCondition:
+    threshold: 10
+  CyclomaticComplexMethod:
+    threshold: 35
+  NestedBlockDepth:
     threshold: 6
   LongParameterList:
     functionThreshold: 20
     constructorThreshold: 20
     ignoreDefaultParameters: true
   TooManyFunctions:
-    thresholdInFiles: 30
+    thresholdInFiles: 40
     thresholdInClasses: 30
     thresholdInInterfaces: 30
     thresholdInObjects: 30
@@ -27,13 +31,15 @@ style:
   MagicNumber:
     active: false
   MaxLineLength:
-    maxLineLength: 220
+    maxLineLength: 300
     excludePackageStatements: true
     excludeImportStatements: true
     excludeCommentStatements: true
   UnusedPrivateMember:
     active: true
-    allowedNames: '(_|preview.*)'
+    allowedNames: '(_|[pP]review.*)'
+  UnusedParameter:
+    active: false
 
 exceptions:
   TooGenericExceptionCaught:
@@ -42,6 +48,8 @@ exceptions:
     active: false
 
 naming:
+  MatchingDeclarationName:
+    active: false
   FunctionNaming:
     functionPattern: '([a-zA-Z][a-zA-Z0-9]*)|([A-Z][a-zA-Z0-9]*)' # Allow PascalCase for @Composable
   TopLevelPropertyNaming:

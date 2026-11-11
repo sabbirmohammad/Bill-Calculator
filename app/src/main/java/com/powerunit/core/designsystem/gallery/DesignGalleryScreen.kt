@@ -88,7 +88,6 @@ fun DesignGalleryScreen(
     modifier: Modifier = Modifier
 ) {
     var selectedTab by remember { mutableIntStateOf(1) }
-    var numberPadValue by remember { mutableStateOf("14828.4") }
 
     Scaffold(
         topBar = {
