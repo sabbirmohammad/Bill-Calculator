@@ -268,3 +268,41 @@ Offline-first, privacy-focused Android electricity tracker and bill calculator t
   - Emulator verification: Verified notification posted to system tray via `dumpsys notification` (`AggregatedStats{key='com.powerunit.debug', numEnqueuedByApp=1, numPostedByApp=1}`, `channel=reminders_channel`, `importance=4`). Verified `AlarmManager` registered `*walarm*:com.powerunit.ACTION_TRIGGER_REMINDER` with `RTC_WAKEUP`. Screenshots saved to `screenshots/issue7_reminder.png` and `screenshots/issue7_notification_shade.png`.
 - **Status**: Completed.
 
+### Issue 8: Billing & Tariff section: redesign and make it safe
+- **Root Cause**:
+  1. The previous layout in `TariffEditorScreen.kt` had individual plain text inputs with direct delete actions inside list rows rather than following the V2 modern grouped layout (summary card with chips, clean slab rows, and modal bottom sheet editing).
+  2. It contained an unwanted and confusing "Live calculation preview" section (`LivePreviewSection`) with dummy test units that cluttered the editing experience.
+  3. Edits were not held in an isolated in-memory draft with dirty state detection; saving directly overwrote existing records without a validation guard.
+  4. There was no strict validation to prevent overlapping or missing ranges, disordered bounds, negative rates, invalid VAT (>100%), or non-terminal open-ended slabs.
+  5. It lacked save confirmation showing old vs new diffs, effect scope choice ("Apply from this billing cycle" vs "Apply from today"), biometric/PIN authentication check when App Lock is active, and Room transaction versioning (`effectiveFrom` timestamp preservation).
+  6. No unsaved changes confirmation dialog was provided when the user navigated away.
+- **Fix Details**:
+  1. **Redesigned Modern Layout**:
+     - Summary card at the top: active plan name with edit button, currency BDT (৳) chip, VAT % chip, fixed demand charge chip, and fixed service charge chip.
+     - Consumption Slabs section with badge count, clean `SlabItemCard` rows (slab index circle, range, rate per unit, edit & delete buttons), and "+ Add Slab" button.
+     - Removed the "Live calculation preview" section completely.
+  2. **Safe In-Memory Draft & Strict Validation**:
+     - In `TariffEditorViewModel`, changes remain in a draft until explicit Save.
+     - Strict validation ensures: VAT 0-100%, demand/service charges non-negative, at least 1 slab, strictly increasing bounds (`from < to`), continuous non-overlapping ranges (`next.from <= prev.to + 1` and `next.from >= prev.to`), rates >= 0, and only the final slab can be open-ended.
+     - Clear inline error banner (`ValidationErrorsCard`) displayed when issues exist.
+  3. **Confirmation Dialog with Diffs & Versioning Scope**:
+     - `SaveTariffConfirmationDialog` shows diff items (old value → new value) for all changed fields.
+     - Offers scope choice: "Apply from this billing cycle" (computes start of current billing cycle via `CalculateCycleUsageUseCase` and `DateUtils.startOfDayInstant`) vs "Apply from today".
+  4. **Security & Biometric Prompt**:
+     - Created `BiometricAuthHelper.kt` utilizing `androidx.biometric.BiometricPrompt` with `BIOMETRIC_STRONG or DEVICE_CREDENTIAL`. If App Lock is enabled, requires biometric/PIN authentication before committing tariff changes.
+  5. **Atomic Versioning & Change History**:
+     - Implemented `TariffDao.saveNewTariffVersion` inside a Room `@Transaction`, inserting new tariff version with chosen `effectiveFrom` date so past bills remain intact.
+     - Created `TariffHistoryBottomSheet` allowing users to view recorded versions and revert to previous versions.
+  6. **Unsaved-Changes Guard**:
+     - `BackHandler` and top navigation button check `isDirty`; if dirty, displays `UnsavedChangesDialog` ("Discard" vs "Keep Editing").
+  7. **Confidentiality / Logging**:
+     - Zero tariff rate logging in logcat or debug logs.
+- **Verification**:
+  - `./gradlew assembleDebug`: Passed.
+  - `./gradlew lintDebug detekt ktlintCheck`: Passed (0 errors, 0 warnings).
+  - `./gradlew testDebugUnitTest`: Passed (96/96 tests passed, including 14 new tests in `TariffEditorViewModelTest`).
+  - `./gradlew connectedDebugAndroidTest`: Passed (9/9 tests passed on `emulator-5554`, including `SettingsAndTariffTest`).
+  - Emulator verification: Verified Summary card with chips, Slab list, Edit charges bottom sheet, and saved screenshots to `screenshots/issue8_tariff_safety.png` and `screenshots/issue8_tariff_bottom_sheet.png`. Logcat verified 0 crashes, 0 errors, 0 rate leaks.
+- **Status**: Completed.
+
+

@@ -10,6 +10,8 @@ interface TariffRepository {
     suspend fun getTariffEffectiveAt(date: Instant): Tariff?
     suspend fun getTariffById(id: Long): Tariff?
     fun getAllTariffs(): Flow<List<Tariff>>
+    fun getAllTariffsWithSlabs(): Flow<List<Tariff>>
     suspend fun saveTariff(tariff: Tariff): Long
     suspend fun updateTariff(tariff: Tariff)
+    suspend fun saveNewTariffVersion(tariff: Tariff): Long
 }

@@ -35,6 +35,10 @@ interface TariffDao {
     @Query("SELECT * FROM tariffs ORDER BY effectiveFrom DESC")
     fun getAllTariffs(): Flow<List<TariffEntity>>
 
+    @Transaction
+    @Query("SELECT * FROM tariffs ORDER BY effectiveFrom DESC")
+    fun getAllTariffsWithSlabs(): Flow<List<TariffWithSlabs>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTariff(tariff: TariffEntity): Long
 
@@ -52,5 +56,12 @@ interface TariffDao {
         updateTariff(tariff)
         deleteSlabsByTariffId(tariff.id)
         insertSlabs(slabs.map { it.copy(tariffId = tariff.id) })
+    }
+
+    @Transaction
+    suspend fun saveNewTariffVersion(tariff: TariffEntity, slabs: List<TariffSlabEntity>): Long {
+        val newId = insertTariff(tariff.copy(id = 0, isActive = true))
+        insertSlabs(slabs.map { it.copy(id = 0, tariffId = newId) })
+        return newId
     }
 }

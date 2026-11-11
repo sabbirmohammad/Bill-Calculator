@@ -107,15 +107,29 @@
     <string name="settings_privacy_pledge">100% Offline • Zero Trackers • Zero Cloud Sync</string>
 
     <!-- Tariff Editor -->
-    <string name="tariff_editor_title">Tariff Rates</string>
-    <string name="tariff_name">Tariff Template Name</string>
-    <string name="tariff_slabs_title">Progressive Slabs</string>
+    <string name="tariff_editor_title">Tariff Rates Editor</string>
+    <string name="tariff_name">Tariff Plan Name</string>
+    <string name="tariff_summary_title">Active Plan &amp; Charges</string>
+    <string name="tariff_slabs_title">Consumption Slabs</string>
     <string name="tariff_add_slab">+ Add Slab</string>
+    <string name="tariff_edit_slab">Edit Slab</string>
     <string name="tariff_fixed_charges_title">Fixed Charges &amp; VAT</string>
     <string name="tariff_vat_percent">VAT Percentage (%)</string>
-    <string name="tariff_live_preview_title">Live Calculation Preview</string>
-    <string name="tariff_test_units">Test Consumption (kWh)</string>
     <string name="tariff_save_success">Tariff rates updated successfully!</string>
+    <string name="tariff_save_changes">Save Tariff Rates</string>
+    <string name="tariff_edit_charges">Edit Charges &amp; VAT</string>
+    <string name="tariff_confirm_title">Confirm Tariff Changes</string>
+    <string name="tariff_confirm_desc">The following updates will be saved to your tariff configuration:</string>
+    <string name="tariff_scope_cycle">Apply from this billing cycle</string>
+    <string name="tariff_scope_today">Apply from today</string>
+    <string name="tariff_unsaved_title">Unsaved Changes</string>
+    <string name="tariff_unsaved_desc">You have unsaved changes to your tariff rates. Do you want to discard them or keep editing?</string>
+    <string name="tariff_discard">Discard</string>
+    <string name="tariff_keep_editing">Keep Editing</string>
+    <string name="tariff_history_title">Version History</string>
+    <string name="tariff_revert_btn">Revert</string>
+    <string name="tariff_open_ended">No upper limit (open-ended)</string>
+    <string name="tariff_auth_required">Biometric authentication required to save tariff changes.</string>
 
     <!-- WorkManager & Notifications -->
     <string name="notification_channel_reminders">Meter Reminders</string>

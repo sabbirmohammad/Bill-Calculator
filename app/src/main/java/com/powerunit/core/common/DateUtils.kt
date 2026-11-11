@@ -47,6 +47,10 @@ object DateUtils {
         return ldt.toInstant(DHAKA_ZONE)
     }
 
+    fun startOfDayInstant(date: LocalDate): Instant {
+        return toInstantAtDhaka(date.year, date.monthNumber, date.dayOfMonth, 0, 0)
+    }
+
     fun toLocalDate(instant: Instant): LocalDate {
         return instant.toLocalDateTime(DHAKA_ZONE).date
     }

@@ -107,15 +107,29 @@
     <string name="settings_privacy_pledge">সম্পূর্ণ অফলাইন • কোনো ট্র্যাকার নেই • ক্লাউডলেস</string>
 
     <!-- Tariff Editor -->
-    <string name="tariff_editor_title">ট্যারিফ রেট</string>
-    <string name="tariff_name">ট্যারিফের নাম</string>
-    <string name="tariff_slabs_title">প্রগ্রেসিভ স্ল্যাবসমূহ</string>
+    <string name="tariff_editor_title">ট্যারিফ রেট এডিটর</string>
+    <string name="tariff_name">ট্যারিফ প্ল্যানের নাম</string>
+    <string name="tariff_summary_title">বর্তমান প্ল্যান ও চার্জ</string>
+    <string name="tariff_slabs_title">ব্যবহারের ধাপ (স্ল্যাব)</string>
     <string name="tariff_add_slab">+ স্ল্যাব যোগ করুন</string>
+    <string name="tariff_edit_slab">স্ল্যাব সম্পাদনা</string>
     <string name="tariff_fixed_charges_title">নির্দিষ্ট চার্জ ও ভ্যাট</string>
     <string name="tariff_vat_percent">ভ্যাট শতকরা (%)</string>
-    <string name="tariff_live_preview_title">লাইভ বিল পরীক্ষা</string>
-    <string name="tariff_test_units">পরীক্ষামূলক ব্যবহার (kWh)</string>
     <string name="tariff_save_success">ট্যারিফ রেট সফলভাবে সংরক্ষিত হয়েছে!</string>
+    <string name="tariff_save_changes">ট্যারিফ রেট সংরক্ষণ করুন</string>
+    <string name="tariff_edit_charges">চার্জ ও ভ্যাট সম্পাদনা</string>
+    <string name="tariff_confirm_title">ট্যারিফ পরিবর্তন নিশ্চিত করুন</string>
+    <string name="tariff_confirm_desc">নিচের পরিবর্তনগুলো আপনার ট্যারিফে সংরক্ষিত হবে:</string>
+    <string name="tariff_scope_cycle">বর্তমান বিলিং চক্র থেকে কার্যকর</string>
+    <string name="tariff_scope_today">আজ থেকে কার্যকর</string>
+    <string name="tariff_unsaved_title">অসংরক্ষিত পরিবর্তন</string>
+    <string name="tariff_unsaved_desc">আপনার ট্যারিফ পরিবর্তনগুলো এখনো সংরক্ষণ করা হয়নি। আপনি কি পরিবর্তনগুলো বাতিল করতে চান?</string>
+    <string name="tariff_discard">বাতিল করুন</string>
+    <string name="tariff_keep_editing">সম্পাদনা চালিয়ে যান</string>
+    <string name="tariff_history_title">সংস্করণের ইতিহাস</string>
+    <string name="tariff_revert_btn">পুনরুদ্ধার</string>
+    <string name="tariff_open_ended">উর্ধ্বসীমা নেই (সীমাহীন)</string>
+    <string name="tariff_auth_required">ট্যারিফ পরিবর্তনের জন্য বায়োমেট্রিক প্রমাণীকরণ প্রয়োজন।</string>
 
     <!-- WorkManager & Notifications -->
     <string name="notification_channel_reminders">মিটার রিমাইন্ডার</string>

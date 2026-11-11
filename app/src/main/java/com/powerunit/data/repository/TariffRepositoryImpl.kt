@@ -44,6 +44,9 @@ class TariffRepositoryImpl @Inject constructor(
             }
         }
 
+    override fun getAllTariffsWithSlabs(): Flow<List<Tariff>> =
+        tariffDao.getAllTariffsWithSlabs().map { list -> list.map { it.toDomain() } }
+
     override suspend fun saveTariff(tariff: Tariff): Long {
         val tariffId = tariffDao.insertTariff(tariff.toEntity())
         tariffDao.insertSlabs(tariff.slabs.map { it.toEntity(tariffId) })
@@ -52,5 +55,12 @@ class TariffRepositoryImpl @Inject constructor(
 
     override suspend fun updateTariff(tariff: Tariff) {
         tariffDao.updateTariffAndSlabs(tariff.toEntity(), tariff.slabs.map { it.toEntity(tariff.id) })
+    }
+
+    override suspend fun saveNewTariffVersion(tariff: Tariff): Long {
+        return tariffDao.saveNewTariffVersion(
+            tariff.toEntity(),
+            tariff.slabs.map { it.toEntity(0) }
+        )
     }
 }
