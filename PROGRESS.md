@@ -103,3 +103,15 @@ Offline-first, privacy-focused Android electricity tracker and bill calculator t
   - Static checks: `./gradlew lintDebug detekt ktlintCheck` passed with 0 errors and 0 warnings.
   - Connected UI tests: 9/9 tests passed on emulator (including `BackupAndExportTest`).
   - Runtime verification: Verified on emulator, captured screenshots: `screenshots/phase7_export_history.png`, `screenshots/phase7_backup.png`. Logcat verified 0 crashes/exceptions.
+
+## UI Enhancements
+- **Fintech-Style Bottom Navigation Bar**:
+  - Replaced floating action button (`ExtendedFloatingActionButton`) with an elevated circular action button situated directly in the center of the bottom navigation bar: `[Home] [Analytics] [Center + Button] [History] [Settings]`.
+  - Styled with fintech aesthetics (CircleShape, Deep Teal `#00695E` surface, White `+` icon, 4dp shadow elevation, -4dp offset popping up slightly from the bar, label "Add reading" / `add_reading`).
+  - Tablet navigation rail layout preserved with matching center circular action button (`rail_add_reading`).
+  - Preserved semantic `testTag("fab_add_reading")` ensuring all UI tests and automated accessibility tools continue to function without breakage.
+  - Static checks: `./gradlew lintDebug detekt ktlintCheck` passed with 0 errors and 0 warnings.
+  - Unit tests: 67/67 unit tests passed.
+  - Connected UI tests: 9/9 tests passed on emulator (`medium_phone(AVD) - 16`).
+  - Release build: `./gradlew assembleRelease` passed with R8 minification, ProGuard rules, and resource shrinking (24 MB release APK produced at `app/build/outputs/apk/release/app-release.apk`).
+  - Runtime verification on live emulator: Verified smooth tap navigation to Add Reading screen and captured screenshots: `screenshots/fintech_bottom_bar.png` and `screenshots/fintech_add_reading_opened.png`.
