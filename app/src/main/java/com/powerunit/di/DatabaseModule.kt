@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
-import com.powerunit.core.common.DateUtils
 import com.powerunit.core.database.PowerUnitDatabase
 import com.powerunit.core.database.dao.BudgetDao
 import com.powerunit.core.database.dao.MeterDao
@@ -17,11 +16,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
-import javax.inject.Provider
 import javax.inject.Singleton
 
 @Module
@@ -32,9 +27,14 @@ object DatabaseModule {
     @Singleton
     fun providePowerUnitDatabase(
         @ApplicationContext context: Context,
-        passphraseHelper: DatabasePassphraseHelper,
-        databaseProvider: Provider<PowerUnitDatabase>
+        passphraseHelper: DatabasePassphraseHelper
     ): PowerUnitDatabase {
+        try {
+            System.loadLibrary("sqlcipher")
+        } catch (_: UnsatisfiedLinkError) {
+            // Handled or already loaded
+        }
+
         val passphrase = passphraseHelper.getOrCreatePassphrase()
         val factory = SupportOpenHelperFactory(passphrase)
 
@@ -48,14 +48,21 @@ object DatabaseModule {
             .addCallback(object : RoomDatabase.Callback() {
                 override fun onCreate(db: SupportSQLiteDatabase) {
                     super.onCreate(db)
-                    CoroutineScope(Dispatchers.IO).launch {
-                        val database = databaseProvider.get()
-                        val (tariff, slabs) = PowerUnitDatabase.createDefaultBangladeshTariff(
-                            effectiveFrom = DateUtils.currentInstant()
-                        )
-                        val tariffId = database.tariffDao().insertTariff(tariff)
-                        database.tariffDao().insertSlabs(slabs.map { it.copy(tariffId = tariffId) })
-                    }
+                    val nowMillis = System.currentTimeMillis()
+                    db.execSQL(
+                        "INSERT OR IGNORE INTO meters (id, name, type, startReading, multiplierFactor, isActive, createdAt) " +
+                            "VALUES (1, 'Main Meter', 'POSTPAID', '0.0', '1.0', 1, $nowMillis)"
+                    )
+                    db.execSQL(
+                        "INSERT OR IGNORE INTO tariffs (id, name, effectiveFrom, vatPercent, serviceChargeFlat, demandChargeFlat, isActive) " +
+                            "VALUES (1, 'Bangladesh Domestic Postpaid (LT-A)', $nowMillis, '5.0', '10.00', '35.00', 1)"
+                    )
+                    db.execSQL("INSERT OR IGNORE INTO tariff_slabs (tariffId, fromUnit, toUnit, ratePerUnit) VALUES (1, '0', '75', '4.85')")
+                    db.execSQL("INSERT OR IGNORE INTO tariff_slabs (tariffId, fromUnit, toUnit, ratePerUnit) VALUES (1, '76', '200', '6.63')")
+                    db.execSQL("INSERT OR IGNORE INTO tariff_slabs (tariffId, fromUnit, toUnit, ratePerUnit) VALUES (1, '201', '300', '6.95')")
+                    db.execSQL("INSERT OR IGNORE INTO tariff_slabs (tariffId, fromUnit, toUnit, ratePerUnit) VALUES (1, '301', '400', '7.34')")
+                    db.execSQL("INSERT OR IGNORE INTO tariff_slabs (tariffId, fromUnit, toUnit, ratePerUnit) VALUES (1, '401', '600', '11.51')")
+                    db.execSQL("INSERT OR IGNORE INTO tariff_slabs (tariffId, fromUnit, toUnit, ratePerUnit) VALUES (1, '601', NULL, '13.26')")
                 }
             })
             .build()

@@ -3,6 +3,7 @@ package com.powerunit.core.database.security
 import android.content.Context
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import dagger.hilt.android.qualifiers.ApplicationContext
 import java.security.SecureRandom
 import java.util.Base64
 import javax.inject.Inject
@@ -10,7 +11,7 @@ import javax.inject.Singleton
 
 @Singleton
 class DatabasePassphraseHelper @Inject constructor(
-    private val context: Context
+    @ApplicationContext private val context: Context
 ) {
     companion object {
         private const val PREFS_FILE = "powerunit_secure_vault"

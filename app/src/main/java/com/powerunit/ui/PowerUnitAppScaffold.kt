@@ -26,6 +26,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
@@ -33,13 +34,19 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.powerunit.R
 import com.powerunit.core.designsystem.theme.ButtonShape
+import com.powerunit.feature.addreading.AddReadingScreen
+import com.powerunit.feature.history.HistoryScreen
+import com.powerunit.feature.onboarding.OnboardingScreen
 import com.powerunit.navigation.Screen
+import kotlinx.coroutines.launch
 
 @Composable
 fun PowerUnitAppScaffold(
@@ -48,14 +55,16 @@ fun PowerUnitAppScaffold(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
     val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     val configuration = LocalConfiguration.current
     val isTablet = configuration.screenWidthDp >= 600
 
+    val isTopLevelDestination = currentRoute in Screen.bottomNavScreens.map { it.route }
     val showFab = currentRoute == Screen.Home.route || currentRoute == Screen.History.route
 
     Row(modifier = Modifier.fillMaxSize()) {
-        if (isTablet) {
+        if (isTablet && isTopLevelDestination) {
             NavigationRail(
                 containerColor = MaterialTheme.colorScheme.surface,
                 contentColor = MaterialTheme.colorScheme.onSurface
@@ -63,6 +72,7 @@ fun PowerUnitAppScaffold(
                 Screen.bottomNavScreens.forEach { screen ->
                     val selected = currentRoute == screen.route
                     NavigationRailItem(
+                        modifier = Modifier.testTag("nav_${screen.route}"),
                         selected = selected,
                         onClick = {
                             if (currentRoute != screen.route) {
@@ -109,7 +119,7 @@ fun PowerUnitAppScaffold(
                 }
             },
             bottomBar = {
-                if (!isTablet) {
+                if (!isTablet && isTopLevelDestination) {
                     NavigationBar(
                         containerColor = MaterialTheme.colorScheme.surface,
                         contentColor = MaterialTheme.colorScheme.onSurface,
@@ -160,6 +170,15 @@ fun PowerUnitAppScaffold(
                     navController = navController,
                     startDestination = Screen.Home.route
                 ) {
+                    composable("onboarding") {
+                        OnboardingScreen(
+                            onFinished = {
+                                navController.navigate(Screen.Home.route) {
+                                    popUpTo("onboarding") { inclusive = true }
+                                }
+                            }
+                        )
+                    }
                     composable(Screen.Home.route) {
                         PlaceholderTabScreen(title = stringResource(Screen.Home.titleRes))
                     }
@@ -167,13 +186,32 @@ fun PowerUnitAppScaffold(
                         PlaceholderTabScreen(title = stringResource(Screen.Analytics.titleRes))
                     }
                     composable(Screen.History.route) {
-                        PlaceholderTabScreen(title = stringResource(Screen.History.titleRes))
+                        HistoryScreen(
+                            onNavigateToAddReading = { navController.navigate("add_reading") },
+                            onNavigateToEditReading = { id -> navController.navigate("edit_reading/$id") }
+                        )
                     }
                     composable(Screen.Settings.route) {
                         PlaceholderTabScreen(title = stringResource(Screen.Settings.titleRes))
                     }
                     composable("add_reading") {
-                        PlaceholderTabScreen(title = stringResource(R.string.add_reading))
+                        AddReadingScreen(
+                            onNavigateBack = { navController.popBackStack() },
+                            onReadingSaved = { msg ->
+                                scope.launch { snackbarHostState.showSnackbar(msg) }
+                            }
+                        )
+                    }
+                    composable(
+                        route = "edit_reading/{readingId}",
+                        arguments = listOf(navArgument("readingId") { type = NavType.LongType })
+                    ) {
+                        AddReadingScreen(
+                            onNavigateBack = { navController.popBackStack() },
+                            onReadingSaved = { msg ->
+                                scope.launch { snackbarHostState.showSnackbar(msg) }
+                            }
+                        )
                     }
                 }
             }

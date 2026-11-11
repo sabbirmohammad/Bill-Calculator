@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -18,7 +19,7 @@ val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "wa
 
 @Singleton
 class SettingsPreferences @Inject constructor(
-    private val context: Context
+    @ApplicationContext private val context: Context
 ) {
     companion object {
         val KEY_BILLING_CYCLE_DAY = intPreferencesKey("billing_cycle_day")
