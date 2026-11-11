@@ -28,6 +28,11 @@ object DateUtils {
         return javaLdt.format(DateTimeFormatter.ofPattern(pattern, Locale.US))
     }
 
+    fun formatDate(date: LocalDate, pattern: String = "dd MMM yyyy"): String {
+        val javaDate = java.time.LocalDate.of(date.year, date.monthNumber, date.dayOfMonth)
+        return javaDate.format(DateTimeFormatter.ofPattern(pattern, Locale.US))
+    }
+
     fun formatTime(instant: Instant, pattern: String = "hh:mm a"): String {
         val ldt = instant.toLocalDateTime(DHAKA_ZONE)
         val javaLdt = java.time.LocalDateTime.of(

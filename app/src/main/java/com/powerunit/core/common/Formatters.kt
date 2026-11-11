@@ -27,6 +27,10 @@ object Formatters {
         return if (includeSymbol) "৳$withDigits" else withDigits
     }
 
+    fun formatBDT(amount: BigDecimal, useBengaliDigits: Boolean = false): String {
+        return formatMoney(amount, includeSymbol = true, useBengaliDigits = useBengaliDigits)
+    }
+
     fun formatPercentage(percent: Double, useBengaliDigits: Boolean = false): String {
         val symbols = DecimalFormatSymbols(Locale.US)
         val df = DecimalFormat("+0.0%;-0.0%", symbols)

@@ -43,6 +43,8 @@ import androidx.navigation.navArgument
 import com.powerunit.R
 import com.powerunit.core.designsystem.theme.ButtonShape
 import com.powerunit.feature.addreading.AddReadingScreen
+import com.powerunit.feature.bill.BillScreen
+import com.powerunit.feature.dashboard.DashboardScreen
 import com.powerunit.feature.history.HistoryScreen
 import com.powerunit.feature.onboarding.OnboardingScreen
 import com.powerunit.navigation.Screen
@@ -180,7 +182,24 @@ fun PowerUnitAppScaffold(
                         )
                     }
                     composable(Screen.Home.route) {
-                        PlaceholderTabScreen(title = stringResource(Screen.Home.titleRes))
+                        DashboardScreen(
+                            onNavigateToAddReading = { navController.navigate("add_reading") },
+                            onNavigateToBill = { navController.navigate("bill") },
+                            onNavigateToHistory = {
+                                navController.navigate(Screen.History.route) {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            }
+                        )
+                    }
+                    composable("bill") {
+                        BillScreen(
+                            onNavigateBack = { navController.popBackStack() }
+                        )
                     }
                     composable(Screen.Analytics.route) {
                         PlaceholderTabScreen(title = stringResource(Screen.Analytics.titleRes))

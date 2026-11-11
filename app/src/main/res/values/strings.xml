@@ -21,4 +21,17 @@
     <string name="see_all">See all</string>
     <string name="empty_readings_title">No readings recorded yet</string>
     <string name="empty_readings_desc">Start by entering your first meter reading to track your electricity consumption and bills.</string>
+    <string name="bill_breakdown">Bill Breakdown</string>
+    <string name="what_if_simulator">What-If Bill Simulator</string>
+    <string name="simulate_units_desc">Slide to see how reducing or increasing units affects your tariff slabs and final bill.</string>
+    <string name="demand_charge">Demand Charge</string>
+    <string name="service_charge">Service Charge</string>
+    <string name="vat">VAT (5%)</string>
+    <string name="total_payable">Total Payable</string>
+    <string name="today_usage">Today</string>
+    <string name="yesterday_usage">Yesterday</string>
+    <string name="daily_avg">Daily Avg</string>
+    <string name="budget_status">Monthly Budget</string>
+    <string name="forecast_title">Month-End Forecast</string>
+    <string name="energy_charges">Energy Charges (Slabs)</string>
 </resources>
