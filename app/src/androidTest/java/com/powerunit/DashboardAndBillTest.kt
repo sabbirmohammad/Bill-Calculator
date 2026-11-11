@@ -2,6 +2,7 @@ package com.powerunit
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -37,6 +38,11 @@ class DashboardAndBillTest {
         // Tap hero card to navigate to Bill Breakdown
         composeTestRule.onNodeWithTag("dashboard_hero_card").performClick()
         composeTestRule.waitForIdle()
+
+        // Wait for Room database flow to emit and replace shimmer skeleton
+        composeTestRule.waitUntil(5000) {
+            composeTestRule.onAllNodesWithTag("bill_summary_card").fetchSemanticsNodes().isNotEmpty()
+        }
 
         // Verify Bill screen components
         composeTestRule.onNodeWithTag("bill_summary_card").assertIsDisplayed()

@@ -175,6 +175,30 @@ Offline-first, privacy-focused Android electricity tracker and bill calculator t
   - Emulator verification: Verified 3-column layout at 1.0x and stacked 3-row layout at 1.5x/2.0x font scale. Screenshots saved to `screenshots/issue3_font_1_0.png`, `screenshots/issue3_font_1_5.png`, `screenshots/issue3_font_2_0.png`.
 - **Status**: Completed.
 
+### Issue 4: Monthly Budget & Outlook section
+- **Root Cause**:
+  1. The previous budget section relied heavily on verbose multi-line descriptive text paragraphs with redundant labels rather than clear visual hierarchy.
+  2. The budget progress representation was a basic linear progress bar lacking animated arc/ring visualization, dual status indicator (color + icon chip), and segmented breakdown of spent vs projected vs limit buffer.
+  3. When no budget was configured, the app had no dedicated call-to-action inviting users to set a monthly electricity spending limit with preset amounts.
+- **Fix Details**:
+  1. Created `MonthlyBudgetAndOutlookCard.kt` following strict design system tokens:
+     - Left: 110dp `UsageRing` with animated sweep arc, centered percentage ("40%"), and dynamic status chip ("On track" 0-70% Teal, "Watch out" 70-90% Amber, "Over budget" 90%+ Red) using both color and icon.
+     - Right: 3 compact stat rows with circular tinted icon wells: Spent so far, Projected month-end with range, and Budget limit + subtle Edit button.
+     - Bottom: Slim segmented horizontal bar showing proportional Spent (Teal/Amber), Projected remainder (Primary container), and Buffer (outlineVariant), plus a single-line insight ("On track to stay within budget by ৳...").
+     - Responsive design: stacks vertically when `maxWidth < 320.dp` or `fontScale > 1.3f`.
+  2. Created `SetBudgetCtaCard` displayed when no custom budget is configured, presenting an inviting icon, concise value proposition, and "+ Set monthly budget" button.
+  3. Created `SetBudgetDialog` with preset quick-select chips (৳1500, ৳2500, ৳3500, ৳5000), numeric input, and validation.
+  4. Updated `DashboardViewModel` with `onSaveBudget(amountBDT)` and custom budget tracking.
+  5. Updated `DashboardScreen.kt` to seamlessly toggle between CTA card and live budget outlook card.
+- **Verification**:
+  - `./gradlew assembleDebug`: Passed.
+  - `./gradlew lintDebug detekt ktlintCheck`: Passed (0 errors, 0 warnings).
+  - `./gradlew testDebugUnitTest`: Passed (68/68 tests passed).
+  - `./gradlew connectedDebugAndroidTest`: Passed (9/9 tests passed on `emulator-5554`).
+  - Emulator verification: Verified both `SetBudgetCtaCard` and `MonthlyBudgetAndOutlookCard` after saving budget. Screenshots saved to `screenshots/issue4_no_budget.png` and `screenshots/issue4_budget_outlook.png`. Logcat verified 0 crashes.
+- **Status**: Completed.
+
+
 
 
 

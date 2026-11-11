@@ -37,7 +37,8 @@ data class BudgetUiModel(
     val monthlyLimitBDT: BigDecimal,
     val currentSpentBDT: BigDecimal,
     val percentageUsed: Float,
-    val isOverBudget: Boolean
+    val isOverBudget: Boolean,
+    val isCustom: Boolean = false
 )
 
 data class DashboardUiState(
@@ -53,6 +54,7 @@ data class DashboardUiState(
     val dailyAverage: BigDecimal = BigDecimal.ZERO,
     val forecast: MonthEndForecast? = null,
     val budget: BudgetUiModel? = null,
+    val hasCustomBudget: Boolean = false,
     val past14DaysUsage: List<DailyUsage> = emptyList(),
     val recentReadings: List<Reading> = emptyList(),
     val hideAmounts: Boolean = false,
@@ -167,6 +169,7 @@ class DashboardViewModel @Inject constructor(
             dailyAverage = dailyAvg,
             forecast = forecast,
             budget = budgetModel,
+            hasCustomBudget = (budgetEntity != null),
             past14DaysUsage = past14Days,
             recentReadings = sortedReadings.takeLast(3).reversed(),
             hideAmounts = hideAmounts,
@@ -237,6 +240,17 @@ class DashboardViewModel @Inject constructor(
         return Triple(todayUsage, yesterdayUsage, trend)
     }
 
+    fun onSaveBudget(amountBDT: BigDecimal) {
+        viewModelScope.launch {
+            val now = DateUtils.currentInstant()
+            val entity = BudgetEntity(
+                cycleStartDate = now,
+                amountLimit = amountBDT
+            )
+            budgetRepository.saveBudget(entity)
+        }
+    }
+
     private fun checkHasRecordedToday(readings: List<Reading>, todayDate: LocalDate): Boolean {
         val todayStr = DateUtils.formatDate(todayDate, "yyyy-MM-dd")
         return readings.any { DateUtils.formatDate(it.recordedAt, "yyyy-MM-dd") == todayStr }
@@ -253,7 +267,8 @@ class DashboardViewModel @Inject constructor(
             monthlyLimitBDT = limit,
             currentSpentBDT = currentBill,
             percentageUsed = ratio.coerceIn(0f, 1f),
-            isOverBudget = currentBill > limit
+            isOverBudget = currentBill > limit,
+            isCustom = (budgetEntity != null)
         )
     }
 

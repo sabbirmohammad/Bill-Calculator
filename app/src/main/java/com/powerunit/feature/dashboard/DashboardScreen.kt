@@ -49,7 +49,10 @@ import com.powerunit.core.common.DateUtils
 import com.powerunit.core.common.Formatters
 import com.powerunit.core.designsystem.component.DashboardSkeleton
 import com.powerunit.core.designsystem.component.GradientHeroCard
+import com.powerunit.core.designsystem.component.MonthlyBudgetAndOutlookCard
 import com.powerunit.core.designsystem.component.SectionHeader
+import com.powerunit.core.designsystem.component.SetBudgetCtaCard
+import com.powerunit.core.designsystem.component.SetBudgetDialog
 import com.powerunit.core.designsystem.component.StatCard
 import com.powerunit.core.designsystem.component.UsageRing
 import com.powerunit.core.designsystem.component.UsageSummaryCard
@@ -77,6 +80,15 @@ fun DashboardScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
     var selectedReadingForDetail by remember { mutableStateOf<ReadingItemUiModel?>(null) }
+    var showBudgetDialog by remember { mutableStateOf(false) }
+
+    if (showBudgetDialog) {
+        SetBudgetDialog(
+            currentLimit = state.budget?.monthlyLimitBDT,
+            onSaveBudget = viewModel::onSaveBudget,
+            onDismiss = { showBudgetDialog = false }
+        )
+    }
 
     selectedReadingForDetail?.let { detail ->
         ReadingDetailDialog(
@@ -149,12 +161,26 @@ fun DashboardScreen(
         }
 
         item {
-            if (state.budget != null || state.forecast != null) {
-                BudgetAndOutlookSection(
-                    budget = state.budget,
+            val daysElapsed = state.cycleUsage?.daysElapsed ?: 0
+            val daysLeft = state.cycleUsage?.daysLeft ?: 0
+            val totalDays = daysElapsed + daysLeft
+            val currentBudget = state.budget
+
+            if (currentBudget != null && state.hasCustomBudget) {
+                MonthlyBudgetAndOutlookCard(
+                    budget = currentBudget,
                     forecast = state.forecast,
-                    daysLeft = state.cycleUsage?.daysLeft,
-                    hideAmounts = state.hideAmounts
+                    daysElapsed = daysElapsed,
+                    totalDays = if (totalDays > 0) totalDays else 30,
+                    daysLeft = daysLeft,
+                    onEditBudgetClick = { showBudgetDialog = true },
+                    hideAmounts = state.hideAmounts,
+                    modifier = Modifier.testTag("dashboard_budget_card")
+                )
+            } else {
+                SetBudgetCtaCard(
+                    onSetBudgetClick = { showBudgetDialog = true },
+                    modifier = Modifier.testTag("dashboard_set_budget_cta")
                 )
             }
         }
@@ -335,193 +361,6 @@ private fun QuickStatsSection(state: DashboardUiState) {
         todayTrendPercent = state.usageTrendPercent?.toDouble(),
         modifier = Modifier.testTag("dashboard_usage_summary_card")
     )
-}
-
-@Composable
-private fun BudgetAndOutlookSection(
-    budget: BudgetUiModel?,
-    forecast: com.powerunit.domain.model.MonthEndForecast?,
-    daysLeft: Int? = null,
-    hideAmounts: Boolean = false
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = CardShape,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = Dimens.level1)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(Dimens.cardPaddingStandard)
-        ) {
-            // Header Row: Title + Dynamic Status Badge
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.Savings,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(Dimens.iconSizeSmall)
-                    )
-                    Spacer(modifier = Modifier.width(Dimens.xs))
-                    Text(
-                        text = if (budget != null) stringResource(R.string.budget_and_outlook) else stringResource(R.string.forecast_title),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-
-                // Dynamic Status Badge
-                if (budget != null) {
-                    val isExceeded = budget.isOverBudget
-                    val isRisk = forecast != null && forecast.expectedBill > budget.monthlyLimitBDT
-                    val (badgeText, badgeColor, textColor) = when {
-                        isExceeded -> Triple(
-                            stringResource(R.string.forecast_over_budget),
-                            MaterialTheme.colorScheme.errorContainer,
-                            MaterialTheme.colorScheme.onErrorContainer
-                        )
-                        isRisk -> Triple(
-                            stringResource(R.string.outlook_at_risk),
-                            MaterialTheme.colorScheme.tertiaryContainer,
-                            MaterialTheme.colorScheme.onTertiaryContainer
-                        )
-                        else -> Triple(
-                            stringResource(R.string.forecast_on_track),
-                            MaterialTheme.colorScheme.secondaryContainer,
-                            MaterialTheme.colorScheme.onSecondaryContainer
-                        )
-                    }
-
-                    Surface(
-                        shape = PillShape,
-                        color = badgeColor
-                    ) {
-                        Text(
-                            text = badgeText,
-                            modifier = Modifier.padding(horizontal = Dimens.xs, vertical = Dimens.xxs),
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color = textColor
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(Dimens.sm))
-
-            // Main Content Row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Dimens.spacingMd)
-            ) {
-                if (budget != null) {
-                    UsageRing(
-                        progress = budget.percentageUsed,
-                        size = 100.dp,
-                        strokeWidth = 10.dp,
-                        subText = "of budget"
-                    )
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .size(72.dp)
-                            .clip(PillShape)
-                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.TrendingUp,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(36.dp)
-                        )
-                    }
-                }
-
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(Dimens.xxs)
-                ) {
-                    if (budget != null) {
-                        val spentStr = if (hideAmounts) "৳ ••••" else Formatters.formatBDT(budget.currentSpentBDT)
-                        Text(
-                            text = "Spent: $spentStr",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-
-                    if (forecast != null) {
-                        val projBill = if (hideAmounts) "৳ ••••" else Formatters.formatBDT(forecast.expectedBill)
-                        val projUnits = "${Formatters.formatUnits(forecast.expectedUnits)} kWh"
-                        Text(
-                            text = "Projected: $projBill ($projUnits)",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-
-                    if (budget != null) {
-                        val limitStr = if (hideAmounts) "৳ ••••" else Formatters.formatBDT(budget.monthlyLimitBDT)
-                        Text(
-                            text = "Limit: $limitStr",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = if (budget.isOverBudget) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
-            }
-
-            // Bottom Divider & Insight line
-            Spacer(modifier = Modifier.height(Dimens.xs))
-            HorizontalDivider(
-                thickness = Dimens.dividerThickness,
-                color = MaterialTheme.colorScheme.outlineVariant
-            )
-            Spacer(modifier = Modifier.height(Dimens.xs))
-
-            val insightText = buildString {
-                if (budget != null && forecast != null) {
-                    val diff = budget.monthlyLimitBDT.subtract(forecast.expectedBill)
-                    if (diff >= BigDecimal.ZERO) {
-                        append("Projected ${if (hideAmounts) "৳ ••••" else Formatters.formatBDT(diff)} under budget")
-                    } else {
-                        append("Projected to exceed budget by ${if (hideAmounts) "৳ ••••" else Formatters.formatBDT(diff.abs())}")
-                    }
-                } else if (budget != null) {
-                    val remaining = budget.monthlyLimitBDT.subtract(budget.currentSpentBDT)
-                    if (remaining >= BigDecimal.ZERO) {
-                        append("${if (hideAmounts) "৳ ••••" else Formatters.formatBDT(remaining)} remaining")
-                    } else {
-                        append("Over budget by ${if (hideAmounts) "৳ ••••" else Formatters.formatBDT(remaining.abs())}")
-                    }
-                } else if (forecast != null) {
-                    append("Expected bill ${if (hideAmounts) "৳ ••••" else Formatters.formatBDT(forecast.expectedBill)}")
-                }
-
-                if (daysLeft != null && daysLeft > 0) {
-                    if (isNotEmpty()) append(" • ")
-                    append("$daysLeft days remaining")
-                }
-            }
-
-            if (insightText.isNotEmpty()) {
-                Text(
-                    text = insightText,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-    }
 }
 
 @Composable
