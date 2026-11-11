@@ -34,4 +34,25 @@
     <string name="budget_status">মাসিক বাজেট</string>
     <string name="forecast_title">মাস শেষের পূর্বাভাস</string>
     <string name="energy_charges">এনার্জি চার্জ (স্ল্যাবসমূহ)</string>
+
+    <!-- Analytics -->
+    <string name="analytics_title">অ্যানালিটিক্স</string>
+    <string name="analytics_period_day">দিন</string>
+    <string name="analytics_period_week">সপ্তাহ</string>
+    <string name="analytics_period_month">মাস</string>
+    <string name="analytics_period_year">বছর</string>
+    <string name="analytics_total_usage">মোট ব্যবহার</string>
+    <string name="analytics_total_cost">আনুমানিক বিল</string>
+    <string name="analytics_daily_average">দৈনিক গড়</string>
+    <string name="analytics_peak_usage">সর্বোচ্চ দিন</string>
+    <string name="analytics_lowest_usage">সর্বনিম্ন দিন</string>
+    <string name="analytics_comparison_title">সময়ের তুলনা</string>
+    <string name="analytics_heatmap_title">সাপ্তাহিক ব্যবহারের ধরণ</string>
+    <string name="analytics_slab_donut_title">স্ল্যাব ভিত্তিক খরচের ভাগ</string>
+    <string name="analytics_anomalies_title">অস্বাভাবিক ব্যবহার</string>
+    <string name="analytics_no_anomalies">এই সময়ে কোনো অস্বাভাবিক স্পাইক লক্ষ্য করা যায়নি।</string>
+    <string name="analytics_toggle_table">টেবিল আকারে দেখুন</string>
+    <string name="analytics_toggle_chart">চার্ট দেখুন</string>
+    <string name="analytics_empty_title">পর্যাপ্ত তথ্য নেই</string>
+    <string name="analytics_empty_desc">চার্ট এবং ব্যবহারের অ্যানালিটিক্স দেখতে অন্তত দুটি মিটারের রিডিং যুক্ত করুন।</string>
 </resources>

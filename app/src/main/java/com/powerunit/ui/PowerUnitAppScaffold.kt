@@ -43,6 +43,7 @@ import androidx.navigation.navArgument
 import com.powerunit.R
 import com.powerunit.core.designsystem.theme.ButtonShape
 import com.powerunit.feature.addreading.AddReadingScreen
+import com.powerunit.feature.analytics.AnalyticsScreen
 import com.powerunit.feature.bill.BillScreen
 import com.powerunit.feature.dashboard.DashboardScreen
 import com.powerunit.feature.history.HistoryScreen
@@ -202,7 +203,9 @@ fun PowerUnitAppScaffold(
                         )
                     }
                     composable(Screen.Analytics.route) {
-                        PlaceholderTabScreen(title = stringResource(Screen.Analytics.titleRes))
+                        AnalyticsScreen(
+                            onNavigateToAddReading = { navController.navigate("add_reading") }
+                        )
                     }
                     composable(Screen.History.route) {
                         HistoryScreen(

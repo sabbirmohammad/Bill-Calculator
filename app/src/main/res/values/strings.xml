@@ -34,4 +34,25 @@
     <string name="budget_status">Monthly Budget</string>
     <string name="forecast_title">Month-End Forecast</string>
     <string name="energy_charges">Energy Charges (Slabs)</string>
+
+    <!-- Analytics -->
+    <string name="analytics_title">Analytics</string>
+    <string name="analytics_period_day">Day</string>
+    <string name="analytics_period_week">Week</string>
+    <string name="analytics_period_month">Month</string>
+    <string name="analytics_period_year">Year</string>
+    <string name="analytics_total_usage">Total Usage</string>
+    <string name="analytics_total_cost">Estimated Cost</string>
+    <string name="analytics_daily_average">Daily Average</string>
+    <string name="analytics_peak_usage">Peak Day</string>
+    <string name="analytics_lowest_usage">Lowest Day</string>
+    <string name="analytics_comparison_title">Period Comparison</string>
+    <string name="analytics_heatmap_title">Day of Week Pattern</string>
+    <string name="analytics_slab_donut_title">Slab Cost Distribution</string>
+    <string name="analytics_anomalies_title">Detected Anomalies</string>
+    <string name="analytics_no_anomalies">No unusual consumption spikes detected in this period.</string>
+    <string name="analytics_toggle_table">View as Table</string>
+    <string name="analytics_toggle_chart">View Chart</string>
+    <string name="analytics_empty_title">Not Enough Data Yet</string>
+    <string name="analytics_empty_desc">Record at least two meter readings to unlock interactive charts and consumption insights.</string>
 </resources>

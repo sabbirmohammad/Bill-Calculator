@@ -11,7 +11,7 @@ Offline-first, privacy-focused Android electricity tracker and bill calculator t
 | **Phase 2** | Core Domain: Models, Repositories, 8 Calculation Use Cases (100% tests) | Completed | Passed | Passed (0 warnings) | Passed (32/32) | Passed (3/3) | Verified on Emulator | `phase 2: core domain models, repositories, and calculation use cases with 100% unit test coverage` |
 | **Phase 3** | Reading Flow: Onboarding, Add/Edit Reading, History List, Search/Filter | Completed | Passed | Passed (0 warnings) | Passed (43/43) | Passed (5/5) | Verified on Emulator | `phase 3: onboarding, add/edit reading flow, and history list with search and filters` |
 | **Phase 4** | Dashboard & Bill: Hero Card, Stats, Forecast, Budget, Bill Breakdown | Completed | Passed | Passed (0 warnings) | Passed (47/47) | Passed (6/6) | Verified on Emulator | `phase 4: dashboard with live cycle metrics and bill breakdown with what-if simulator` |
-| **Phase 5** | Analytics: Custom Compose Charts, Heatmap, Slab Donut, Anomalies | Pending | Pending | Pending | Pending | Pending | Pending | Pending |
+| **Phase 5** | Analytics: Custom Compose Charts, Heatmap, Slab Donut, Anomalies | Completed | Passed | Passed (0 warnings) | Passed (52/52) | Passed (7/7) | Verified on Emulator | `phase 5: analytics custom compose charts, heatmap, slab donut, and anomaly detection` |
 | **Phase 6** | Settings, Tariff Editor, WorkManager, Glance Widget, App Lock | Pending | Pending | Pending | Pending | Pending | Pending | Pending |
 | **Phase 7** | Backup/Restore, CSV/PDF Export, Localization (EN/BN), A11y Pass | Pending | Pending | Pending | Pending | Pending | Pending | Pending |
 
@@ -55,3 +55,16 @@ Offline-first, privacy-focused Android electricity tracker and bill calculator t
   - Static checks: `./gradlew lintDebug detekt ktlintCheck` passed with 0 errors and 0 warnings.
   - Connected UI tests: 6 tests passed on emulator (including `DashboardAndBillTest`).
   - Runtime verification: Verified on emulator, hero card tap navigation, what-if simulator slider interaction. Screenshots: `screenshots/phase4_dashboard.png`, `screenshots/phase4_bill_breakdown.png`, `screenshots/phase4_what_if.png`. Logcat verified 0 crashes/exceptions.
+- **Phase 5**:
+  - Custom Compose Canvas charts built from scratch with zero heavy third-party chart dependencies.
+  - Usage & Cost trend chart (`UsageBarAndLineChart`): Animated vertical usage bars (kWh) with rounded corners, overlay cost polyline (৳) in tertiary color, dashed gridlines, tap/drag interactive tooltip inspect, and accessible table view toggle.
+  - Period selector: Segmented Day, Week, Month, and Year tabs with instant dynamic aggregation and recalculation.
+  - Summary metric tiles: 4-card grid showing Total Usage, Total Estimated Cost, Daily Average, and Peak Day.
+  - Period comparison card: Current period vs prior period with `TrendChip` % change indicator.
+  - Weekday Pattern Heatmap (`WeekdayHeatmap`): 7-column Monday..Sunday layout with color intensity mapped to consumption load.
+  - Tariff Slab Donut chart (`SlabDonutChart`): Multi-tier circular arc visualization with center total units and legend showing cost percentage per slab.
+  - Statistical anomaly detection: Integrated with `DetectAnomaliesUseCase` (> 2σ above mean) showing anomalous dates and consumption spikes.
+  - Unit tests: 52/52 unit tests passed (including `AnalyticsViewModelTest`).
+  - Static checks: `./gradlew lintDebug detekt ktlintCheck` passed with 0 errors and 0 warnings.
+  - Connected UI tests: 7/7 tests passed on emulator (including `AnalyticsScreenTest`).
+  - Runtime verification: Verified on emulator, switched periods, toggled table view, captured screenshots: `screenshots/phase5_analytics_chart.png`, `screenshots/phase5_analytics_heatmap.png`, `screenshots/phase5_analytics_donut.png`. Logcat verified 0 crashes/exceptions.
