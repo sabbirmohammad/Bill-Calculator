@@ -55,4 +55,51 @@
     <string name="analytics_toggle_chart">চার্ট দেখুন</string>
     <string name="analytics_empty_title">পর্যাপ্ত তথ্য নেই</string>
     <string name="analytics_empty_desc">চার্ট এবং ব্যবহারের অ্যানালিটিক্স দেখতে অন্তত দুটি মিটারের রিডিং যুক্ত করুন।</string>
+
+    <!-- Settings -->
+    <string name="settings_title">সেটিংস</string>
+    <string name="settings_section_meter">মিটার প্রোফাইল</string>
+    <string name="settings_section_billing">বিলিং ও ট্যারিফ</string>
+    <string name="settings_section_reminders">দৈনিক রিমাইন্ডার</string>
+    <string name="settings_section_display">ডিসপ্লে ও ভাষা</string>
+    <string name="settings_section_security">নিরাপত্তা ও গোপনীয়তা</string>
+    <string name="settings_section_data">ডেটা ব্যবস্থাপনা</string>
+    <string name="settings_section_about">ওয়াটওয়াইজ সম্পর্কে</string>
+    <string name="settings_active_meter">বর্তমান মিটার</string>
+    <string name="settings_cycle_start_day">বিলিং সাইকেল শুরুর দিন</string>
+    <string name="settings_tariff_editor">ট্যারিফ রেট পরিবর্তন</string>
+    <string name="settings_tariff_editor_desc">সরকারি স্ল্যাব রেট, চার্জ ও ভ্যাট পরিবর্তন করুন</string>
+    <string name="settings_reminder_toggle">মিটার রিডিং রিমাইন্ডার</string>
+    <string name="settings_reminder_time">রিমাইন্ডারের সময়</string>
+    <string name="settings_theme_mode">থিম</string>
+    <string name="settings_language">ভাষা</string>
+    <string name="settings_bengali_digits">বাংলা সংখ্যা ব্যবহার করুন (১২৩৪)</string>
+    <string name="settings_app_lock">অ্যাপ লক</string>
+    <string name="settings_app_lock_desc">বায়োমেট্রিক বা পিন দিয়ে অ্যাপ সুরক্ষিত করুন</string>
+    <string name="settings_hide_amounts">হোমে টাকার অংক লুকান</string>
+    <string name="settings_screenshot_block">স্ক্রিনশট ব্লক করুন</string>
+    <string name="settings_clear_data">সব ডেটা মুছে ফেলুন</string>
+    <string name="settings_clear_data_confirm">আপনি কি নিশ্চিত? এটি আপনার সব সংরক্ষিত রিডিং ও সেটিংস চিরতরে মুছে ফেলবে।</string>
+    <string name="settings_privacy_pledge">সম্পূর্ণ অফলাইন • কোনো ট্র্যাকার নেই • ক্লাউডলেস</string>
+
+    <!-- Tariff Editor -->
+    <string name="tariff_editor_title">ট্যারিফ রেট</string>
+    <string name="tariff_name">ট্যারিফের নাম</string>
+    <string name="tariff_slabs_title">প্রগ্রেসিভ স্ল্যাবসমূহ</string>
+    <string name="tariff_add_slab">+ স্ল্যাব যোগ করুন</string>
+    <string name="tariff_fixed_charges_title">নির্দিষ্ট চার্জ ও ভ্যাট</string>
+    <string name="tariff_vat_percent">ভ্যাট শতকরা (%)</string>
+    <string name="tariff_live_preview_title">লাইভ বিল পরীক্ষা</string>
+    <string name="tariff_test_units">পরীক্ষামূলক ব্যবহার (kWh)</string>
+    <string name="tariff_save_success">ট্যারিফ রেট সফলভাবে সংরক্ষিত হয়েছে!</string>
+
+    <!-- WorkManager & Notifications -->
+    <string name="notification_channel_reminders">মিটার রিমাইন্ডার</string>
+    <string name="notification_channel_reminders_desc">মিটার রিডিং নেওয়ার দৈনিক রিমাইন্ডার</string>
+    <string name="notification_reminder_title">আজকের রিডিং নেওয়ার সময় হয়েছে</string>
+    <string name="notification_reminder_body">সঠিক পূর্বাভাস ও বিল পেতে আজকের মিটারের মান যোগ করুন।</string>
+    <string name="notification_channel_alerts">বাজেট সতর্কতা</string>
+    <string name="notification_channel_alerts_desc">বাজেট সীমার কাছাকাছি পৌঁছালে সতর্কতা</string>
+    <string name="notification_budget_warning_title">বাজেট সীমা সতর্কতা</string>
+    <string name="notification_budget_warning_body">আপনি মাসিক বাজেটের %1$s%% বিদ্যুৎ ব্যবহার করেছেন।</string>
 </resources>

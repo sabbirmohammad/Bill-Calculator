@@ -44,4 +44,7 @@ interface ReadingDao {
 
     @Query("DELETE FROM readings WHERE id = :id")
     suspend fun deleteReadingById(id: Long)
+
+    @Query("DELETE FROM readings")
+    suspend fun deleteAllReadings()
 }

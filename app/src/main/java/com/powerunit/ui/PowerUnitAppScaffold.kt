@@ -44,6 +44,8 @@ import com.powerunit.R
 import com.powerunit.core.designsystem.theme.ButtonShape
 import com.powerunit.feature.addreading.AddReadingScreen
 import com.powerunit.feature.analytics.AnalyticsScreen
+import com.powerunit.feature.settings.SettingsScreen
+import com.powerunit.feature.tariff.TariffEditorScreen
 import com.powerunit.feature.bill.BillScreen
 import com.powerunit.feature.dashboard.DashboardScreen
 import com.powerunit.feature.history.HistoryScreen
@@ -214,7 +216,14 @@ fun PowerUnitAppScaffold(
                         )
                     }
                     composable(Screen.Settings.route) {
-                        PlaceholderTabScreen(title = stringResource(Screen.Settings.titleRes))
+                        SettingsScreen(
+                            onNavigateToTariffEditor = { navController.navigate("tariff_editor") }
+                        )
+                    }
+                    composable("tariff_editor") {
+                        TariffEditorScreen(
+                            onNavigateBack = { navController.popBackStack() }
+                        )
                     }
                     composable("add_reading") {
                         AddReadingScreen(

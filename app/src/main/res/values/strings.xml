@@ -55,4 +55,51 @@
     <string name="analytics_toggle_chart">View Chart</string>
     <string name="analytics_empty_title">Not Enough Data Yet</string>
     <string name="analytics_empty_desc">Record at least two meter readings to unlock interactive charts and consumption insights.</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_section_meter">Meter Profile</string>
+    <string name="settings_section_billing">Billing &amp; Tariff</string>
+    <string name="settings_section_reminders">Daily Reminders</string>
+    <string name="settings_section_display">Display &amp; Language</string>
+    <string name="settings_section_security">Security &amp; Privacy</string>
+    <string name="settings_section_data">Data Management</string>
+    <string name="settings_section_about">About WattWise</string>
+    <string name="settings_active_meter">Active Meter</string>
+    <string name="settings_cycle_start_day">Cycle Start Day</string>
+    <string name="settings_tariff_editor">Tariff Rates Editor</string>
+    <string name="settings_tariff_editor_desc">Customize government slabs, charges, and VAT</string>
+    <string name="settings_reminder_toggle">Daily Meter Reminder</string>
+    <string name="settings_reminder_time">Reminder Time</string>
+    <string name="settings_theme_mode">Theme</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_bengali_digits">Use Bengali Digits (১২৩৪)</string>
+    <string name="settings_app_lock">App Lock</string>
+    <string name="settings_app_lock_desc">Require biometric or device credential to open</string>
+    <string name="settings_hide_amounts">Hide Amounts on Home</string>
+    <string name="settings_screenshot_block">Block Screenshots</string>
+    <string name="settings_clear_data">Clear All Data</string>
+    <string name="settings_clear_data_confirm">Are you sure? This will delete all recorded readings and reset all settings. This cannot be undone.</string>
+    <string name="settings_privacy_pledge">100% Offline • Zero Trackers • Zero Cloud Sync</string>
+
+    <!-- Tariff Editor -->
+    <string name="tariff_editor_title">Tariff Rates</string>
+    <string name="tariff_name">Tariff Template Name</string>
+    <string name="tariff_slabs_title">Progressive Slabs</string>
+    <string name="tariff_add_slab">+ Add Slab</string>
+    <string name="tariff_fixed_charges_title">Fixed Charges &amp; VAT</string>
+    <string name="tariff_vat_percent">VAT Percentage (%)</string>
+    <string name="tariff_live_preview_title">Live Calculation Preview</string>
+    <string name="tariff_test_units">Test Consumption (kWh)</string>
+    <string name="tariff_save_success">Tariff rates updated successfully!</string>
+
+    <!-- WorkManager & Notifications -->
+    <string name="notification_channel_reminders">Meter Reminders</string>
+    <string name="notification_channel_reminders_desc">Daily reminders to record meter reading</string>
+    <string name="notification_reminder_title">Time to record your reading</string>
+    <string name="notification_reminder_body">Keep your bill forecast accurate by recording today\'s meter value.</string>
+    <string name="notification_channel_alerts">Budget Alerts</string>
+    <string name="notification_channel_alerts_desc">Alerts when consumption approaches budget limits</string>
+    <string name="notification_budget_warning_title">Budget Threshold Warning</string>
+    <string name="notification_budget_warning_body">You have used %1$s%% of your monthly electricity budget.</string>
 </resources>

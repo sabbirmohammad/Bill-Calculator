@@ -12,7 +12,7 @@ Offline-first, privacy-focused Android electricity tracker and bill calculator t
 | **Phase 3** | Reading Flow: Onboarding, Add/Edit Reading, History List, Search/Filter | Completed | Passed | Passed (0 warnings) | Passed (43/43) | Passed (5/5) | Verified on Emulator | `phase 3: onboarding, add/edit reading flow, and history list with search and filters` |
 | **Phase 4** | Dashboard & Bill: Hero Card, Stats, Forecast, Budget, Bill Breakdown | Completed | Passed | Passed (0 warnings) | Passed (47/47) | Passed (6/6) | Verified on Emulator | `phase 4: dashboard with live cycle metrics and bill breakdown with what-if simulator` |
 | **Phase 5** | Analytics: Custom Compose Charts, Heatmap, Slab Donut, Anomalies | Completed | Passed | Passed (0 warnings) | Passed (52/52) | Passed (7/7) | Verified on Emulator | `phase 5: analytics custom compose charts, heatmap, slab donut, and anomaly detection` |
-| **Phase 6** | Settings, Tariff Editor, WorkManager, Glance Widget, App Lock | Pending | Pending | Pending | Pending | Pending | Pending | Pending |
+| **Phase 6** | Settings, Tariff Editor, WorkManager, Glance Widget, App Lock | Completed | Passed | Passed (0 warnings) | Passed (60/60) | Passed (8/8) | Verified on Emulator | `phase 6: settings, tariff editor, workmanager reminders, glance widget, and security lock` |
 | **Phase 7** | Backup/Restore, CSV/PDF Export, Localization (EN/BN), A11y Pass | Pending | Pending | Pending | Pending | Pending | Pending | Pending |
 
 ## Execution Log & Verification History
@@ -68,3 +68,16 @@ Offline-first, privacy-focused Android electricity tracker and bill calculator t
   - Static checks: `./gradlew lintDebug detekt ktlintCheck` passed with 0 errors and 0 warnings.
   - Connected UI tests: 7/7 tests passed on emulator (including `AnalyticsScreenTest`).
   - Runtime verification: Verified on emulator, switched periods, toggled table view, captured screenshots: `screenshots/phase5_analytics_chart.png`, `screenshots/phase5_analytics_heatmap.png`, `screenshots/phase5_analytics_donut.png`. Logcat verified 0 crashes/exceptions.
+- **Phase 6**:
+  - Full Settings screen: Meter profile, Billing preferences with Cycle Start Day selector, Daily Reminders with time configuration, Display & Language (Theme mode, English / Bangla, Bengali numerals), Security (App Lock, Hide amounts on home, Screenshot protection via `FLAG_SECURE`), and Data reset with confirmation dialog.
+  - Interactive Tariff Editor screen: Progressive slabs table with editable fromUnit, toUnit, rate/unit, Add/Delete slab actions, Fixed charges (Demand & Service charges, VAT %), and live preview calculation on test units with immediate total payable breakdown.
+  - WorkManager scheduled workers:
+    - `DailyReminderWorker`: High-priority reminder notification at configured daily time (21:00) with deep link to Add Reading flow.
+    - `BudgetAlertWorker`: Periodic background check against active budget threshold (80% warning / 100% exceeded).
+    - `WorkManagerScheduler`: Unified manager for scheduling and cancelling periodic workers.
+  - Jetpack Glance AppWidget: `WattWiseGlanceWidget` and `WattWiseWidgetReceiver` registered in `AndroidManifest.xml` with widget info XML, providing quick glance at electricity tracker and "+ Add Reading" one-tap launcher.
+  - Security hardening: Screenshot protection toggle dynamically updating `FLAG_SECURE` in `MainActivity`.
+  - Unit tests: 60/60 unit tests passed (including `SettingsViewModelTest` and `TariffEditorViewModelTest`).
+  - Static checks: `./gradlew lintDebug detekt ktlintCheck` passed with 0 errors and 0 warnings.
+  - Connected UI tests: 8/8 tests passed on emulator (including `SettingsAndTariffTest`).
+  - Runtime verification: Verified on emulator, navigated to Settings, toggled preferences, opened Tariff Editor, captured screenshots: `screenshots/phase6_settings.png`, `screenshots/phase6_tariff_editor.png`. Logcat verified 0 crashes/exceptions.
