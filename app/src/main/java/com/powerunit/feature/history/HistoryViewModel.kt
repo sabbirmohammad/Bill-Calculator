@@ -1,9 +1,12 @@
 package com.powerunit.feature.history
 
+import android.content.Intent
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import android.content.Intent
 import com.powerunit.core.common.DateUtils
+import com.powerunit.core.common.Formatters
+import com.powerunit.core.datastore.SettingsPreferences
 import com.powerunit.core.export.ExportManager
 import com.powerunit.domain.model.Reading
 import com.powerunit.domain.model.Tariff
@@ -21,16 +24,16 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.datetime.toLocalDateTime
 import java.math.BigDecimal
 import java.math.RoundingMode
+import java.time.YearMonth
 import javax.inject.Inject
 
-enum class HistoryFilter {
-    ALL,
-    ESTIMATED_ONLY,
-    RESET_ONLY,
-    HIGH_USAGE
-}
+val englishShortMonths = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+val banglaShortMonths = listOf("জানু", "ফেব্রু", "মার্চ", "এপ্রিল", "মে", "জুন", "জুলাই", "আগস্ট", "সেপ্টে", "অক্টো", "নভে", "ডিসে")
+val englishFullMonths = listOf("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December")
+val banglaFullMonths = listOf("জানুয়ারি", "ফেব্রুয়ারি", "মার্চ", "এপ্রিল", "মে", "জুন", "জুলাই", "আগস্ট", "সেপ্টেম্বর", "অক্টোবর", "নভেম্বর", "ডিসেম্বর")
 
 data class ReadingItemUiModel(
     val id: Long,
@@ -47,11 +50,23 @@ data class ReadingItemUiModel(
     val rawReading: Reading
 )
 
-fun Reading.toUiModel(prevReading: Reading? = null): ReadingItemUiModel {
+fun Reading.toUiModel(
+    prevReading: Reading? = null,
+    useBengaliDigits: Boolean = false,
+    isBangla: Boolean = false
+): ReadingItemUiModel {
     val date = DateUtils.formatDate(recordedAt)
     val time = DateUtils.formatTime(recordedAt)
-    val dayString = DateUtils.formatDate(recordedAt, "dd")
-    val monthString = DateUtils.formatDate(recordedAt, "MMM")
+    val ldt = recordedAt.toLocalDateTime(DateUtils.DHAKA_ZONE)
+    val dayNumber = ldt.dayOfMonth
+    val monthNumber = ldt.monthNumber
+    val rawDayStr = dayNumber.toString().padStart(2, '0')
+    val dayString = if (useBengaliDigits) Formatters.toBengaliDigits(rawDayStr) else rawDayStr
+    val monthString = if (isBangla) {
+        banglaShortMonths.getOrElse(monthNumber - 1) { "DATE" }
+    } else {
+        englishShortMonths.getOrElse(monthNumber - 1) { "DATE" }
+    }
 
     val delta = if (isMeterReset || prevReading == null) {
         BigDecimal.ZERO
@@ -76,6 +91,20 @@ fun Reading.toUiModel(prevReading: Reading? = null): ReadingItemUiModel {
     )
 }
 
+data class MonthSummaryUiModel(
+    val totalUnits: BigDecimal,
+    val totalCost: BigDecimal,
+    val readingsCount: Int,
+    val avgPerDay: BigDecimal
+)
+
+data class MonthChipUiModel(
+    val monthNumber: Int,
+    val label: String,
+    val hasData: Boolean,
+    val isSelected: Boolean
+)
+
 data class MonthHistoryGroup(
     val monthTitle: String,
     val totalUnits: BigDecimal,
@@ -85,12 +114,16 @@ data class MonthHistoryGroup(
 
 data class HistoryUiState(
     val isLoading: Boolean = true,
-    val searchQuery: String = "",
-    val activeFilter: HistoryFilter = HistoryFilter.ALL,
+    val selectedYear: Int = 2026,
+    val selectedMonth: Int = 11,
+    val availableYears: List<Int> = listOf(2026),
+    val monthChips: List<MonthChipUiModel> = emptyList(),
+    val monthSummary: MonthSummaryUiModel? = null,
     val monthGroups: List<MonthHistoryGroup> = emptyList(),
+    val items: List<ReadingItemUiModel> = emptyList(),
     val selectedDetailItem: ReadingItemUiModel? = null,
-    val hasEstimatedReadings: Boolean = false,
-    val hasResetReadings: Boolean = false
+    val useBengaliDigits: Boolean = false,
+    val appLanguage: String = "en"
 )
 
 sealed interface HistoryUiEffect {
@@ -99,18 +132,34 @@ sealed interface HistoryUiEffect {
 
 @HiltViewModel
 class HistoryViewModel @Inject constructor(
+    private val savedStateHandle: SavedStateHandle,
     private val readingRepository: ReadingRepository,
     private val meterRepository: MeterRepository,
     private val tariffRepository: TariffRepository,
     private val calculateBillUseCase: CalculateBillUseCase,
-    private val exportManager: ExportManager
+    private val exportManager: ExportManager,
+    private val settingsPreferences: SettingsPreferences
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(HistoryUiState())
-    val uiState: StateFlow<HistoryUiState> = _uiState.asStateFlow()
+    companion object {
+        const val KEY_SELECTED_YEAR = "history_selected_year"
+        const val KEY_SELECTED_MONTH = "history_selected_month"
+    }
 
-    private val _searchQuery = MutableStateFlow("")
-    private val _activeFilter = MutableStateFlow(HistoryFilter.ALL)
+    private val currentDhaka = DateUtils.currentDhakaDateTime()
+    val defaultYear = currentDhaka.year
+    val defaultMonth = currentDhaka.monthNumber
+
+    private val _selectedYear = savedStateHandle.getStateFlow(KEY_SELECTED_YEAR, defaultYear)
+    private val _selectedMonth = savedStateHandle.getStateFlow(KEY_SELECTED_MONTH, defaultMonth)
+
+    private val _uiState = MutableStateFlow(
+        HistoryUiState(
+            selectedYear = _selectedYear.value,
+            selectedMonth = _selectedMonth.value
+        )
+    )
+    val uiState: StateFlow<HistoryUiState> = _uiState.asStateFlow()
 
     private val _effects = Channel<HistoryUiEffect>(Channel.BUFFERED)
     val effects = _effects.receiveAsFlow()
@@ -121,63 +170,186 @@ class HistoryViewModel @Inject constructor(
         loadReadings()
     }
 
-    fun exportPdf(onReady: (Intent) -> Unit) {
-        viewModelScope.launch {
-            val meter = meterRepository.getActiveMeterSync()
-            val meterId = meter?.id ?: 1L
-            val tariff = tariffRepository.getActiveTariff().first() ?: Tariff(
-                name = "Default",
-                effectiveFrom = DateUtils.currentInstant(),
-                vatPercent = BigDecimal("5.0"),
-                serviceChargeFlat = BigDecimal("10.00"),
-                demandChargeFlat = BigDecimal("35.00"),
-                isActive = true
-            )
-            val readings = readingRepository.getReadings(meterId).first()
-            val totalUnits = readings.fold(BigDecimal.ZERO) { acc, r -> acc + r.readingValue }
-            val bill = calculateBillUseCase(totalUnits.coerceAtLeast(BigDecimal.ONE), tariff)
-            val file = exportManager.exportBillToPdf(bill, meter, null)
-            val intent = exportManager.getShareIntent(file, "application/pdf")
-            onReady(intent)
-        }
-    }
-
     private fun loadReadings() {
         viewModelScope.launch {
             val meter = meterRepository.getActiveMeterSync()
             val meterId = meter?.id ?: 1L
 
+            val prefsFlow = combine(
+                settingsPreferences.useBengaliDigits,
+                settingsPreferences.appLanguage
+            ) { useBengaliDigits, appLanguage ->
+                Pair(useBengaliDigits, appLanguage)
+            }
+
             combine(
                 readingRepository.getReadings(meterId),
                 tariffRepository.getActiveTariff(),
-                _searchQuery,
-                _activeFilter
-            ) { readings, tariff, searchQuery, activeFilter ->
-                val hasEstimated = readings.any { it.isEstimated }
-                val hasResets = readings.any { it.isMeterReset }
-                val groups = processReadings(readings, tariff, searchQuery, activeFilter)
-                Triple(groups, hasEstimated, hasResets)
-            }.collect { (groups, hasEstimated, hasResets) ->
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        monthGroups = groups,
-                        hasEstimatedReadings = hasEstimated,
-                        hasResetReadings = hasResets
-                    )
-                }
+                _selectedYear,
+                _selectedMonth,
+                prefsFlow
+            ) { readings, tariff, selectedYear, selectedMonth, prefs ->
+                val (useBengaliDigits, appLanguage) = prefs
+                processHistoryData(
+                    readings = readings,
+                    tariff = tariff,
+                    selectedYear = selectedYear,
+                    selectedMonth = selectedMonth,
+                    useBengaliDigits = useBengaliDigits,
+                    appLanguage = appLanguage
+                )
+            }.collect { newState ->
+                _uiState.value = newState
             }
         }
     }
 
-    fun onSearchQueryChange(query: String) {
-        _searchQuery.value = query
-        _uiState.update { it.copy(searchQuery = query) }
+    private fun processHistoryData(
+        readings: List<Reading>,
+        tariff: Tariff?,
+        selectedYear: Int,
+        selectedMonth: Int,
+        useBengaliDigits: Boolean,
+        appLanguage: String
+    ): HistoryUiState {
+        val isBangla = appLanguage.equals("bn", ignoreCase = true) || useBengaliDigits
+
+        // 1. Determine available years (years with data + default/current year)
+        val yearsWithData = readings.map { reading ->
+            reading.recordedAt.toLocalDateTime(DateUtils.DHAKA_ZONE).year
+        }.distinct()
+        val availableYears = (yearsWithData + defaultYear).distinct().sortedDescending()
+
+        // 2. Fallback active tariff
+        val activeTariff = tariff ?: Tariff(
+            name = "Default",
+            effectiveFrom = DateUtils.currentInstant(),
+            vatPercent = BigDecimal("5.0"),
+            serviceChargeFlat = BigDecimal("10.00"),
+            demandChargeFlat = BigDecimal("35.00"),
+            isActive = true
+        )
+
+        // 3. Process all readings into UI models with delta computed against adjacent chronologically preceding reading
+        val allUiItems = mutableListOf<ReadingItemUiModel>()
+        for (i in readings.indices) {
+            val reading = readings[i]
+            val prev = if (i < readings.size - 1) readings[i + 1] else null
+            allUiItems.add(reading.toUiModel(prev, useBengaliDigits, isBangla))
+        }
+
+        // 4. Months with data in the currently selected year
+        val monthsWithDataInYear = readings.filter { reading ->
+            reading.recordedAt.toLocalDateTime(DateUtils.DHAKA_ZONE).year == selectedYear
+        }.map { reading ->
+            reading.recordedAt.toLocalDateTime(DateUtils.DHAKA_ZONE).monthNumber
+        }.toSet()
+
+        // 5. Month chips Jan..Dec
+        val monthChips = (1..12).map { monthNum ->
+            val label = if (isBangla) {
+                banglaShortMonths.getOrElse(monthNum - 1) { "M$monthNum" }
+            } else {
+                englishShortMonths.getOrElse(monthNum - 1) { "M$monthNum" }
+            }
+            MonthChipUiModel(
+                monthNumber = monthNum,
+                label = label,
+                hasData = monthsWithDataInYear.contains(monthNum),
+                isSelected = monthNum == selectedMonth
+            )
+        }
+
+        // 6. Filter readings belonging specifically to the selected month & year
+        val selectedMonthItems = allUiItems.filter { item ->
+            val ldt = item.rawReading.recordedAt.toLocalDateTime(DateUtils.DHAKA_ZONE)
+            ldt.year == selectedYear && ldt.monthNumber == selectedMonth
+        }
+
+        // 7. Calculate month summary metrics
+        val monthSummary = if (selectedMonthItems.isNotEmpty()) {
+            val totalUnits = selectedMonthItems.fold(BigDecimal.ZERO) { acc, itm ->
+                acc + itm.unitsDelta
+            }.setScale(1, RoundingMode.HALF_UP)
+            val monthBill = calculateBillUseCase(totalUnits, activeTariff).totalBill
+            val count = selectedMonthItems.size
+            val daysInMonth = try {
+                YearMonth.of(selectedYear, selectedMonth).lengthOfMonth()
+            } catch (e: Exception) {
+                30
+            }
+            val avgPerDay = if (daysInMonth > 0 && totalUnits > BigDecimal.ZERO) {
+                totalUnits.divide(BigDecimal(daysInMonth), 1, RoundingMode.HALF_UP)
+            } else {
+                BigDecimal.ZERO
+            }
+            MonthSummaryUiModel(
+                totalUnits = totalUnits,
+                totalCost = monthBill,
+                readingsCount = count,
+                avgPerDay = avgPerDay
+            )
+        } else {
+            null
+        }
+
+        val monthName = if (isBangla) {
+            banglaFullMonths.getOrElse(selectedMonth - 1) { "মাস" }
+        } else {
+            englishFullMonths.getOrElse(selectedMonth - 1) { "Month" }
+        }
+        val monthTitle = "$monthName $selectedYear"
+
+        val monthGroups = if (selectedMonthItems.isNotEmpty() && monthSummary != null) {
+            listOf(
+                MonthHistoryGroup(
+                    monthTitle = monthTitle,
+                    totalUnits = monthSummary.totalUnits,
+                    estimatedBill = monthSummary.totalCost,
+                    items = selectedMonthItems
+                )
+            )
+        } else {
+            emptyList()
+        }
+
+        return HistoryUiState(
+            isLoading = false,
+            selectedYear = selectedYear,
+            selectedMonth = selectedMonth,
+            availableYears = availableYears,
+            monthChips = monthChips,
+            monthSummary = monthSummary,
+            monthGroups = monthGroups,
+            items = selectedMonthItems,
+            selectedDetailItem = _uiState.value.selectedDetailItem,
+            useBengaliDigits = useBengaliDigits,
+            appLanguage = appLanguage
+        )
     }
 
-    fun onFilterChange(filter: HistoryFilter) {
-        _activeFilter.value = filter
-        _uiState.update { it.copy(activeFilter = filter) }
+    fun onSelectYear(year: Int) {
+        savedStateHandle[KEY_SELECTED_YEAR] = year
+    }
+
+    fun onSelectMonth(month: Int) {
+        savedStateHandle[KEY_SELECTED_MONTH] = month
+    }
+
+    fun onPreviousYear() {
+        val current = _selectedYear.value
+        val available = _uiState.value.availableYears
+        val prev = available.filter { it < current }.maxOrNull() ?: (current - 1)
+        onSelectYear(prev)
+    }
+
+    fun onNextYear() {
+        val current = _selectedYear.value
+        val available = _uiState.value.availableYears
+        val next = available.filter { it > current }.minOrNull() ?: (current + 1)
+        if (next <= defaultYear) {
+            onSelectYear(next)
+        }
     }
 
     fun onSelectItemForDetail(item: ReadingItemUiModel?) {
@@ -200,71 +372,24 @@ class HistoryViewModel @Inject constructor(
         }
     }
 
-    private fun processReadings(
-        readings: List<Reading>,
-        tariff: Tariff?,
-        searchQuery: String,
-        filter: HistoryFilter
-    ): List<MonthHistoryGroup> {
-        if (readings.isEmpty()) return emptyList()
-
-        val activeTariff = tariff ?: Tariff(
-            name = "Default",
-            effectiveFrom = DateUtils.currentInstant(),
-            vatPercent = BigDecimal("5.0"),
-            serviceChargeFlat = BigDecimal("10.00"),
-            demandChargeFlat = BigDecimal("35.00"),
-            isActive = true
-        )
-
-        val items = mutableListOf<ReadingItemUiModel>()
-        for (i in readings.indices) {
-            val reading = readings[i]
-            val prev = if (i < readings.size - 1) readings[i + 1] else null
-            val item = createReadingItem(reading, prev)
-
-            if (isEligible(item, searchQuery, filter)) {
-                items.add(item)
-            }
-        }
-
-        return groupIntoMonths(items, activeTariff)
-    }
-
-    private fun createReadingItem(reading: Reading, prev: Reading?): ReadingItemUiModel {
-        return reading.toUiModel(prev)
-    }
-
-    private fun isEligible(item: ReadingItemUiModel, searchQuery: String, filter: HistoryFilter): Boolean {
-        val matchesSearch = searchQuery.isBlank() ||
-            item.formattedDate.contains(searchQuery, ignoreCase = true) ||
-            (item.note?.contains(searchQuery, ignoreCase = true) == true) ||
-            item.readingValue.toPlainString().contains(searchQuery)
-
-        val matchesFilter = when (filter) {
-            HistoryFilter.ALL -> true
-            HistoryFilter.ESTIMATED_ONLY -> item.isEstimated
-            HistoryFilter.RESET_ONLY -> item.isMeterReset
-            HistoryFilter.HIGH_USAGE -> item.unitsDelta > BigDecimal("20.0")
-        }
-
-        return matchesSearch && matchesFilter
-    }
-
-    private fun groupIntoMonths(items: List<ReadingItemUiModel>, activeTariff: Tariff): List<MonthHistoryGroup> {
-        return items.groupBy { item ->
-            DateUtils.formatDate(item.rawReading.recordedAt, "MMMM yyyy")
-        }.map { (month, monthItems) ->
-            val totalUnits = monthItems.fold(BigDecimal.ZERO) { acc, itm -> acc + itm.unitsDelta }
-                .setScale(1, RoundingMode.HALF_UP)
-            val monthBill = calculateBillUseCase(totalUnits, activeTariff).totalBill
-
-            MonthHistoryGroup(
-                monthTitle = month,
-                totalUnits = totalUnits,
-                estimatedBill = monthBill,
-                items = monthItems
+    fun exportPdf(onReady: (Intent) -> Unit) {
+        viewModelScope.launch {
+            val meter = meterRepository.getActiveMeterSync()
+            val meterId = meter?.id ?: 1L
+            val tariff = tariffRepository.getActiveTariff().first() ?: Tariff(
+                name = "Default",
+                effectiveFrom = DateUtils.currentInstant(),
+                vatPercent = BigDecimal("5.0"),
+                serviceChargeFlat = BigDecimal("10.00"),
+                demandChargeFlat = BigDecimal("35.00"),
+                isActive = true
             )
+            val currentItems = _uiState.value.items
+            val totalUnits = currentItems.fold(BigDecimal.ZERO) { acc, r -> acc + r.unitsDelta }
+            val bill = calculateBillUseCase(totalUnits.coerceAtLeast(BigDecimal.ONE), tariff)
+            val file = exportManager.exportBillToPdf(bill, meter, null)
+            val intent = exportManager.getShareIntent(file, "application/pdf")
+            onReady(intent)
         }
     }
 }

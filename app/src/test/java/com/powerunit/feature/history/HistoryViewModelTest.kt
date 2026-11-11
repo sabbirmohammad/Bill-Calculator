@@ -1,6 +1,8 @@
 package com.powerunit.feature.history
 
+import androidx.lifecycle.SavedStateHandle
 import com.powerunit.core.common.DateUtils
+import com.powerunit.core.datastore.SettingsPreferences
 import com.powerunit.core.export.ExportManager
 import com.powerunit.domain.model.Meter
 import com.powerunit.domain.model.MeterType
@@ -13,6 +15,7 @@ import com.powerunit.domain.repository.TariffRepository
 import com.powerunit.domain.usecase.CalculateBillUseCase
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -26,6 +29,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -40,6 +44,7 @@ class HistoryViewModelTest {
     private val tariffRepository = mockk<TariffRepository>(relaxed = true)
     private val calculateBillUseCase = CalculateBillUseCase()
     private val exportManager = mockk<ExportManager>(relaxed = true)
+    private val settingsPreferences = mockk<SettingsPreferences>(relaxed = true)
 
     private val sampleMeter = Meter(
         id = 1L,
@@ -96,6 +101,8 @@ class HistoryViewModelTest {
         coEvery { meterRepository.getActiveMeterSync() } returns sampleMeter
         coEvery { readingRepository.getReadings(1L) } returns flowOf(readingsList)
         coEvery { tariffRepository.getActiveTariff() } returns flowOf(sampleTariff)
+        every { settingsPreferences.useBengaliDigits } returns flowOf(false)
+        every { settingsPreferences.appLanguage } returns flowOf("en")
     }
 
     @After
@@ -103,56 +110,89 @@ class HistoryViewModelTest {
         Dispatchers.resetMain()
     }
 
-    @Test
-    fun loadReadings_groupsByMonthCorrectly() = runTest(testDispatcher) {
-        val viewModel = HistoryViewModel(
+    private fun createViewModel(savedStateHandle: SavedStateHandle = SavedStateHandle()): HistoryViewModel {
+        return HistoryViewModel(
+            savedStateHandle = savedStateHandle,
             readingRepository = readingRepository,
             meterRepository = meterRepository,
             tariffRepository = tariffRepository,
             calculateBillUseCase = calculateBillUseCase,
-            exportManager = exportManager
+            exportManager = exportManager,
+            settingsPreferences = settingsPreferences
         )
+    }
+
+    @Test
+    fun loadReadings_defaultsToCurrentYearAndMonth() = runTest(testDispatcher) {
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         val state = viewModel.uiState.value
         assertFalse(state.isLoading)
-        assertEquals(1, state.monthGroups.size)
-        assertEquals(2, state.monthGroups[0].items.size)
-        assertEquals(BigDecimal("20.0"), state.monthGroups[0].totalUnits)
+        assertEquals(viewModel.defaultYear, state.selectedYear)
+        assertEquals(viewModel.defaultMonth, state.selectedMonth)
+        assertEquals(12, state.monthChips.size)
+        assertTrue(state.availableYears.contains(2026))
     }
 
     @Test
-    fun onSearchQueryChange_filtersReadings() = runTest(testDispatcher) {
-        val viewModel = HistoryViewModel(
-            readingRepository = readingRepository,
-            meterRepository = meterRepository,
-            tariffRepository = tariffRepository,
-            calculateBillUseCase = calculateBillUseCase,
-            exportManager = exportManager
-        )
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        viewModel.onSearchQueryChange("Start reading")
+    fun onSelectMonth_filtersReadingsForSelectedMonth() = runTest(testDispatcher) {
+        val savedState = SavedStateHandle(mapOf(
+            HistoryViewModel.KEY_SELECTED_YEAR to 2026,
+            HistoryViewModel.KEY_SELECTED_MONTH to 3
+        ))
+        val viewModel = createViewModel(savedState)
         testDispatcher.scheduler.advanceUntilIdle()
 
         val state = viewModel.uiState.value
+        assertEquals(3, state.selectedMonth)
+        assertEquals(2, state.items.size)
         assertEquals(1, state.monthGroups.size)
-        assertEquals(1, state.monthGroups[0].items.size)
-        assertEquals("Start reading", state.monthGroups[0].items[0].note)
+        assertNotNull(state.monthSummary)
+        assertEquals(BigDecimal("20.0"), state.monthSummary?.totalUnits)
+        assertEquals(2, state.monthSummary?.readingsCount)
+        assertTrue(state.monthSummary!!.totalCost > BigDecimal.ZERO)
+        assertTrue(state.monthChips[2].hasData) // Month 3 has data
+    }
+
+    @Test
+    fun onSelectMonth_emptyMonth_hasNullSummaryAndEmptyItems() = runTest(testDispatcher) {
+        val savedState = SavedStateHandle(mapOf(
+            HistoryViewModel.KEY_SELECTED_YEAR to 2026,
+            HistoryViewModel.KEY_SELECTED_MONTH to 1 // January has no readings in readingsList
+        ))
+        val viewModel = createViewModel(savedState)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertEquals(1, state.selectedMonth)
+        assertTrue(state.items.isEmpty())
+        assertNull(state.monthSummary)
+        assertFalse(state.monthChips[0].hasData) // Month 1 has no data
+    }
+
+    @Test
+    fun onSelectYear_updatesStateCorrectly() = runTest(testDispatcher) {
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onSelectYear(2025)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertEquals(2025, state.selectedYear)
     }
 
     @Test
     fun deleteReadingAndUndo_callsRepositoryAppropriately() = runTest(testDispatcher) {
-        val viewModel = HistoryViewModel(
-            readingRepository = readingRepository,
-            meterRepository = meterRepository,
-            tariffRepository = tariffRepository,
-            calculateBillUseCase = calculateBillUseCase,
-            exportManager = exportManager
-        )
+        val savedState = SavedStateHandle(mapOf(
+            HistoryViewModel.KEY_SELECTED_YEAR to 2026,
+            HistoryViewModel.KEY_SELECTED_MONTH to 3
+        ))
+        val viewModel = createViewModel(savedState)
         testDispatcher.scheduler.advanceUntilIdle()
 
-        val itemToDelete = viewModel.uiState.value.monthGroups[0].items[0]
+        val itemToDelete = viewModel.uiState.value.items[0]
         viewModel.deleteReading(itemToDelete)
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -166,16 +206,14 @@ class HistoryViewModelTest {
 
     @Test
     fun onSelectItemForDetail_updatesSelectedDetailItem() = runTest(testDispatcher) {
-        val viewModel = HistoryViewModel(
-            readingRepository = readingRepository,
-            meterRepository = meterRepository,
-            tariffRepository = tariffRepository,
-            calculateBillUseCase = calculateBillUseCase,
-            exportManager = exportManager
-        )
+        val savedState = SavedStateHandle(mapOf(
+            HistoryViewModel.KEY_SELECTED_YEAR to 2026,
+            HistoryViewModel.KEY_SELECTED_MONTH to 3
+        ))
+        val viewModel = createViewModel(savedState)
         testDispatcher.scheduler.advanceUntilIdle()
 
-        val item = viewModel.uiState.value.monthGroups[0].items[0]
+        val item = viewModel.uiState.value.items[0]
         viewModel.onSelectItemForDetail(item)
 
         assertEquals(item, viewModel.uiState.value.selectedDetailItem)

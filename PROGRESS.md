@@ -198,6 +198,27 @@ Offline-first, privacy-focused Android electricity tracker and bill calculator t
   - Emulator verification: Verified both `SetBudgetCtaCard` and `MonthlyBudgetAndOutlookCard` after saving budget. Screenshots saved to `screenshots/issue4_no_budget.png` and `screenshots/issue4_budget_outlook.png`. Logcat verified 0 crashes.
 - **Status**: Completed.
 
+### Issue 5: History page filters
+- **Root Cause**:
+  1. The previous History screen contained an unnecessary search bar and unstructured filter chips ("All", "High use", "Estimated", "Reset") that did not allow users to view their consumption by billing month or compare historical statements month by month.
+  2. Users lacked an intuitive way to navigate across years and months, observe monthly aggregated usage and costs, or see month-specific empty states.
+- **Fix Details**:
+  1. Completely removed the search input and the legacy filter chips.
+  2. Built `HistoryHeaderAndYearSelector`: Year stepper with `<` and `>` chevrons, displaying current year with Bengali numeral support, plus PDF export button.
+  3. Built `HistoryMonthChipsRow`: Horizontally scrollable 12-month chip row (Jan–Dec, in English or Bangla depending on locale/digits preference). Months without data are dimmed (`alpha = 0.45f`) but still fully selectable.
+  4. Injected `SavedStateHandle` into `HistoryViewModel` (`history_selected_year` and `history_selected_month`) defaulting to the current Dhaka year and month, ensuring filter selection survives configuration changes and process death.
+  5. Built `MonthSummaryCard`: Displayed above the readings list, summarizing Total Usage (kWh), Estimated Bill (BDT ৳), Readings Count, and Daily Average (kWh/day) formatted with Bengali digits and locale strings.
+  6. Filtered the readings list strictly to the selected year and month, while accurately computing delta against adjacent prior readings.
+  7. Added Material 3 `SwipeToDismissBox` supporting swipe-to-delete with Undo snackbar and swipe-to-edit, alongside click-to-view detail dialog.
+  8. Created a friendly `EmptyState` when the selected month has no readings, with a direct CTA to add a reading.
+- **Verification**:
+  - `./gradlew assembleDebug`: Passed.
+  - `./gradlew lintDebug detekt ktlintCheck`: Passed (0 errors, 0 warnings).
+  - `./gradlew testDebugUnitTest`: Passed (69/69 tests passed).
+  - `./gradlew connectedDebugAndroidTest`: Passed (9/9 tests passed on `emulator-5554`).
+  - Emulator verification: Verified Year stepper, Month chips row, friendly empty state, and reading item display. Screenshots saved to `screenshots/issue5_history_empty_month.png` and `screenshots/issue5_history_filters.png`. Logcat verified 0 crashes.
+- **Status**: Completed.
+
 
 
 
