@@ -3,6 +3,7 @@ package com.powerunit
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -37,7 +38,9 @@ class BackupAndExportTest {
     fun historyScreen_displaysExportButtons_andSettingsNavigatesToBackup() {
         // Tap History tab on bottom navigation bar
         composeTestRule.onNodeWithTag("nav_history").performClick()
-        composeTestRule.waitForIdle()
+        composeTestRule.waitUntil(5000) {
+            composeTestRule.onAllNodesWithTag("history_export_pdf_btn").fetchSemanticsNodes().isNotEmpty()
+        }
 
         // Verify PDF export button exists
         composeTestRule.onNodeWithTag("history_export_pdf_btn").assertIsDisplayed()

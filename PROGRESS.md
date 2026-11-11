@@ -223,3 +223,25 @@ Offline-first, privacy-focused Android electricity tracker and bill calculator t
 
 
 
+
+### Issue 6: Settings > Display & Language: options have NO effect
+- **Root Cause**:
+  1. Theme mode was collected in `MainActivity` but did not configure WindowInsetsController, leaving the system status bar and navigation bar icon colors uncoordinated with dark/light themes.
+  2. Language setting only updated DataStore preferences without calling Android's per-app locale API (`AppCompatDelegate.setApplicationLocales`) or dynamically updating `resources.configuration` and Compose `LocalConfiguration`, requiring an app kill to reflect language changes.
+  3. Hardcoded strings existed in dialogs and buttons ("Delete All", "Cancel", "Save", theme names).
+  4. Bengali digits toggle lacked comprehensive coverage across all screens and lacked the required live preview line in Settings (e.g. `১২,৩৪৫.৬ kWh • ৳২,৫০০.০০`).
+- **Fix Details**:
+  1. Added `SideEffect` in `WattWiseTheme` configuring `WindowCompat.getInsetsController(window, view)` for dynamic `isAppearanceLightStatusBars = !darkTheme` and `isAppearanceLightNavigationBars = !darkTheme`.
+  2. In `MainActivity`, dynamically update `resources.configuration` and wrap root Compose content in `CompositionLocalProvider(LocalConfiguration provides localizedConfig)` triggered by `mainViewModel.appLanguage`.
+  3. In `SettingsViewModel.setLanguage(lang)`, integrated `AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(lang))`.
+  4. Added complete bilingual string resources in `values/strings.xml` and `values-bn/strings.xml` for theme modes, actions, dialogs, and sections.
+  5. Expanded `Formatters.kt` to include `formatInt`, `formatLong`, `formatDouble`, `formatTime12h`, `formatDate`, and Bengali month names.
+  6. Added live preview line in `SettingsScreen.kt` under Bengali digits: `${Formatters.formatUnits(BigDecimal("12345.6"), useBengaliDigits)} kWh • ${Formatters.formatMoney(BigDecimal("2500.00"), true, useBengaliDigits)}`.
+  7. Connected `useBengaliDigits` across `MeterSettingsSection`, `BillingSettingsSection`, `ReminderSettingsSection`, `AnalyticsSummaryGrid`, `PeriodComparisonCard`, `BillSummaryCard`, `ItemizedReceiptCard`, `SlabTableRow`, `AdditionalChargesCard`, and `WhatIfSimulatorCard`.
+- **Verification**:
+  - `./gradlew assembleDebug`: Passed.
+  - `./gradlew lintDebug detekt ktlintCheck`: Passed (0 errors, 0 warnings).
+  - `./gradlew testDebugUnitTest`: Passed (69/69 tests passed, including expanded `FormattersTest`).
+  - `./gradlew connectedDebugAndroidTest`: Passed (9/9 tests passed on `emulator-5554`).
+  - Emulator verification: Verified live instant Theme toggle (System -> Light -> Dark), Language switch (English -> Bangla), Bengali digits live preview toggle ("12,345.6 kWh • ৳2,500.00" -> "১২,৩৪৫.৬ kWh • ৳২,৫০০.০০"), and full Dashboard and Settings bilingual rendering. Screenshots saved to `screenshots/issue6_dashboard_en.png`, `screenshots/issue6_dashboard_bn.png`, `screenshots/issue6_settings_bn.png`, `screenshots/issue6_settings_dark.png`. Logcat verified 0 crashes.
+- **Status**: Completed.

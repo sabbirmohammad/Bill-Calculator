@@ -1,5 +1,6 @@
 package com.powerunit.core.common
 
+import kotlinx.datetime.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.math.BigDecimal
@@ -42,5 +43,27 @@ class FormattersTest {
         assertEquals("+8.5%", Formatters.formatPercentage(8.5))
         assertEquals("-12.0%", Formatters.formatPercentage(-12.0))
         assertEquals("+0.0%", Formatters.formatPercentage(0.0))
+    }
+
+    @Test
+    fun formatInt_formatsCorrectlyWithThousandsSeparator() {
+        assertEquals("1,234", Formatters.formatInt(1234))
+        assertEquals("১,২৩৪", Formatters.formatInt(1234, useBengaliDigits = true))
+    }
+
+    @Test
+    fun formatTime12h_formats24hTo12hCorrectly() {
+        assertEquals("9:00 PM", Formatters.formatTime12h("21:00"))
+        assertEquals("9:15 AM", Formatters.formatTime12h("09:15"))
+        assertEquals("12:00 AM", Formatters.formatTime12h("00:00"))
+        assertEquals("12:30 PM", Formatters.formatTime12h("12:30"))
+        assertEquals("৯:০০ PM", Formatters.formatTime12h("21:00", useBengaliDigits = true))
+    }
+
+    @Test
+    fun formatDate_formatsEnglishAndBangla() {
+        val date = LocalDate(2026, 11, 12)
+        assertEquals("Nov 12, 2026", Formatters.formatDate(date, useBengaliDigits = false, isBangla = false))
+        assertEquals("১২ নভে, ২০২৬", Formatters.formatDate(date, useBengaliDigits = true, isBangla = true))
     }
 }

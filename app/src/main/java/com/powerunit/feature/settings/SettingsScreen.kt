@@ -48,6 +48,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import com.powerunit.core.common.Formatters
+import java.math.BigDecimal
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -100,12 +102,18 @@ fun SettingsScreen(
                 }
 
                 item {
-                    MeterSettingsSection(meter = uiState.activeMeter)
+                    MeterSettingsSection(
+                        meter = uiState.activeMeter,
+                        useBengaliDigits = uiState.useBengaliDigits,
+                        isBangla = uiState.language == "bn"
+                    )
                 }
 
                 item {
                     BillingSettingsSection(
                         cycleDay = uiState.billingCycleDay,
+                        useBengaliDigits = uiState.useBengaliDigits,
+                        isBangla = uiState.language == "bn",
                         onCycleDayChange = viewModel::setBillingCycleDay,
                         onNavigateToTariff = onNavigateToTariffEditor
                     )
@@ -115,6 +123,8 @@ fun SettingsScreen(
                     ReminderSettingsSection(
                         enabled = uiState.reminderEnabled,
                         reminderTime = uiState.reminderTime,
+                        useBengaliDigits = uiState.useBengaliDigits,
+                        isBangla = uiState.language == "bn",
                         onToggle = viewModel::setReminderEnabled
                     )
                 }
@@ -182,12 +192,12 @@ fun SettingsScreen(
                         showClearConfirm = false
                     }
                 ) {
-                    Text("Delete All", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelLarge)
+                    Text(stringResource(R.string.action_delete_all), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelLarge)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showClearConfirm = false }) {
-                    Text("Cancel", style = MaterialTheme.typography.labelLarge)
+                    Text(stringResource(R.string.action_cancel), style = MaterialTheme.typography.labelLarge)
                 }
             },
             shape = CardShape,
@@ -197,7 +207,11 @@ fun SettingsScreen(
 }
 
 @Composable
-private fun MeterSettingsSection(meter: Meter?) {
+private fun MeterSettingsSection(
+    meter: Meter?,
+    useBengaliDigits: Boolean,
+    isBangla: Boolean
+) {
     Card(
         modifier = Modifier.fillMaxWidth().testTag("settings_meter_card"),
         shape = CardShape,
@@ -215,12 +229,22 @@ private fun MeterSettingsSection(meter: Meter?) {
             ) {
                 Column {
                     Text(
-                        text = meter?.name ?: "Main Meter",
+                        text = meter?.name ?: if (isBangla) "মূল মিটার" else "Main Meter",
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface
                     )
+                    val formattedMultiplier = Formatters.formatDouble((meter?.multiplierFactor ?: BigDecimal.ONE).toDouble(), 1, useBengaliDigits)
+                    val typeName = meter?.type?.name ?: "POSTPAID"
+                    val typeLabel = if (isBangla) {
+                        if (typeName == "POSTPAID") "পোস্টপেইড" else "প্রিপেইড"
+                    } else typeName
+                    val infoText = if (isBangla) {
+                        "ধরন: $typeLabel • গুণক: $formattedMultiplier"
+                    } else {
+                        "Type: $typeLabel • Multiplier: $formattedMultiplier"
+                    }
                     Text(
-                        text = "Type: ${meter?.type?.name ?: "POSTPAID"} • Multiplier: ${meter?.multiplierFactor ?: 1.0}",
+                        text = infoText,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -233,6 +257,8 @@ private fun MeterSettingsSection(meter: Meter?) {
 @Composable
 private fun BillingSettingsSection(
     cycleDay: Int,
+    useBengaliDigits: Boolean,
+    isBangla: Boolean,
     onCycleDayChange: (Int) -> Unit,
     onNavigateToTariff: () -> Unit
 ) {
@@ -259,8 +285,10 @@ private fun BillingSettingsSection(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface
                 )
+                val formattedDay = Formatters.formatInt(cycleDay, useBengaliDigits)
+                val dayText = if (isBangla) "$formattedDay তারিখ" else "Day $formattedDay"
                 Text(
-                    text = "Day $cycleDay",
+                    text = dayText,
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -306,6 +334,8 @@ private fun BillingSettingsSection(
 private fun ReminderSettingsSection(
     enabled: Boolean,
     reminderTime: String,
+    useBengaliDigits: Boolean,
+    isBangla: Boolean,
     onToggle: (Boolean) -> Unit
 ) {
     Card(
@@ -329,8 +359,10 @@ private fun ReminderSettingsSection(
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface
                     )
+                    val formattedTime = Formatters.formatTime12h(reminderTime, useBengaliDigits, isBangla)
+                    val timeLabel = if (isBangla) "প্রতিদিন $formattedTime" else "Every day at $formattedTime"
                     Text(
-                        text = "Time: $reminderTime daily",
+                        text = timeLabel,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -367,9 +399,9 @@ private fun DisplaySettingsSection(
             SettingToggleRow(
                 title = stringResource(R.string.settings_theme_mode),
                 subtitle = when (theme) {
-                    "LIGHT" -> "Light"
-                    "DARK" -> "Dark"
-                    else -> "System Default"
+                    "LIGHT" -> stringResource(R.string.theme_light)
+                    "DARK" -> stringResource(R.string.theme_dark)
+                    else -> stringResource(R.string.theme_system)
                 },
                 action = {
                     TextButton(onClick = {
@@ -382,9 +414,9 @@ private fun DisplaySettingsSection(
                     }) {
                         Text(
                             when (theme) {
-                                "LIGHT" -> "Light"
-                                "DARK" -> "Dark"
-                                else -> "System"
+                                "LIGHT" -> stringResource(R.string.theme_light)
+                                "DARK" -> stringResource(R.string.theme_dark)
+                                else -> stringResource(R.string.theme_system)
                             },
                             style = MaterialTheme.typography.labelLarge
                         )
@@ -408,7 +440,7 @@ private fun DisplaySettingsSection(
 
             SettingToggleRow(
                 title = stringResource(R.string.settings_bengali_digits),
-                subtitle = "১২৩৪৫৬৭৮৯০",
+                subtitle = "${Formatters.formatUnits(BigDecimal("12345.6"), useBengaliDigits)} kWh • ${Formatters.formatMoney(BigDecimal("2500.00"), true, useBengaliDigits)}",
                 action = {
                     Switch(
                         checked = useBengaliDigits,

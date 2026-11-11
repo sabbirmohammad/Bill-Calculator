@@ -131,13 +131,17 @@ private fun AnalyticsContent(
                     totalUnits = uiState.totalUnits,
                     totalCost = uiState.totalCost,
                     dailyAverage = uiState.dailyAverage,
-                    peakUsage = uiState.peakUsage
+                    peakUsage = uiState.peakUsage,
+                    useBengaliDigits = uiState.useBengaliDigits
                 )
             }
 
             uiState.comparison?.let { comp ->
                 item {
-                    PeriodComparisonCard(comp = comp)
+                    PeriodComparisonCard(
+                        comp = comp,
+                        useBengaliDigits = uiState.useBengaliDigits
+                    )
                 }
             }
 
@@ -246,7 +250,8 @@ private fun AnalyticsSummaryGrid(
     totalUnits: BigDecimal,
     totalCost: BigDecimal,
     dailyAverage: BigDecimal,
-    peakUsage: ChartBarData?
+    peakUsage: ChartBarData?,
+    useBengaliDigits: Boolean = false
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -258,13 +263,13 @@ private fun AnalyticsSummaryGrid(
         ) {
             SummaryTile(
                 title = stringResource(R.string.analytics_total_usage),
-                value = "${Formatters.formatUnits(totalUnits)} kWh",
+                value = "${Formatters.formatUnits(totalUnits, useBengaliDigits)} kWh",
                 icon = Icons.Default.Bolt,
                 modifier = Modifier.weight(1f)
             )
             SummaryTile(
                 title = stringResource(R.string.analytics_total_cost),
-                value = Formatters.formatBDT(totalCost),
+                value = Formatters.formatBDT(totalCost, useBengaliDigits),
                 icon = Icons.Default.AutoAwesome,
                 modifier = Modifier.weight(1f)
             )
@@ -276,13 +281,13 @@ private fun AnalyticsSummaryGrid(
         ) {
             SummaryTile(
                 title = stringResource(R.string.analytics_daily_average),
-                value = "${Formatters.formatUnits(dailyAverage)} kWh/d",
+                value = "${Formatters.formatUnits(dailyAverage, useBengaliDigits)} kWh/d",
                 icon = Icons.Default.CalendarToday,
                 modifier = Modifier.weight(1f)
             )
             SummaryTile(
                 title = stringResource(R.string.analytics_peak_usage),
-                value = peakUsage?.let { "${Formatters.formatUnits(it.units)} kWh" } ?: "—",
+                value = peakUsage?.let { "${Formatters.formatUnits(it.units, useBengaliDigits)} kWh" } ?: "—",
                 icon = Icons.Default.WarningAmber,
                 modifier = Modifier.weight(1f)
             )
@@ -337,7 +342,8 @@ private fun SummaryTile(
 
 @Composable
 private fun PeriodComparisonCard(
-    comp: com.powerunit.domain.model.PeriodComparison
+    comp: com.powerunit.domain.model.PeriodComparison,
+    useBengaliDigits: Boolean = false
 ) {
     Card(
         modifier = Modifier
@@ -376,7 +382,7 @@ private fun PeriodComparisonCard(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "Current vs prior period (${Formatters.formatUnits(comp.currentUnits)} vs ${Formatters.formatUnits(comp.previousUnits)} kWh)",
+                        text = "Current vs prior period (${Formatters.formatUnits(comp.currentUnits, useBengaliDigits)} vs ${Formatters.formatUnits(comp.previousUnits, useBengaliDigits)} kWh)",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

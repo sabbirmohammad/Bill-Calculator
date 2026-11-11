@@ -85,6 +85,12 @@
     <string name="settings_reminder_toggle">মিটার রিডিং রিমাইন্ডার</string>
     <string name="settings_reminder_time">রিমাইন্ডারের সময়</string>
     <string name="settings_theme_mode">থিম</string>
+    <string name="theme_system">সিস্টেম</string>
+    <string name="theme_light">লাইট</string>
+    <string name="theme_dark">ডার্ক</string>
+    <string name="action_delete_all">সব মুছুন</string>
+    <string name="action_save">সংরক্ষণ</string>
+    <string name="action_cancel">বাতিল</string>
     <string name="settings_language">ভাষা</string>
     <string name="settings_bengali_digits">বাংলা সংখ্যা ব্যবহার করুন (১২৩৪)</string>
     <string name="settings_app_lock">অ্যাপ লক</string>

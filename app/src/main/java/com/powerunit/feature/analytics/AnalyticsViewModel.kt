@@ -69,7 +69,9 @@ data class AnalyticsUiState(
     val weekdayPattern: List<WeekdayIntensity> = emptyList(),
     val slabDonutItems: List<SlabDonutItem> = emptyList(),
     val anomalies: List<DailyUsage> = emptyList(),
-    val selectedBarIndex: Int? = null
+    val selectedBarIndex: Int? = null,
+    val useBengaliDigits: Boolean = false,
+    val isBangla: Boolean = false
 )
 
 @HiltViewModel
@@ -89,6 +91,8 @@ class AnalyticsViewModel @Inject constructor(
 
     private var cachedReadings: List<Reading> = emptyList()
     private var cachedTariff: Tariff? = null
+    private var cachedUseBengaliDigits: Boolean = false
+    private var cachedIsBangla: Boolean = false
 
     init {
         loadData()
@@ -99,13 +103,23 @@ class AnalyticsViewModel @Inject constructor(
             val meter = meterRepository.getActiveMeterSync()
             val meterId = meter?.id ?: 1L
 
+            val prefsFlow = combine(
+                settingsPreferences.billingCycleDay,
+                settingsPreferences.useBengaliDigits,
+                settingsPreferences.appLanguage
+            ) { cycleDay, useBnDigits, lang ->
+                Triple(cycleDay, useBnDigits, lang == "bn")
+            }
+
             combine(
                 readingRepository.getReadings(meterId),
                 tariffRepository.getActiveTariff(),
-                settingsPreferences.billingCycleDay
-            ) { readings, tariff, _ ->
+                prefsFlow
+            ) { readings, tariff, triple ->
                 cachedReadings = readings
                 cachedTariff = tariff
+                cachedUseBengaliDigits = triple.second
+                cachedIsBangla = triple.third
                 recomputeState()
             }.collect { newState ->
                 _uiState.value = newState
@@ -182,7 +196,9 @@ class AnalyticsViewModel @Inject constructor(
             comparison = comparison,
             weekdayPattern = weekdayPattern,
             slabDonutItems = slabDonutItems,
-            anomalies = anomalies
+            anomalies = anomalies,
+            useBengaliDigits = cachedUseBengaliDigits,
+            isBangla = cachedIsBangla
         )
     }
 

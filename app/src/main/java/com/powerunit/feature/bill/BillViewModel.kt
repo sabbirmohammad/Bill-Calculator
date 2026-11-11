@@ -34,7 +34,9 @@ data class BillUiState(
     val simulatedUnits: BigDecimal = BigDecimal("150.0"),
     val simulatedBill: BillBreakdown? = null,
     val billDeltaVsActual: BigDecimal? = null,
-    val isPastCyclePaid: Boolean = false
+    val isPastCyclePaid: Boolean = false,
+    val useBengaliDigits: Boolean = false,
+    val isBangla: Boolean = false
 )
 
 @HiltViewModel
@@ -72,11 +74,20 @@ class BillViewModel @Inject constructor(
             val meter = meterRepository.getActiveMeterSync()
             val meterId = meter?.id ?: 1L
 
+            val prefs = combine(
+                settingsPreferences.billingCycleDay,
+                settingsPreferences.useBengaliDigits,
+                settingsPreferences.appLanguage
+            ) { cycleDay, useBnDigits, lang ->
+                Triple(cycleDay, useBnDigits, lang == "bn")
+            }
+
             combine(
                 readingRepository.getReadings(meterId),
                 tariffRepository.getActiveTariff(),
-                settingsPreferences.billingCycleDay
-            ) { readings, tariff, cycleDay ->
+                prefs
+            ) { readings, tariff, triple ->
+                val (cycleDay, useBnDigits, isBangla) = triple
                 val now = DateUtils.currentInstant()
                 val today = DateUtils.currentDhakaDate()
                 val sorted = readings.sortedBy { it.recordedAt }
@@ -107,7 +118,9 @@ class BillViewModel @Inject constructor(
                     actualBill = actualBill,
                     simulatedUnits = initialSimUnits,
                     simulatedBill = simulatedBill,
-                    billDeltaVsActual = BigDecimal.ZERO
+                    billDeltaVsActual = BigDecimal.ZERO,
+                    useBengaliDigits = useBnDigits,
+                    isBangla = isBangla
                 )
             }.collect { newState ->
                 _uiState.update { current ->
@@ -115,7 +128,9 @@ class BillViewModel @Inject constructor(
                     else current.copy(
                         currentTariff = newState.currentTariff,
                         actualCycleUsage = newState.actualCycleUsage,
-                        actualBill = newState.actualBill
+                        actualBill = newState.actualBill,
+                        useBengaliDigits = newState.useBengaliDigits,
+                        isBangla = newState.isBangla
                     )
                 }
             }

@@ -85,6 +85,12 @@
     <string name="settings_reminder_toggle">Daily Meter Reminder</string>
     <string name="settings_reminder_time">Reminder Time</string>
     <string name="settings_theme_mode">Theme</string>
+    <string name="theme_system">System</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="action_delete_all">Delete All</string>
+    <string name="action_save">Save</string>
+    <string name="action_cancel">Cancel</string>
     <string name="settings_language">Language</string>
     <string name="settings_bengali_digits">Use Bengali Digits (১২৩৪)</string>
     <string name="settings_app_lock">App Lock</string>

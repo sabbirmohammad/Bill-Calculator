@@ -1,5 +1,7 @@
 package com.powerunit.feature.settings
 
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.powerunit.core.database.PowerUnitDatabase
@@ -156,6 +158,7 @@ class SettingsViewModel @Inject constructor(
     fun setLanguage(lang: String) {
         viewModelScope.launch {
             settingsPreferences.setAppLanguage(lang)
+            AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(lang))
         }
     }
 
