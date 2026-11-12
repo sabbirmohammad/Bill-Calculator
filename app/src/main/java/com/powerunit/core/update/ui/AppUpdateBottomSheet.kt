@@ -7,21 +7,16 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,19 +36,20 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.RocketLaunch
 import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -72,6 +68,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -79,18 +76,19 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.powerunit.BuildConfig
 import com.powerunit.R
 import com.powerunit.core.designsystem.theme.BottomSheetShape
 import com.powerunit.core.designsystem.theme.ButtonShape
 import com.powerunit.core.designsystem.theme.CardShape
 import com.powerunit.core.designsystem.theme.Dimens
-import com.powerunit.core.designsystem.theme.HeroGradientLight
 import com.powerunit.core.designsystem.theme.NumberLarge
-import com.powerunit.core.designsystem.theme.NumberMedium
 import com.powerunit.core.designsystem.theme.PillShape
+import com.powerunit.core.designsystem.theme.SuccessDark
 import com.powerunit.core.designsystem.theme.SuccessLight
 import com.powerunit.core.update.AppUpdateInstaller
 import com.powerunit.core.update.model.UpdateInfo
+import com.powerunit.core.update.model.UpdatePhase
 import com.powerunit.core.update.model.UpdateState
 import java.io.File
 import java.util.Locale
@@ -104,9 +102,10 @@ fun AppUpdateBottomSheet(
     onInstall: (File) -> Unit,
     onDismiss: () -> Unit,
     installer: AppUpdateInstaller,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onRetry: (UpdateInfo?) -> Unit = {}
 ) {
-    if (state is UpdateState.Idle || state is UpdateState.UpToDate) return
+    if (state is UpdateState.Idle) return
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val context = LocalContext.current
@@ -130,7 +129,7 @@ fun AppUpdateBottomSheet(
                     .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
             )
         },
-        modifier = modifier
+        modifier = modifier.testTag("app_update_bottom_sheet")
     ) {
         Column(
             modifier = Modifier
@@ -139,50 +138,68 @@ fun AppUpdateBottomSheet(
                 .padding(bottom = Dimens.spacingXl),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // Key AnimatedContent ONLY on UpdatePhase to prevent recomposition storms / flickering during download
             AnimatedContent(
-                targetState = state,
+                targetState = state.phase,
                 transitionSpec = {
-                    (slideInVertically { height -> height / 2 } + fadeIn(tween(300)))
-                        .togetherWith(slideOutVertically { height -> -height / 2 } + fadeOut(tween(250)))
+                    fadeIn(tween(200)).togetherWith(fadeOut(tween(150)))
                 },
-                label = "UpdateStateContent"
-            ) { targetState ->
-                when (targetState) {
-                    is UpdateState.Checking -> {
+                label = "UpdatePhaseTransition"
+            ) { phase ->
+                when (phase) {
+                    UpdatePhase.CHECKING -> {
                         CheckingContent()
                     }
-                    is UpdateState.Available -> {
-                        UpdateAvailableContent(
-                            info = targetState.info,
-                            onUpdate = { onStartDownload(targetState.info) },
+                    UpdatePhase.UP_TO_DATE -> {
+                        UpToDateContent(
+                            currentVersion = BuildConfig.VERSION_NAME,
                             onDismiss = onDismiss
                         )
                     }
-                    is UpdateState.Downloading -> {
-                        DownloadingContent(
-                            info = targetState.info,
-                            progress = targetState.progress,
-                            downloadedBytes = targetState.downloadedBytes,
-                            totalBytes = targetState.totalBytes,
-                            speed = targetState.speedBytesPerSec,
-                            onCancel = onCancelDownload
-                        )
+                    UpdatePhase.AVAILABLE -> {
+                        val info = (state as? UpdateState.Available)?.info
+                        if (info != null) {
+                            UpdateAvailableContent(
+                                info = info,
+                                onUpdate = { onStartDownload(info) },
+                                onDismiss = onDismiss
+                            )
+                        }
                     }
-                    is UpdateState.ReadyToInstall -> {
-                        ReadyToInstallContent(
-                            info = targetState.info,
-                            installer = installer,
-                            context = context,
-                            onInstall = { onInstall(targetState.apkFile) }
-                        )
+                    UpdatePhase.DOWNLOADING -> {
+                        val downloadingState = state as? UpdateState.Downloading
+                        if (downloadingState != null) {
+                            DownloadingContent(
+                                info = downloadingState.info,
+                                progress = downloadingState.progress,
+                                downloadedBytes = downloadingState.downloadedBytes,
+                                totalBytes = downloadingState.totalBytes,
+                                speed = downloadingState.speedBytesPerSec,
+                                onCancel = onCancelDownload
+                            )
+                        }
                     }
-                    is UpdateState.Error -> {
+                    UpdatePhase.READY_TO_INSTALL -> {
+                        val readyState = state as? UpdateState.ReadyToInstall
+                        if (readyState != null) {
+                            ReadyToInstallContent(
+                                info = readyState.info,
+                                installer = installer,
+                                context = context,
+                                onInstall = { onInstall(readyState.apkFile) }
+                            )
+                        }
+                    }
+                    UpdatePhase.ERROR -> {
+                        val errorState = state as? UpdateState.Error
                         ErrorContent(
-                            message = targetState.message,
+                            message = errorState?.message ?: "An unexpected error occurred",
+                            canRetry = errorState?.canRetry ?: true,
+                            onRetry = { onRetry(errorState?.failedInfo) },
                             onDismiss = onDismiss
                         )
                     }
-                    else -> Unit
+                    null -> Unit
                 }
             }
         }
@@ -194,13 +211,14 @@ private fun CheckingContent() {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = Dimens.spacingXl),
+            .padding(vertical = Dimens.spacingXl)
+            .testTag("update_checking_content"),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         val infiniteTransition = rememberInfiniteTransition(label = "pulse")
         val pulseScale by infiniteTransition.animateFloat(
-            initialValue = 0.92f,
-            targetValue = 1.08f,
+            initialValue = 0.94f,
+            targetValue = 1.06f,
             animationSpec = infiniteRepeatable(
                 animation = tween(900, easing = FastOutSlowInEasing),
                 repeatMode = RepeatMode.Reverse
@@ -210,23 +228,24 @@ private fun CheckingContent() {
 
         Box(
             modifier = Modifier
-                .size(72.dp)
+                .size(68.dp)
                 .scale(pulseScale)
                 .clip(CircleShape)
-                .background(HeroGradientLight),
+                .background(MaterialTheme.colorScheme.primaryContainer),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.Default.SystemUpdate,
                 contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(36.dp)
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(32.dp)
             )
         }
         Spacer(modifier = Modifier.height(Dimens.spacingMd))
         Text(
             text = stringResource(R.string.update_checking_title),
             style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface
         )
         Spacer(modifier = Modifier.height(Dimens.xxs))
@@ -235,6 +254,80 @@ private fun CheckingContent() {
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+        Spacer(modifier = Modifier.height(Dimens.spacingLg))
+        CircularProgressIndicator(
+            modifier = Modifier.size(28.dp),
+            strokeWidth = 3.dp,
+            color = MaterialTheme.colorScheme.primary
+        )
+    }
+}
+
+@Composable
+private fun UpToDateContent(
+    currentVersion: String,
+    onDismiss: () -> Unit
+) {
+    val successColor = if (MaterialTheme.colorScheme.surface.isLight()) SuccessLight else SuccessDark
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = Dimens.spacingLg)
+            .testTag("update_up_to_date_content"),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Box(
+            modifier = Modifier
+                .size(68.dp)
+                .clip(CircleShape)
+                .background(successColor.copy(alpha = 0.15f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.CheckCircle,
+                contentDescription = null,
+                tint = successColor,
+                modifier = Modifier.size(36.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(Dimens.spacingMd))
+
+        Text(
+            text = stringResource(R.string.update_up_to_date_title),
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(Dimens.xs))
+
+        Text(
+            text = stringResource(R.string.update_up_to_date_subtitle, currentVersion),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(Dimens.spacingXl))
+
+        Button(
+            onClick = onDismiss,
+            shape = PillShape,
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(Dimens.buttonHeightPrimary)
+                .testTag("update_up_to_date_btn")
+        ) {
+            Text(
+                text = stringResource(R.string.update_btn_ok),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onPrimary
+            )
+        }
     }
 }
 
@@ -245,21 +338,22 @@ private fun UpdateAvailableContent(
     onDismiss: () -> Unit
 ) {
     Column(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("update_available_content"),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Floating Hero Icon
         Box(
             modifier = Modifier
                 .size(68.dp)
                 .clip(CircleShape)
-                .background(HeroGradientLight),
+                .background(MaterialTheme.colorScheme.primaryContainer),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.Default.RocketLaunch,
                 contentDescription = null,
-                tint = Color.White,
+                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(32.dp)
             )
         }
@@ -268,12 +362,12 @@ private fun UpdateAvailableContent(
 
         Text(
             text = stringResource(R.string.update_available_title),
-            style = MaterialTheme.typography.headlineMedium,
+            style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onSurface,
             fontWeight = FontWeight.Bold
         )
 
-        Spacer(modifier = Modifier.height(Dimens.xxs))
+        Spacer(modifier = Modifier.height(Dimens.xs))
 
         // Version Comparison Pill
         Row(
@@ -316,7 +410,7 @@ private fun UpdateAvailableContent(
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(140.dp),
+                .height(130.dp),
             shape = CardShape,
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
             border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
@@ -329,7 +423,7 @@ private fun UpdateAvailableContent(
             ) {
                 Text(
                     text = stringResource(R.string.update_changelog_title),
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -351,7 +445,7 @@ private fun UpdateAvailableContent(
         ) {
             OutlinedButton(
                 onClick = onDismiss,
-                shape = ButtonShape,
+                shape = PillShape,
                 modifier = Modifier
                     .weight(1f)
                     .height(Dimens.buttonHeightPrimary)
@@ -364,11 +458,12 @@ private fun UpdateAvailableContent(
 
             Button(
                 onClick = onUpdate,
-                shape = ButtonShape,
+                shape = PillShape,
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                 modifier = Modifier
                     .weight(1.5f)
                     .height(Dimens.buttonHeightPrimary)
+                    .testTag("update_download_btn")
             ) {
                 Icon(
                     imageVector = Icons.Default.CloudDownload,
@@ -403,8 +498,8 @@ private fun DownloadingContent(
 
     val infiniteTransition = rememberInfiniteTransition(label = "rocketBobbing")
     val bobOffset by infiniteTransition.animateFloat(
-        initialValue = -4f,
-        targetValue = 4f,
+        initialValue = -3f,
+        targetValue = 3f,
         animationSpec = infiniteRepeatable(
             animation = tween(800, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
@@ -412,18 +507,10 @@ private fun DownloadingContent(
         label = "bobOffset"
     )
 
-    val haloPulse by infiniteTransition.animateFloat(
-        initialValue = 0.15f,
-        targetValue = 0.40f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1000, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "haloPulse"
-    )
-
     Column(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("update_downloading_content"),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
@@ -441,27 +528,18 @@ private fun DownloadingContent(
 
         Spacer(modifier = Modifier.height(Dimens.spacingSm))
 
-        // Center Animated Radial Progress Ring
         val primaryColor = MaterialTheme.colorScheme.primary
         val secondaryColor = MaterialTheme.colorScheme.secondary
         val trackColor = MaterialTheme.colorScheme.surfaceVariant
 
         Box(
-            modifier = Modifier.size(150.dp),
+            modifier = Modifier.size(140.dp),
             contentAlignment = Alignment.Center
         ) {
-            Canvas(modifier = Modifier.size(140.dp)) {
+            Canvas(modifier = Modifier.size(130.dp)) {
                 val strokeWidth = 10.dp.toPx()
                 val radius = (size.minDimension - strokeWidth) / 2
                 val centerPt = this.center
-
-                // Ambient glowing halo
-                drawCircle(
-                    color = primaryColor.copy(alpha = haloPulse),
-                    radius = radius + 6.dp.toPx(),
-                    center = centerPt,
-                    style = Stroke(width = 6.dp.toPx())
-                )
 
                 // Track
                 drawCircle(
@@ -488,17 +566,15 @@ private fun DownloadingContent(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                // Bobbing rocket icon
                 Icon(
                     imageVector = Icons.Default.CloudDownload,
                     contentDescription = null,
                     tint = primaryColor,
                     modifier = Modifier
-                        .size(28.dp)
+                        .size(24.dp)
                         .offset(y = bobOffset.dp)
                 )
                 Spacer(modifier = Modifier.height(2.dp))
-                // Percentage Counter
                 val percentInt = (animatedProgress * 100).toInt()
                 Text(
                     text = "$percentInt%",
@@ -532,7 +608,7 @@ private fun DownloadingContent(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = if (speed > 0) "${formatSpeed(speed)}" else stringResource(R.string.update_status_downloading),
+                        text = if (speed > 0) formatSpeed(speed) else stringResource(R.string.update_status_downloading),
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.secondary
@@ -541,7 +617,6 @@ private fun DownloadingContent(
 
                 Spacer(modifier = Modifier.height(Dimens.xs))
 
-                // Smooth linear progress indicator
                 LinearProgressIndicator(
                     progress = { animatedProgress },
                     modifier = Modifier
@@ -554,9 +629,8 @@ private fun DownloadingContent(
             }
         }
 
-        Spacer(modifier = Modifier.height(Dimens.spacingMd))
+        Spacer(modifier = Modifier.height(Dimens.spacingSm))
 
-        // Cancel Button
         TextButton(
             onClick = onCancel,
             modifier = Modifier.height(Dimens.buttonHeightCompact)
@@ -577,6 +651,7 @@ private fun ReadyToInstallContent(
     context: Context,
     onInstall: () -> Unit
 ) {
+    val successColor = if (MaterialTheme.colorScheme.surface.isLight()) SuccessLight else SuccessDark
     var canInstall by remember { mutableStateOf(installer.canInstallApks()) }
     val lifecycleOwner = LocalLifecycleOwner.current
 
@@ -602,32 +677,24 @@ private fun ReadyToInstallContent(
         }
     }
 
-    val checkScale by animateFloatAsState(
-        targetValue = 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow
-        ),
-        label = "checkScale"
-    )
-
     Column(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("update_ready_content"),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Box(
             modifier = Modifier
-                .size(80.dp)
-                .scale(checkScale)
+                .size(68.dp)
                 .clip(CircleShape)
-                .background(SuccessLight),
+                .background(successColor.copy(alpha = 0.15f)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.Default.CheckCircle,
                 contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(48.dp)
+                tint = successColor,
+                modifier = Modifier.size(36.dp)
             )
         }
 
@@ -635,7 +702,7 @@ private fun ReadyToInstallContent(
 
         Text(
             text = stringResource(R.string.update_ready_title),
-            style = MaterialTheme.typography.headlineMedium,
+            style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface
         )
@@ -688,7 +755,7 @@ private fun ReadyToInstallContent(
                     val intent = installer.requestInstallPermission()
                     try {
                         permissionLauncher.launch(intent)
-                    } catch (e: Exception) {
+                    } catch (_: Exception) {
                         if (context !is android.app.Activity) {
                             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                         }
@@ -696,11 +763,12 @@ private fun ReadyToInstallContent(
                     }
                 }
             },
-            shape = ButtonShape,
-            colors = ButtonDefaults.buttonColors(containerColor = SuccessLight),
+            shape = PillShape,
+            colors = ButtonDefaults.buttonColors(containerColor = successColor),
             modifier = Modifier
                 .fillMaxWidth()
                 .height(Dimens.buttonHeightPrimary)
+                .testTag("update_install_btn")
         ) {
             Text(
                 text = if (canInstall) {
@@ -718,15 +786,19 @@ private fun ReadyToInstallContent(
 @Composable
 private fun ErrorContent(
     message: String,
+    canRetry: Boolean,
+    onRetry: () -> Unit,
     onDismiss: () -> Unit
 ) {
     Column(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("update_error_content"),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Box(
             modifier = Modifier
-                .size(64.dp)
+                .size(68.dp)
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.errorContainer),
             contentAlignment = Alignment.Center
@@ -739,11 +811,12 @@ private fun ErrorContent(
             )
         }
 
-        Spacer(modifier = Modifier.height(Dimens.spacingSm))
+        Spacer(modifier = Modifier.height(Dimens.spacingMd))
 
         Text(
             text = stringResource(R.string.update_error_title),
             style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface
         )
 
@@ -758,16 +831,53 @@ private fun ErrorContent(
 
         Spacer(modifier = Modifier.height(Dimens.spacingLg))
 
-        Button(
-            onClick = onDismiss,
-            shape = ButtonShape,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(Dimens.buttonHeightPrimary)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(Dimens.spacingSm)
         ) {
-            Text(text = stringResource(R.string.update_btn_ok))
+            OutlinedButton(
+                onClick = onDismiss,
+                shape = PillShape,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(Dimens.buttonHeightPrimary)
+            ) {
+                Text(
+                    text = stringResource(R.string.update_btn_cancel),
+                    style = MaterialTheme.typography.labelLarge
+                )
+            }
+
+            if (canRetry) {
+                Button(
+                    onClick = onRetry,
+                    shape = PillShape,
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(Dimens.buttonHeightPrimary)
+                        .testTag("update_retry_btn")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = null,
+                        modifier = Modifier.size(Dimens.iconSizeSmall)
+                    )
+                    Spacer(modifier = Modifier.width(Dimens.xs))
+                    Text(
+                        text = stringResource(R.string.update_btn_retry),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                }
+            }
         }
     }
+}
+
+private fun Color.isLight(): Boolean {
+    val luminance = 0.299 * red + 0.587 * green + 0.114 * blue
+    return luminance > 0.5
 }
 
 private fun formatBytes(bytes: Long): String {

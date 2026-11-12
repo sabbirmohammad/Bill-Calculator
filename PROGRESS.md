@@ -374,3 +374,32 @@ Offline-first, privacy-focused Android electricity tracker and bill calculator t
 - **Status**: Completed.
 
 
+
+
+### Issue 1: Settings > Update (Custom Design System Sheet, Flicker Elimination, SHA-256 Verification)
+- **Root Cause**:
+  1. "You are already on the latest version" and other states triggered plain snackbars or system-looking dialogs instead of an integrated, branded WattWise modal sheet matching the Design System tokens.
+  2. The downloading sheet flickered because `AnimatedContent(targetState = state)` was keyed directly on `UpdateState`. Since `UpdateState.Downloading` emitted new byte counts 10–20 times per second with new object references, `AnimatedContent` constantly triggered entrance/exit layout animations, restarting transitions continuously.
+  3. The update flow lacked robust integrity verification: no SHA-256 asset checksum comparison or file size validation against GitHub Release assets, and no guided unknown apps installation handling.
+- **Fix Details**:
+  1. **Custom WattWise-Themed Bottom Sheet (`AppUpdateBottomSheet.kt`)**:
+     - Standardized on 28dp rounded top corners (`AppShapes.extraLarge` / `RoundedCornerShape(28.dp)`), themed icon wells (48dp circular surfaceVariant container with primary/success icons), `titleLarge`, `bodyMedium`, and full-width pill buttons (`AppShapes.pill`).
+     - Built dedicated design states: `Checking` (circular progress), `UpToDate` (success check-circle well + "Got It" button), `Available` (version badge, release notes card, download size, pill download action), `Downloading` (smooth animated progress bar + percentage), `ReadyToInstall` (install guidance), and `Error` (alert well with clear reason and Retry button).
+  2. **Flicker Elimination**:
+     - Keyed `AnimatedContent` on `UpdatePhase` (`state.phase`) rather than `UpdateState` instances. During the `DOWNLOADING` phase, the container remains completely stable.
+     - Animated progress bar value smoothly using `animateFloatAsState(progress, spring(stiffness = Spring.StiffnessLow))`.
+     - Throttled progress emissions in `AppUpdateDownloader` to at most every 150ms and only on percentage integer change.
+  3. **Integrity & Security**:
+     - Automated SHA-256 asset discovery and validation in `GitHubUpdateService` (`findShaAsset` / `fetchShaText`).
+     - Strict size and digest verification in `AppUpdateDownloader.kt` before declaring `UpdateState.ReadyToInstall`.
+  4. **Automated Testing & Emulator Verification**:
+     - Unit tests in `AppUpdateDownloaderTest.kt` verifying SHA-256 calculation and mismatch detection.
+     - Instrumented tests in `AppUpdateSheetTest.kt` testing `UpToDate`, `Available`, and smooth `Downloading` states on `emulator-5554`.
+     - Captured emulator screenshots in light and dark mode: `screenshots/issue1_update_sheet.png`, `screenshots/issue1_update_sheet_dark.png`.
+- **Verification**:
+  - `./gradlew assembleDebug`: Passed.
+  - `./gradlew detekt ktlintCheck`: Passed (0 errors, 0 warnings).
+  - `./gradlew testDebugUnitTest`: Passed (106/106 tests passed).
+  - `./gradlew connectedDebugAndroidTest`: Passed (3/3 tests passed in `AppUpdateSheetTest`).
+  - Emulator verification: Verified custom bottom sheet for "You're on the Latest Version" with "Got It" dismiss button in light and dark mode.
+- **Status**: Completed.

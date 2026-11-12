@@ -54,6 +54,9 @@ class GitHubUpdateService @Inject constructor() {
                         val currentClean = cleanVersion(currentVersion)
 
                         if (isNewerVersion(remoteVersion, currentClean)) {
+                            val shaAsset = findShaAsset(release.assets)
+                            val expectedSha256 = shaAsset?.let { fetchShaText(it.downloadUrl) }
+
                             updateInfo = UpdateInfo(
                                 currentVersion = currentVersion,
                                 newVersion = remoteVersion,
@@ -61,7 +64,9 @@ class GitHubUpdateService @Inject constructor() {
                                 releaseNotes = release.body?.trim().orEmpty().ifEmpty { "Performance updates and bug fixes." },
                                 downloadUrl = apkAsset.downloadUrl,
                                 apkSize = apkAsset.size,
-                                publishedAt = release.publishedAt.orEmpty()
+                                publishedAt = release.publishedAt.orEmpty(),
+                                sha256Url = shaAsset?.downloadUrl,
+                                expectedSha256 = expectedSha256
                             )
                         } else {
                             return@runCatching null // Already on latest version
@@ -143,6 +148,34 @@ class GitHubUpdateService @Inject constructor() {
         return apks.firstOrNull { it.name.contains("WattWise", ignoreCase = true) }
             ?: apks.firstOrNull { !it.name.contains("unsigned", ignoreCase = true) }
             ?: apks.first()
+    }
+
+    private fun findShaAsset(assets: List<GitHubAsset>): GitHubAsset? {
+        return assets.firstOrNull {
+            it.name.endsWith(".sha256", ignoreCase = true) ||
+                it.name.endsWith(".sha256.txt", ignoreCase = true) ||
+                it.name.equals("sha256sums", ignoreCase = true) ||
+                it.name.equals("checksums.txt", ignoreCase = true)
+        }
+    }
+
+    private fun fetchShaText(url: String): String? {
+        return try {
+            val conn = (URL(url).openConnection() as HttpURLConnection).apply {
+                requestMethod = "GET"
+                connectTimeout = 5000
+                readTimeout = 5000
+                setRequestProperty("User-Agent", "WattWise-App-Updater")
+            }
+            if (conn.responseCode in 200..299) {
+                val text = BufferedReader(InputStreamReader(conn.inputStream)).use { it.readText() }
+                Regex("[a-fA-F0-9]{64}").find(text)?.value
+            } else {
+                null
+            }
+        } catch (_: Exception) {
+            null
+        }
     }
 
     companion object {

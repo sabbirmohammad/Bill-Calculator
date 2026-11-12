@@ -96,18 +96,8 @@ fun PowerUnitAppScaffold(
     val currentRoute = navBackStackEntry?.destination?.route
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    val context = LocalContext.current
 
     val updateState by updateViewModel.updateState.collectAsState()
-
-    LaunchedEffect(updateState) {
-        if (updateState is UpdateState.UpToDate) {
-            snackbarHostState.showSnackbar(
-                message = context.getString(R.string.update_up_to_date)
-            )
-            updateViewModel.dismiss()
-        }
-    }
 
     val configuration = LocalConfiguration.current
     val isTablet = configuration.screenWidthDp >= 600
@@ -174,6 +164,7 @@ fun PowerUnitAppScaffold(
         onStartDownload = { info -> updateViewModel.startDownload(info) },
         onCancelDownload = { updateViewModel.cancelDownload() },
         onInstall = { apkFile -> updateViewModel.installApk(apkFile) },
+        onRetry = { failedInfo -> updateViewModel.retry(failedInfo) },
         onDismiss = { updateViewModel.dismiss() },
         installer = updateViewModel.updateManager.installer
     )

@@ -29,12 +29,24 @@ data class UpdateInfo(
     val releaseNotes: String,
     val downloadUrl: String,
     val apkSize: Long,
-    val publishedAt: String
+    val publishedAt: String,
+    val sha256Url: String? = null,
+    val expectedSha256: String? = null
 )
+
+enum class UpdatePhase {
+    CHECKING,
+    UP_TO_DATE,
+    AVAILABLE,
+    DOWNLOADING,
+    READY_TO_INSTALL,
+    ERROR
+}
 
 sealed interface UpdateState {
     data object Idle : UpdateState
     data object Checking : UpdateState
+    data object UpToDate : UpdateState
     data class Available(val info: UpdateInfo) : UpdateState
     data class Downloading(
         val info: UpdateInfo,
@@ -49,7 +61,18 @@ sealed interface UpdateState {
     ) : UpdateState
     data class Error(
         val message: String,
-        val canRetry: Boolean = true
+        val canRetry: Boolean = true,
+        val failedInfo: UpdateInfo? = null
     ) : UpdateState
-    data object UpToDate : UpdateState
+
+    val phase: UpdatePhase?
+        get() = when (this) {
+            is Idle -> null
+            is Checking -> UpdatePhase.CHECKING
+            is UpToDate -> UpdatePhase.UP_TO_DATE
+            is Available -> UpdatePhase.AVAILABLE
+            is Downloading -> UpdatePhase.DOWNLOADING
+            is ReadyToInstall -> UpdatePhase.READY_TO_INSTALL
+            is Error -> UpdatePhase.ERROR
+        }
 }

@@ -4,6 +4,8 @@ import android.view.WindowManager
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -52,6 +54,9 @@ class SecurityAndPrivacyTest {
         // 3. Test FLAG_SECURE toggle
         composeTestRule.onNodeWithTag("block_screenshots_switch").performClick()
         composeTestRule.waitForIdle()
+        composeTestRule.waitUntil(5000) {
+            (composeTestRule.activity.window.attributes.flags and WindowManager.LayoutParams.FLAG_SECURE) != 0
+        }
 
         var flags = composeTestRule.activity.window.attributes.flags
         val hasSecureFlag = (flags and WindowManager.LayoutParams.FLAG_SECURE) != 0
@@ -60,6 +65,9 @@ class SecurityAndPrivacyTest {
         // Toggle it back off
         composeTestRule.onNodeWithTag("block_screenshots_switch").performClick()
         composeTestRule.waitForIdle()
+        composeTestRule.waitUntil(5000) {
+            (composeTestRule.activity.window.attributes.flags and WindowManager.LayoutParams.FLAG_SECURE) == 0
+        }
         flags = composeTestRule.activity.window.attributes.flags
         assertEquals("Window should not have FLAG_SECURE set", 0, flags and WindowManager.LayoutParams.FLAG_SECURE)
 
@@ -71,7 +79,7 @@ class SecurityAndPrivacyTest {
         composeTestRule.onNodeWithTag("nav_home").performClick()
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithTag("dashboard_hero_card").assertIsDisplayed()
-        composeTestRule.onNodeWithText("৳ ••••").assertIsDisplayed()
+        composeTestRule.onAllNodesWithText("৳ ••••").onFirst().assertIsDisplayed()
 
         // Turn Privacy Mode back off for clean state
         composeTestRule.onNodeWithTag("nav_settings").performClick()

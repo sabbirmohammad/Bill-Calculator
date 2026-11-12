@@ -189,8 +189,11 @@
     <string name="update_btn_grant_permission">Grant Install Permission</string>
     <string name="update_btn_install_now">Install Now</string>
     <string name="update_error_title">Update Failed</string>
-    <string name="update_btn_ok">OK</string>
+    <string name="update_btn_ok">Got It</string>
+    <string name="update_btn_retry">Retry</string>
     <string name="update_up_to_date">You are already on the latest version!</string>
+    <string name="update_up_to_date_title">You\'re on the Latest Version</string>
+    <string name="update_up_to_date_subtitle">WattWise v%1$s is up to date. You have the newest features and improvements.</string>
     <string name="settings_section_updates">App Updates</string>
     <string name="settings_check_updates">Check for Updates</string>
     <string name="settings_auto_update">Auto-check on Startup</string>

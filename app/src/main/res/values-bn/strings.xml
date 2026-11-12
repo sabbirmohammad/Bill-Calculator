@@ -189,8 +189,11 @@
     <string name="update_btn_grant_permission">ইনস্টল করার অনুমতি দিন</string>
     <string name="update_btn_install_now">এখনই ইনস্টল করুন</string>
     <string name="update_error_title">আপডেট ব্যর্থ হয়েছে</string>
-    <string name="update_btn_ok">ঠিক আছে</string>
+    <string name="update_btn_ok">বুঝেছি</string>
+    <string name="update_btn_retry">আবার চেষ্টা করুন</string>
     <string name="update_up_to_date">আপনি ইতিমধ্যেই সর্বশেষ সংস্করণে আছেন!</string>
+    <string name="update_up_to_date_title">আপনি সর্বশেষ সংস্করণে আছেন</string>
+    <string name="update_up_to_date_subtitle">WattWise v%1$s সম্পূর্ণ আপ-টু-ডেট। আপনার কাছে সর্বশেষ সুবিধা রয়েছে।</string>
     <string name="settings_section_updates">অ্যাপ আপডেট</string>
     <string name="settings_check_updates">আপডেট চেক করুন</string>
     <string name="settings_auto_update">অ্যাপ চালুর সময় স্বয়ংক্রিয় চেক</string>

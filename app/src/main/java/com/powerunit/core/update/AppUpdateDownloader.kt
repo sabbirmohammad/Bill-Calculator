@@ -18,6 +18,8 @@ class AppUpdateDownloader @Inject constructor() {
     suspend fun downloadApk(
         downloadUrl: String,
         targetFile: File,
+        expectedSize: Long = 0L,
+        expectedSha256: String? = null,
         onProgress: (bytesDownloaded: Long, totalBytes: Long, speedBytesPerSec: Long) -> Unit
     ): Result<File> = withContext(Dispatchers.IO) {
         runCatching {
@@ -27,7 +29,7 @@ class AppUpdateDownloader @Inject constructor() {
             }
 
             val connection = openRedirectedConnection(downloadUrl)
-            val totalBytes = connection.contentLengthLong.takeIf { it > 0 } ?: -1L
+            val totalBytes = connection.contentLengthLong.takeIf { it > 0 } ?: expectedSize.takeIf { it > 0 } ?: -1L
 
             try {
                 connection.inputStream.use { input ->
@@ -40,6 +42,27 @@ class AppUpdateDownloader @Inject constructor() {
             check(targetFile.exists() && targetFile.length() > 0L) {
                 targetFile.delete()
                 "Downloaded APK file is empty or missing"
+            }
+
+            if (expectedSize > 0L && targetFile.length() != expectedSize) {
+                targetFile.delete()
+                error("APK size mismatch: expected $expectedSize, got ${targetFile.length()}")
+            }
+
+            if (!expectedSha256.isNullOrBlank()) {
+                val digest = java.security.MessageDigest.getInstance("SHA-256")
+                targetFile.inputStream().use { input ->
+                    val buf = ByteArray(8192)
+                    var read: Int
+                    while (input.read(buf).also { read = it } != -1) {
+                        digest.update(buf, 0, read)
+                    }
+                }
+                val computedHash = digest.digest().joinToString("") { "%02x".format(it) }
+                if (!computedHash.equals(expectedSha256.trim(), ignoreCase = true)) {
+                    targetFile.delete()
+                    error("SHA-256 checksum verification failed (expected: $expectedSha256, computed: $computedHash)")
+                }
             }
 
             targetFile.setReadable(true, false)
@@ -101,6 +124,7 @@ class AppUpdateDownloader @Inject constructor() {
         var downloadedBytes = 0L
         var lastReportTime = System.currentTimeMillis()
         var bytesSinceLastReport = 0L
+        var lastReportedPercent = -1
 
         FileOutputStream(targetFile).use { outputStream ->
             val buffer = ByteArray(8192)
@@ -118,10 +142,12 @@ class AppUpdateDownloader @Inject constructor() {
 
                 val now = System.currentTimeMillis()
                 val timeDelta = now - lastReportTime
-                if (timeDelta >= 250) {
+                val percent = if (totalBytes > 0) ((downloadedBytes * 100) / totalBytes).toInt() else -1
+                if (timeDelta >= 150 && (percent != lastReportedPercent || totalBytes <= 0)) {
                     val currentSpeed = (bytesSinceLastReport * 1000L) / timeDelta
                     onProgress(downloadedBytes, totalBytes, currentSpeed)
                     lastReportTime = now
+                    lastReportedPercent = percent
                     bytesSinceLastReport = 0L
                 }
             }

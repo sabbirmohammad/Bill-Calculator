@@ -32,6 +32,10 @@ class AppUpdateViewModel @Inject constructor(
         updateManager.installApk(file, callerContext)
     }
 
+    fun retry(failedInfo: UpdateInfo? = null) {
+        updateManager.retry(failedInfo)
+    }
+
     fun dismiss() {
         updateManager.dismissUpdate()
     }

@@ -110,7 +110,9 @@ class AppUpdateManager @Inject constructor(
 
             val result = downloader.downloadApk(
                 downloadUrl = info.downloadUrl,
-                targetFile = targetFile
+                targetFile = targetFile,
+                expectedSize = info.apkSize,
+                expectedSha256 = info.expectedSha256
             ) { downloaded, total, speed ->
                 val progress = if (total > 0) {
                     (downloaded.toFloat() / total.toFloat()).coerceIn(0f, 1f)
@@ -135,7 +137,9 @@ class AppUpdateManager @Inject constructor(
                         _updateState.value = UpdateState.Available(info)
                     } else {
                         _updateState.value = UpdateState.Error(
-                            message = error.message ?: "Download failed"
+                            message = error.message ?: "Download failed",
+                            canRetry = true,
+                            failedInfo = info
                         )
                     }
                 }
@@ -160,6 +164,14 @@ class AppUpdateManager @Inject constructor(
             _updateState.value = UpdateState.Error(
                 message = error.localizedMessage ?: "Failed to launch installer"
             )
+        }
+    }
+
+    fun retry(failedInfo: UpdateInfo? = null) {
+        if (failedInfo != null) {
+            startDownload(failedInfo)
+        } else {
+            checkForUpdates(isManual = true)
         }
     }
 
