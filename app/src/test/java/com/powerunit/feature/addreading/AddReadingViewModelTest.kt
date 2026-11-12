@@ -9,6 +9,8 @@ import com.powerunit.domain.model.Reading
 import com.powerunit.domain.model.ReadingValidationResult
 import com.powerunit.domain.repository.MeterRepository
 import com.powerunit.domain.repository.ReadingRepository
+import com.powerunit.domain.repository.TariffRepository
+import com.powerunit.domain.usecase.CalculateBillUseCase
 import com.powerunit.domain.usecase.ValidateReadingUseCase
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -36,6 +38,8 @@ class AddReadingViewModelTest {
     private val meterRepository = mockk<MeterRepository>(relaxed = true)
     private val settingsPreferences = mockk<SettingsPreferences>(relaxed = true)
     private val validateReadingUseCase = ValidateReadingUseCase()
+    private val tariffRepository = mockk<TariffRepository>(relaxed = true)
+    private val calculateBillUseCase = CalculateBillUseCase()
 
     private val sampleMeter = Meter(
         id = 1L,
@@ -77,6 +81,8 @@ class AddReadingViewModelTest {
             meterRepository = meterRepository,
             validateReadingUseCase = validateReadingUseCase,
             settingsPreferences = settingsPreferences,
+            tariffRepository = tariffRepository,
+            calculateBillUseCase = calculateBillUseCase,
             savedStateHandle = savedStateHandle
         )
     }

@@ -214,4 +214,23 @@
     <string name="initial_reading_input_label">শুরুর রিডিং (kWh)</string>
     <string name="initial_reading_info_title">শুরুর বেইজলাইন রিডিং</string>
     <string name="initial_reading_info_banner">শুরুর বেইজলাইন রিডিং। পরবর্তী সমস্ত বিদ্যুৎ খরচ এই মান থেকে হিসাব করা হবে।</string>
+
+    <!-- Modern Add Reading & Success Celebration -->
+    <string name="reading_recorded_title">রিডিং সংরক্ষিত হয়েছে!</string>
+    <string name="reading_recorded_subtitle">বিদ্যুৎ খরচ ও আনুমানিক বিল আপডেট করা হয়েছে।</string>
+    <string name="quick_notes">কুইক নোট</string>
+    <string name="tag_ac">❄️ এসি বেশি চলেছে</string>
+    <string name="tag_guests">👥 মেহমান ছিল</string>
+    <string name="tag_outage">⚡ লোডশেডিং</string>
+    <string name="tag_away">🏠 বাইরে ছিলাম</string>
+    <string name="tag_normal">💡 স্বাভাবিক ব্যবহার</string>
+    <string name="today">আজ</string>
+    <string name="yesterday">গতকাল</string>
+    <string name="meter_reset_title">মিটার রিসেট বা পরিবর্তন</string>
+    <string name="meter_reset_desc">মিটার ০ তে ফিরে আসলে বা নতুন মিটার লাগালে অন করুন।</string>
+    <string name="meter_reset_warning_badge">এই নতুন রিডিং থেকে পরবর্তী খরচ গণনা করা হবে</string>
+    <string name="done">সম্পন্ন</string>
+    <string name="previous_reading_label">পূর্ববর্তী রিডিং</string>
+    <string name="current_meter_reading_label">বর্তমান মিটার রিডিং</string>
+    <string name="entry_date_and_time">রিডিংয়ের তারিখ ও সময়</string>
 </resources>

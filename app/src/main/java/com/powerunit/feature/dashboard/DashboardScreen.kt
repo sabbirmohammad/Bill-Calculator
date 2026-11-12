@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -43,6 +44,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.powerunit.R
 import com.powerunit.core.common.DateUtils
@@ -374,34 +376,47 @@ private fun MiniUsageBarChart(dailyUsages: List<DailyUsage>) {
         val maxUsage = dailyUsages.maxOfOrNull { it.units } ?: BigDecimal("10.0")
         val safeMax = if (maxUsage > BigDecimal.ZERO) maxUsage.toFloat() else 10f
 
-        Row(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(Dimens.cardPaddingStandard)
-                .height(96.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Bottom
+                .padding(
+                    horizontal = Dimens.cardPaddingStandard,
+                    vertical = Dimens.sm
+                )
         ) {
-            dailyUsages.forEach { day ->
-                val barFraction = (day.units.toFloat() / safeMax).coerceIn(0.05f, 1f)
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Bottom,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(0.6f)
-                            .height((72 * barFraction).dp)
-                            .clip(PillShape)
-                            .background(MaterialTheme.colorScheme.primary)
-                    )
-                    Spacer(modifier = Modifier.height(Dimens.xxs))
-                    Text(
-                        text = day.date.dayOfMonth.toString(),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+            val compact = maxWidth < 340.dp
+            val dayFontSize = if (compact) 9.sp else 11.sp
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(96.dp),
+                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                verticalAlignment = Alignment.Bottom
+            ) {
+                dailyUsages.forEach { day ->
+                    val barFraction = (day.units.toFloat() / safeMax).coerceIn(0.06f, 1f)
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Bottom,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(if (compact) 0.85f else 0.6f)
+                                .height((68 * barFraction).dp)
+                                .clip(PillShape)
+                                .background(MaterialTheme.colorScheme.primary)
+                        )
+                        Spacer(modifier = Modifier.height(Dimens.xxs))
+                        Text(
+                            text = day.date.dayOfMonth.toString(),
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = dayFontSize),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            softWrap = false
+                        )
+                    }
                 }
             }
         }

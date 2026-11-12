@@ -214,4 +214,23 @@
     <string name="initial_reading_input_label">Starting Reading (kWh)</string>
     <string name="initial_reading_info_title">Starting Baseline Reading</string>
     <string name="initial_reading_info_banner">This is your starting meter reading. Future consumption will be calculated from this baseline.</string>
+
+    <!-- Modern Add Reading & Success Celebration -->
+    <string name="reading_recorded_title">Reading Recorded!</string>
+    <string name="reading_recorded_subtitle">Consumption and billing estimates have been updated.</string>
+    <string name="quick_notes">Quick Note</string>
+    <string name="tag_ac">❄️ Heavy AC</string>
+    <string name="tag_guests">👥 Guests</string>
+    <string name="tag_outage">⚡ Loadshedding</string>
+    <string name="tag_away">🏠 Away</string>
+    <string name="tag_normal">💡 Normal</string>
+    <string name="today">Today</string>
+    <string name="yesterday">Yesterday</string>
+    <string name="meter_reset_title">Meter Reset or Replaced</string>
+    <string name="meter_reset_desc">Turn on if your meter rolled over to 0 or was replaced with a new unit.</string>
+    <string name="meter_reset_warning_badge">Consumption will calculate from this new reading</string>
+    <string name="done">Done</string>
+    <string name="previous_reading_label">Previous Reading</string>
+    <string name="current_meter_reading_label">CURRENT METER READING</string>
+    <string name="entry_date_and_time">Entry Date &amp; Time</string>
 </resources>

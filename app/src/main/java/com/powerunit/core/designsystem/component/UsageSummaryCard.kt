@@ -6,8 +6,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -30,10 +32,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.powerunit.R
 import com.powerunit.core.designsystem.theme.CardShape
 import com.powerunit.core.designsystem.theme.Dimens
 import com.powerunit.core.designsystem.theme.NumberMedium
@@ -42,6 +46,12 @@ import com.powerunit.core.designsystem.theme.VoltTrackTheme
 /**
  * Cohesive Usage Summary card displaying Today, Yesterday, and Daily Average
  * in a unified 3-column layout (or stacked 3-row layout when narrow or at large font scales).
+ *
+ * Responsiveness features:
+ * - Fluid sizing adapting to narrow widths (< 350dp) without layout overflow or text clipping.
+ * - Perfectly aligned header baselines, value baselines, and bottom slots across all columns.
+ * - Auto-compact TrendChip and scalable vertical divider.
+ * - Graceful transition to stacked rows when screen is very narrow (< 270dp) or font scale > 1.25x.
  */
 @Composable
 fun UsageSummaryCard(
@@ -51,7 +61,10 @@ fun UsageSummaryCard(
     modifier: Modifier = Modifier,
     unitSymbol: String = "kWh",
     todayTrendPercent: Double? = null,
-    useBengaliDigits: Boolean = false
+    useBengaliDigits: Boolean = false,
+    todayLabel: String = stringResource(R.string.today_usage),
+    yesterdayLabel: String = stringResource(R.string.yesterday_usage),
+    dailyAverageLabel: String = stringResource(R.string.daily_avg)
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -68,10 +81,18 @@ fun UsageSummaryCard(
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(Dimens.cardPaddingStandard)
+                .padding(
+                    horizontal = Dimens.cardPaddingStandard,
+                    vertical = Dimens.sm
+                )
         ) {
             val configuration = LocalConfiguration.current
-            val isStacked = maxWidth < 280.dp || configuration.fontScale > 1.3f
+            // Responsive layout thresholds:
+            // - Stacked mode on very narrow widths (<270dp) or large accessibility font scale (>1.25x)
+            // - Compact 3-column mode on standard mobile widths (<350dp) or moderate font scale (>1.05x)
+            val isStacked = maxWidth < 270.dp || configuration.fontScale > 1.25f
+            val isCompact = maxWidth < 350.dp || configuration.fontScale > 1.05f
+            val hasAnyTrend = todayTrendPercent != null
 
             if (isStacked) {
                 Column(
@@ -80,7 +101,7 @@ fun UsageSummaryCard(
                 ) {
                     UsageSummaryStackedRow(
                         icon = Icons.Default.CalendarToday,
-                        label = "Today",
+                        label = todayLabel,
                         value = todayUnits,
                         unit = unitSymbol,
                         trendPercent = todayTrendPercent,
@@ -92,7 +113,7 @@ fun UsageSummaryCard(
                     )
                     UsageSummaryStackedRow(
                         icon = Icons.Default.History,
-                        label = "Yesterday",
+                        label = yesterdayLabel,
                         value = yesterdayUnits,
                         unit = unitSymbol,
                         trendPercent = null,
@@ -104,7 +125,7 @@ fun UsageSummaryCard(
                     )
                     UsageSummaryStackedRow(
                         icon = Icons.Default.Speed,
-                        label = "Daily Avg",
+                        label = dailyAverageLabel,
                         value = dailyAverageUnits,
                         unit = unitSymbol,
                         trendPercent = null,
@@ -113,51 +134,61 @@ fun UsageSummaryCard(
                 }
             } else {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(IntrinsicSize.Min),
+                    verticalAlignment = Alignment.Top
                 ) {
                     UsageSummaryColumn(
                         modifier = Modifier.weight(1f),
                         icon = Icons.Default.CalendarToday,
-                        label = "Today",
+                        label = todayLabel,
                         value = todayUnits,
                         unit = unitSymbol,
                         trendPercent = todayTrendPercent,
-                        useBengaliDigits = useBengaliDigits
+                        hasAnyTrend = hasAnyTrend,
+                        useBengaliDigits = useBengaliDigits,
+                        isCompact = isCompact
                     )
 
                     Box(
                         modifier = Modifier
                             .width(1.dp)
-                            .height(52.dp)
+                            .fillMaxHeight()
+                            .padding(vertical = 4.dp)
                             .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))
                     )
 
                     UsageSummaryColumn(
                         modifier = Modifier.weight(1f),
                         icon = Icons.Default.History,
-                        label = "Yesterday",
+                        label = yesterdayLabel,
                         value = yesterdayUnits,
                         unit = unitSymbol,
                         trendPercent = null,
-                        useBengaliDigits = useBengaliDigits
+                        hasAnyTrend = hasAnyTrend,
+                        useBengaliDigits = useBengaliDigits,
+                        isCompact = isCompact
                     )
 
                     Box(
                         modifier = Modifier
                             .width(1.dp)
-                            .height(52.dp)
+                            .fillMaxHeight()
+                            .padding(vertical = 4.dp)
                             .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))
                     )
 
                     UsageSummaryColumn(
                         modifier = Modifier.weight(1f),
                         icon = Icons.Default.Speed,
-                        label = "Daily Avg",
+                        label = dailyAverageLabel,
                         value = dailyAverageUnits,
                         unit = unitSymbol,
                         trendPercent = null,
-                        useBengaliDigits = useBengaliDigits
+                        hasAnyTrend = hasAnyTrend,
+                        useBengaliDigits = useBengaliDigits,
+                        isCompact = isCompact
                     )
                 }
             }
@@ -173,19 +204,23 @@ private fun UsageSummaryColumn(
     value: String,
     unit: String,
     trendPercent: Double? = null,
-    useBengaliDigits: Boolean = false
+    hasAnyTrend: Boolean = false,
+    useBengaliDigits: Boolean = false,
+    isCompact: Boolean = false
 ) {
     Column(
-        modifier = modifier.padding(horizontal = Dimens.spacingXs),
-        horizontalAlignment = Alignment.CenterHorizontally
+        modifier = modifier.padding(horizontal = if (isCompact) 2.dp else Dimens.spacingXs),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Top
     ) {
+        // 1. Icon + Label
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
             Box(
                 modifier = Modifier
-                    .size(20.dp)
+                    .size(if (isCompact) 18.dp else 20.dp)
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
                 contentAlignment = Alignment.Center
@@ -193,14 +228,14 @@ private fun UsageSummaryColumn(
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    modifier = Modifier.size(12.dp),
+                    modifier = Modifier.size(if (isCompact) 10.dp else 12.dp),
                     tint = MaterialTheme.colorScheme.primary
                 )
             }
-            Spacer(modifier = Modifier.width(Dimens.xxs))
+            Spacer(modifier = Modifier.width(if (isCompact) 2.dp else Dimens.xxs))
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelMedium,
+                style = if (isCompact) MaterialTheme.typography.labelSmall else MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -209,19 +244,30 @@ private fun UsageSummaryColumn(
 
         Spacer(modifier = Modifier.height(Dimens.spacingXs))
 
+        // 2. Value + Unit
         Row(
             verticalAlignment = Alignment.Bottom,
             horizontalArrangement = Arrangement.Center
         ) {
+            val valueStyle = if (isCompact) {
+                MaterialTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontFeatureSettings = "tnum"
+                )
+            } else {
+                NumberMedium
+            }
+
             Text(
                 text = value,
-                style = NumberMedium,
+                style = valueStyle,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.alignByBaseline()
             )
-            Spacer(modifier = Modifier.width(Dimens.xxs))
+            Spacer(modifier = Modifier.width(if (isCompact) 2.dp else Dimens.xxs))
             Text(
                 text = unit,
                 style = MaterialTheme.typography.labelSmall,
@@ -231,12 +277,19 @@ private fun UsageSummaryColumn(
             )
         }
 
-        if (trendPercent != null) {
+        // 3. Trend slot - preserves uniform baseline across all 3 columns
+        if (hasAnyTrend) {
             Spacer(modifier = Modifier.height(Dimens.spacingXs))
-            TrendChip(
-                percent = trendPercent,
-                useBengaliDigits = useBengaliDigits
-            )
+            if (trendPercent != null) {
+                TrendChip(
+                    percent = trendPercent,
+                    useBengaliDigits = useBengaliDigits,
+                    compact = isCompact
+                )
+            } else {
+                // Reserve matching height so Yesterday and Daily Avg maintain identical vertical alignment
+                Spacer(modifier = Modifier.height(if (isCompact) 20.dp else 22.dp))
+            }
         }
     }
 }
@@ -276,7 +329,9 @@ private fun UsageSummaryStackedRow(
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
 
@@ -285,13 +340,16 @@ private fun UsageSummaryStackedRow(
                 text = value,
                 style = NumberMedium,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
             Spacer(modifier = Modifier.width(Dimens.xxs))
             Text(
                 text = unit,
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1
             )
             if (trendPercent != null) {
                 Spacer(modifier = Modifier.width(Dimens.spacingSm))
@@ -326,6 +384,49 @@ private fun PreviewUsageSummaryDark() {
             yesterdayUnits = "12.8",
             dailyAverageUnits = "11.5",
             todayTrendPercent = -4.2
+        )
+    }
+}
+
+@Preview(name = "UsageSummary - Narrow (320dp)", widthDp = 320, showBackground = true)
+@Composable
+private fun PreviewUsageSummaryNarrow() {
+    VoltTrackTheme(darkTheme = false) {
+        UsageSummaryCard(
+            todayUnits = "0.0",
+            yesterdayUnits = "15.0",
+            dailyAverageUnits = "10.0",
+            todayTrendPercent = -100.0
+        )
+    }
+}
+
+@Preview(name = "UsageSummary - Large Font", fontScale = 1.3f, showBackground = true)
+@Composable
+private fun PreviewUsageSummaryLargeFont() {
+    VoltTrackTheme(darkTheme = false) {
+        UsageSummaryCard(
+            todayUnits = "14.2",
+            yesterdayUnits = "12.8",
+            dailyAverageUnits = "11.5",
+            todayTrendPercent = -12.5
+        )
+    }
+}
+
+@Preview(name = "UsageSummary - Bangla", showBackground = true)
+@Composable
+private fun PreviewUsageSummaryBangla() {
+    VoltTrackTheme {
+        UsageSummaryCard(
+            todayUnits = "১৪.২",
+            yesterdayUnits = "১২.৮",
+            dailyAverageUnits = "১১.৫",
+            todayTrendPercent = -100.0,
+            useBengaliDigits = true,
+            todayLabel = "আজ",
+            yesterdayLabel = "গতকাল",
+            dailyAverageLabel = "দৈনিক গড়"
         )
     }
 }
