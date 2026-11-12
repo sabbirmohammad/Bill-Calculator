@@ -26,7 +26,8 @@ class GitHubUpdateService @Inject constructor() {
         currentVersion: String
     ): Result<UpdateInfo?> = withContext(Dispatchers.IO) {
         runCatching {
-            val cleanRepo = repository.trim().trim('/').takeIf { it.isNotBlank() && it.contains('/') }
+            val cleanRepo = repository.trim().trim('/')
+                .takeIf { it.isNotBlank() && it.contains('/') && !it.contains("electricity-bill", ignoreCase = true) }
                 ?: "sabbirmohammad/Bill-Calculator"
 
             var updateInfo: UpdateInfo? = null

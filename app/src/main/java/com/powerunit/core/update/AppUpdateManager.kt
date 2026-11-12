@@ -48,7 +48,13 @@ class AppUpdateManager @Inject constructor(
                     return@launch
                 }
 
-                val repo = preferences.githubRepo.first()
+                val repo = preferences.githubRepo.first().let {
+                    if (it.isBlank() || it.contains("electricity-bill", ignoreCase = true) || !it.contains('/')) {
+                        SettingsPreferences.DEFAULT_GITHUB_REPO
+                    } else {
+                        it
+                    }
+                }
                 val currentVersion = BuildConfig.VERSION_NAME
 
                 val result = updateService.fetchLatestRelease(repo, currentVersion)

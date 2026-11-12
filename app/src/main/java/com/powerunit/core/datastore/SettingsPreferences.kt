@@ -54,7 +54,12 @@ class SettingsPreferences @Inject constructor(
     val dynamicColor: Flow<Boolean> = context.dataStore.data.map { it[KEY_DYNAMIC_COLOR] ?: false }
     val onboardingCompleted: Flow<Boolean> = context.dataStore.data.map { it[KEY_ONBOARDING_COMPLETED] ?: false }
     val githubRepo: Flow<String> = context.dataStore.data.map {
-        it[KEY_GITHUB_REPO]?.takeIf { repo -> repo.isNotBlank() && repo.contains('/') } ?: DEFAULT_GITHUB_REPO
+        val saved = it[KEY_GITHUB_REPO]
+        if (saved.isNullOrBlank() || saved.contains("electricity-bill", ignoreCase = true) || !saved.contains('/')) {
+            DEFAULT_GITHUB_REPO
+        } else {
+            saved
+        }
     }
     val autoCheckUpdates: Flow<Boolean> = context.dataStore.data.map { it[KEY_AUTO_CHECK_UPDATES] ?: true }
 
