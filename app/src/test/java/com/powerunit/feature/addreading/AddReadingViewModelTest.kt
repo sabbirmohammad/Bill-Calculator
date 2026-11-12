@@ -140,7 +140,7 @@ class AddReadingViewModelTest {
                     it.recordedAt == customInstant &&
                     it.note == "Initial Reading"
             })
-            meterRepository.saveMeter(match {
+            meterRepository.updateMeter(match {
                 it.startReading == BigDecimal("1500.0")
             })
             settingsPreferences.setOnboardingCompleted(true)

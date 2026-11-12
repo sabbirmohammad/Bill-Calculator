@@ -181,9 +181,12 @@ class AddReadingViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isSaving = true, showConfirmDialog = false) }
 
+            val activeMeter = meterRepository.getActiveMeterSync()
+            val effectiveMeterId = if (state.meterId > 0) state.meterId else (activeMeter?.id ?: 1L)
+
             val reading = Reading(
                 id = state.readingId ?: 0,
-                meterId = state.meterId,
+                meterId = effectiveMeterId,
                 readingValue = parsed.setScale(1, RoundingMode.HALF_UP),
                 recordedAt = state.recordedAt,
                 note = state.note.ifBlank { if (state.isInitialReading) "Initial Reading" else null },
@@ -198,9 +201,8 @@ class AddReadingViewModel @Inject constructor(
             } else {
                 readingRepository.saveReading(reading)
                 if (state.isInitialReading) {
-                    val activeMeter = meterRepository.getActiveMeterSync()
                     if (activeMeter != null) {
-                        meterRepository.saveMeter(activeMeter.copy(startReading = parsed))
+                        meterRepository.updateMeter(activeMeter.copy(startReading = parsed))
                     }
                     settingsPreferences.setOnboardingCompleted(true)
                 }
