@@ -58,7 +58,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -70,9 +69,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import com.powerunit.core.designsystem.component.WattWiseSwitch
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -839,15 +837,20 @@ private fun ModernQuickNotesSection(
 }
 
 /**
- * Modern Switch Card for Meter Reset or Replacement
+ * Modern Switch Card for Meter Reset or Replacement.
+ * The entire row is clickable (48dp+ touch target), with label on the left
+ * and unified WattWiseSwitch on the right.
  */
 @Composable
-private fun ModernMeterResetCard(
+internal fun ModernMeterResetCard(
     isMeterReset: Boolean,
     onMeterResetChange: (Boolean) -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("meter_reset_row")
+            .clickable { onMeterResetChange(!isMeterReset) },
         shape = CardShape,
         colors = CardDefaults.cardColors(
             containerColor = if (isMeterReset) MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f)
@@ -862,7 +865,9 @@ private fun ModernMeterResetCard(
             verticalArrangement = Arrangement.spacedBy(Dimens.xs)
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(androidx.compose.ui.unit.max(48.dp, Dimens.iconContainerSize)),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
@@ -901,25 +906,13 @@ private fun ModernMeterResetCard(
                     }
                 }
 
-                // Switch and Checkbox (retaining test tag for UI test)
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Switch(
-                        checked = isMeterReset,
-                        onCheckedChange = onMeterResetChange,
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = MaterialTheme.colorScheme.primary,
-                            checkedTrackColor = MaterialTheme.colorScheme.primaryContainer
-                        )
-                    )
-                    // Hidden/compact checkbox with exact testTag for automated UI tests
-                    Box(modifier = Modifier.size(0.dp)) {
-                        Checkbox(
-                            checked = isMeterReset,
-                            onCheckedChange = onMeterResetChange,
-                            modifier = Modifier.testTag("meter_reset_checkbox")
-                        )
-                    }
-                }
+                Spacer(modifier = Modifier.width(Dimens.spacingSm))
+
+                WattWiseSwitch(
+                    checked = isMeterReset,
+                    onCheckedChange = onMeterResetChange,
+                    modifier = Modifier.testTag("meter_reset_switch")
+                )
             }
 
             if (isMeterReset) {

@@ -403,3 +403,28 @@ Offline-first, privacy-focused Android electricity tracker and bill calculator t
   - `./gradlew connectedDebugAndroidTest`: Passed (3/3 tests passed in `AppUpdateSheetTest`).
   - Emulator verification: Verified custom bottom sheet for "You're on the Latest Version" with "Got It" dismiss button in light and dark mode.
 - **Status**: Completed.
+
+
+### Issue 2: Add Reading > "Meter reset or replaced" row (Eliminated Duplicate Checkbox, Unified Themed Switch)
+- **Root Cause**:
+  1. `AddReadingScreen.kt` had a legacy workaround in `ModernMeterResetCard` containing a `Switch` alongside a hidden `0.dp` `Checkbox` with test tag `meter_reset_checkbox` to maintain backwards compatibility with early phase tests.
+  2. The row relied on individual child clicks rather than a unified 48dp+ accessible touch target across the entire card row.
+  3. No other occurrences of duplicate checkbox + switch combinations existed across the project (verified via app-wide grep).
+- **Fix Details**:
+  1. **Complete Removal of Checkbox**:
+     - Removed `Checkbox` and `meter_reset_checkbox` entirely from `ModernMeterResetCard` in `AddReadingScreen.kt`.
+     - Removed unused `androidx.compose.material3.Checkbox` and `SwitchDefaults` imports.
+  2. **Unified Themed Control & Accessible Click Target**:
+     - Upgraded the toggle control to `WattWiseSwitch` with `testTag("meter_reset_switch")`.
+     - Made the entire `Card` clickable (`.clickable { onMeterResetChange(!isMeterReset) }` and `testTag("meter_reset_row")`), meeting the 48dp+ accessibility touch target standard.
+     - Formatted row with label, icon, and description on the left, and `WattWiseSwitch` on the right.
+  3. **Automated Testing & Emulator Verification**:
+     - Added instrumented test `meterResetRow_hasOnlySwitch_noCheckbox_andIsClickable` in `MeterResetRowTest.kt` asserting zero checkboxes exist, the switch is displayed, and clicking both the row and the switch toggles the state.
+     - Connected test passed on emulator (`1/1 tests completed (0 failed)`).
+     - Captured emulator screenshots in light, dark, and active toggled-on states: `screenshots/issue2_meter_reset_light.png`, `screenshots/issue2_meter_reset_dark.png`, `screenshots/issue2_meter_reset_toggled_on.png`.
+- **Verification**:
+  - `./gradlew detekt ktlintCheck`: Passed.
+  - `./gradlew testDebugUnitTest`: Passed (106/106 tests passed).
+  - `./gradlew connectedDebugAndroidTest`: Passed (1/1 tests passed in `MeterResetRowTest`).
+  - Emulator verification: Verified tap toggles state smoothly, checkbox absent, haptic feedback on switch.
+- **Status**: Completed.
