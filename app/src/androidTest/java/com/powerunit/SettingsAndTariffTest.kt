@@ -77,7 +77,7 @@ class SettingsAndTariffTest {
             .performScrollToNode(hasTestTag("settings_about_card"))
         composeTestRule.onNodeWithTag("settings_about_card").assertIsDisplayed()
         composeTestRule.onNodeWithText("WattWise").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Version 1.0.0 (build 28) • Debug").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Version ${BuildConfig.VERSION_NAME} (build ${BuildConfig.VERSION_CODE}) • Debug").assertIsDisplayed()
         composeTestRule.onNodeWithText("Build Date: ${BuildConfig.BUILD_DATE}").assertIsDisplayed()
     }
 }
