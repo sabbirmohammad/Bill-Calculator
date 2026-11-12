@@ -468,3 +468,64 @@ Offline-first, privacy-focused Android electricity tracker and bill calculator t
   - `./gradlew connectedDebugAndroidTest`: Passed (1/1 tests passed in `TariffPersistenceTest`).
   - Emulator verification: Verified month selector, diff confirmation dialog, and rate persistence across activity recreate.
 - **Status**: Completed.
+
+
+### Issue 4: ON/OFF Switch Colors (Unified Themed WattWiseSwitch Rollout)
+- **Root Cause**:
+  1. Default Material 3 `Switch` in the unchecked state shrinks the thumb down to 16dp and renders with low contrast (< 3:1 non-text contrast against background), looking washed out and unbranded in dark mode.
+  2. Multiple screens (`SettingsScreen`, `AddReadingScreen`) used raw Material 3 `Switch` directly without a consistent design-system-governed specification.
+- **Fix Details**:
+  1. **Themed Control Suite (`WattWiseControls.kt`)**:
+     - Built `WattWiseSwitch` with prominent 24dp thumb, 2dp outline border when OFF (`MaterialTheme.colorScheme.outline`), `surfaceContainerHighest` track, and high-visibility `onSurfaceVariant` thumb.
+     - ON state: `primary` track, `onPrimary` thumb with subtle checkmark icon for color-blind accessibility.
+     - Disabled state: 38% alpha on track, border, and thumb.
+     - Spring physics animation (`StiffnessLow`, `DampingRatioMediumBouncy`) and tactile haptic feedback (`TextHandleMove`) on toggle.
+     - Non-text contrast >= 3:1 in both light and dark themes against background and track.
+     - Also provided unified `WattWiseCheckbox` and `WattWiseRadioButton` sharing design tokens.
+  2. **App-Wide Adoption**:
+     - Replaced all raw `Switch` usages across `SettingsScreen.kt` (Reminders, Bengali Numerals, App Lock, Privacy Mode, Screenshot Block, Auto Updates) and `AddReadingScreen.kt`.
+     - Zero raw default `Switch` usages remain in the entire codebase.
+  3. **Verification**:
+     - Tested on emulator with `SettingsAndTariffTest`. Captured screenshots: `screenshots/issue4_5_settings_light.png`, `screenshots/issue4_5_settings_dark.png`.
+- **Status**: Completed.
+
+
+### Issue 5: Settings Page Heavy Text Streamlining
+- **Root Cause**:
+  1. `SettingsScreen.kt` contained paragraph-style text, repeated explanations, and heavy multi-sentence descriptions (e.g. detailed notification explanations, encryption algorithms, biometric instructions, and verbose data wipe dialogs).
+  2. Subtitles cluttered the visual hierarchy, causing high cognitive load and excessive vertical scrolling.
+- **Fix Details**:
+  1. **Text Audit & Reduction**:
+     - Standardized every settings row to: `icon + title + (short value or max 1-line subtitle)`.
+     - Streamlined descriptions in `res/values/strings.xml` and `res/values-bn/strings.xml`:
+       - "Use Bengali Digits (১২৩৪)" → "Bengali Numerals (১২৩৪)"
+       - "Require biometric or device credential to open" → "Biometric or device PIN"
+       - "Privacy Mode (Mask Amounts) / Mask money and usage across cards, charts, and history" → "Privacy Mode / Mask amounts with ৳ ••••"
+       - "Block Screenshots & Recents / Prevent capture and hide thumbnail in multitasking" → "Screenshot Protection / Block capture and multitasking preview"
+       - Data reset dialogs: concise warnings ("All recorded meter readings and budgets will be permanently deleted.") with zero fluff.
+     - Synchronized Bangla translations with identical concise structure.
+  2. **Verification**:
+     - Verified clean row typography and alignment on emulator. Captured screenshots: `screenshots/issue4_5_settings_light.png`, `screenshots/issue4_5_settings_dark.png`.
+- **Status**: Completed.
+
+
+### Issue 6: Reminder Time Picker (Custom Material 3 Themed TimePickerDialog)
+- **Root Cause**:
+  1. `SettingsScreen.kt` invoked legacy platform `android.app.TimePickerDialog(context, ...)`, displaying an un-themed system dialog with default colors, no design tokens, and no support for Bengali numerals or Compose theme switching.
+- **Fix Details**:
+  1. **Custom Themed Dialog (`WattWiseTimePickerDialog.kt`)**:
+     - Created `WattWiseTimePickerDialog` in `core/designsystem/component/`.
+     - Housed in a 28dp rounded dialog (`RoundedCornerShape(28.dp)`).
+     - Material 3 `TimePicker` and `TimeInput` with dial and selector themed with `primary` and `primaryContainer`.
+     - AM/PM segmented selector with 12-hour format display.
+     - Header includes icon well, formatted time display (with Bengali numeral support), and mode-switch button to toggle between Clock Dial and Keyboard Input (`TimeInput`).
+     - Action buttons styled with `PillShape` (`AppShapes.pill`).
+     - Wrapped in a vertical scroll modifier for 200% font scale responsiveness.
+  2. **WorkManager Rescheduling**:
+     - `SettingsViewModel.setReminderTime(time)` immediately reschedules `DailyReminderWorker` via `WorkManagerScheduler` with the newly chosen 24h `LocalTime`.
+  3. **Automated Testing & Emulator Verification**:
+     - Added unit test in `SettingsViewModelTest.kt` verifying `setReminderTime` persists to DataStore and reschedules worker.
+     - Added connected test `settings_openAndConfirmReminderTimePicker` in `SettingsAndTariffTest.kt` verifying dialog presentation, input mode switching, and confirm dismiss on emulator.
+     - Captured emulator screenshots in light and dark mode: `screenshots/issue6_time_picker_light.png`, `screenshots/issue6_time_picker_dark.png`.
+- **Status**: Completed.
+

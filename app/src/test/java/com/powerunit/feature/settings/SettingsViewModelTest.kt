@@ -125,6 +125,18 @@ class SettingsViewModelTest {
     }
 
     @Test
+    fun setReminderTime_updatesPreferencesAndReschedulesWorker() = runTest(testDispatcher) {
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.setReminderTime("20:30")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { settingsPreferences.setReminderTime("20:30") }
+        verify { workManagerScheduler.scheduleDailyReminder("20:30") }
+    }
+
+    @Test
     fun clearAllData_deletesReadingsAndBudgetsFromDatabase() = runTest(testDispatcher) {
         val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()

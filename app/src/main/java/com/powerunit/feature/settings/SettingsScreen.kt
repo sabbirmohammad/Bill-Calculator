@@ -50,7 +50,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
+import com.powerunit.core.designsystem.component.WattWiseSwitch
+import com.powerunit.core.designsystem.component.WattWiseTimePickerDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -411,6 +412,7 @@ private fun ReminderSettingsSection(
     onSendTestNotification: () -> Unit
 ) {
     val context = LocalContext.current
+    var showTimePicker by remember { mutableStateOf(false) }
     val areNotificationsEnabled = remember(enabled) {
         NotificationManagerCompat.from(context).areNotificationsEnabled()
     }
@@ -489,12 +491,12 @@ private fun ReminderSettingsSection(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = if (isBangla) "প্রতিদিন মিটার রিডিং লেখার তাগিদ দিন" else "Get a daily alert to record meter reading",
+                        text = if (isBangla) "মিটার রিডিং লেখার তাগিদ" else "Daily meter reading alert",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                Switch(
+                WattWiseSwitch(
                     checked = enabled,
                     onCheckedChange = onToggle,
                     modifier = Modifier.testTag("reminder_switch")
@@ -507,25 +509,12 @@ private fun ReminderSettingsSection(
                 Spacer(modifier = Modifier.height(Dimens.spacingXs))
 
                 // Time Picker Row (12h format dial picker)
-                val parts = reminderTime.split(":")
-                val initialHour = parts.getOrNull(0)?.toIntOrNull() ?: 21
-                val initialMinute = parts.getOrNull(1)?.toIntOrNull() ?: 0
+                val formattedTime = Formatters.formatTime12h(reminderTime, useBengaliDigits, isBangla)
 
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable {
-                            android.app.TimePickerDialog(
-                                context,
-                                { _, hourOfDay, minute ->
-                                    val formatted = String.format(Locale.US, "%02d:%02d", hourOfDay, minute)
-                                    onTimeChange(formatted)
-                                },
-                                initialHour,
-                                initialMinute,
-                                false // 12-hour AM/PM format
-                            ).show()
-                        }
+                        .clickable { showTimePicker = true }
                         .padding(vertical = Dimens.xxs)
                         .testTag("reminder_time_picker_row"),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -537,9 +526,8 @@ private fun ReminderSettingsSection(
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onSurface
                         )
-                        val formattedTime = Formatters.formatTime12h(reminderTime, useBengaliDigits, isBangla)
                         Text(
-                            text = if (isBangla) "প্রতিদিন $formattedTime" else "Every day at $formattedTime",
+                            text = formattedTime,
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -549,6 +537,19 @@ private fun ReminderSettingsSection(
                         contentDescription = "Select reminder time",
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(Dimens.iconSizeSmall)
+                    )
+                }
+
+                if (showTimePicker) {
+                    WattWiseTimePickerDialog(
+                        initialTime = reminderTime,
+                        onDismiss = { showTimePicker = false },
+                        onConfirm = { time ->
+                            onTimeChange(time)
+                            showTimePicker = false
+                        },
+                        useBengaliDigits = useBengaliDigits,
+                        isBangla = isBangla
                     )
                 }
 
@@ -644,7 +645,7 @@ private fun DisplaySettingsSection(
                 title = stringResource(R.string.settings_bengali_digits),
                 subtitle = "${Formatters.formatUnits(BigDecimal("12345.6"), useBengaliDigits)} kWh • ${Formatters.formatMoney(BigDecimal("2500.00"), true, useBengaliDigits)}",
                 action = {
-                    Switch(
+                    WattWiseSwitch(
                         checked = useBengaliDigits,
                         onCheckedChange = onBengaliDigitsToggle,
                         modifier = Modifier.testTag("bengali_digits_switch")
@@ -684,7 +685,7 @@ private fun SecuritySettingsSection(
                 title = stringResource(R.string.settings_app_lock),
                 subtitle = stringResource(R.string.settings_app_lock_desc),
                 action = {
-                    Switch(
+                    WattWiseSwitch(
                         checked = appLock,
                         onCheckedChange = { desired ->
                             if (activity != null && BiometricAuthHelper.canAuthenticate(context)) {
@@ -739,7 +740,7 @@ private fun SecuritySettingsSection(
                 title = stringResource(R.string.settings_hide_amounts),
                 subtitle = stringResource(R.string.settings_hide_amounts_desc),
                 action = {
-                    Switch(
+                    WattWiseSwitch(
                         checked = hideAmounts,
                         onCheckedChange = onHideAmountsToggle,
                         modifier = Modifier.testTag("hide_amounts_switch")
@@ -753,7 +754,7 @@ private fun SecuritySettingsSection(
                 title = stringResource(R.string.settings_screenshot_block),
                 subtitle = stringResource(R.string.settings_screenshot_block_desc),
                 action = {
-                    Switch(
+                    WattWiseSwitch(
                         checked = blockScreenshots,
                         onCheckedChange = onBlockScreenshotsToggle,
                         modifier = Modifier.testTag("block_screenshots_switch")
@@ -1118,9 +1119,10 @@ private fun UpdateSettingsSection(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                Switch(
+                WattWiseSwitch(
                     checked = autoCheck,
-                    onCheckedChange = onToggleAutoCheck
+                    onCheckedChange = onToggleAutoCheck,
+                    modifier = Modifier.testTag("auto_update_switch")
                 )
             }
         }

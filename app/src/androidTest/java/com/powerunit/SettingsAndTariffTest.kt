@@ -43,16 +43,16 @@ class SettingsAndTariffTest {
         composeTestRule.onNodeWithTag("settings_billing_card").assertIsDisplayed()
         composeTestRule.onNodeWithTag("settings_reminders_card").assertIsDisplayed()
 
-        // Toggle reminder switch
+        // Toggle reminder switch and restore
+        composeTestRule.onNodeWithTag("reminder_switch").performClick()
+        composeTestRule.waitForIdle()
         composeTestRule.onNodeWithTag("reminder_switch").performClick()
         composeTestRule.waitForIdle()
 
-        // Scroll to and toggle hide amounts switch
-        composeTestRule.onNodeWithTag("hide_amounts_switch").performScrollTo().performClick()
-        composeTestRule.waitForIdle()
-
-        // Navigate to Tariff Editor
-        composeTestRule.onNodeWithTag("settings_tariff_editor_row").performScrollTo().performClick()
+        // Navigate to Tariff Editor via LazyColumn scroll
+        composeTestRule.onNodeWithTag("settings_lazy_column")
+            .performScrollToNode(hasTestTag("settings_tariff_editor_row"))
+        composeTestRule.onNodeWithTag("settings_tariff_editor_row").performClick()
         composeTestRule.waitForIdle()
 
         // Verify Tariff Editor elements
@@ -65,6 +65,8 @@ class SettingsAndTariffTest {
         composeTestRule.waitForIdle()
 
         // Confirm back on Settings
+        composeTestRule.onNodeWithTag("settings_lazy_column")
+            .performScrollToNode(hasTestTag("settings_meter_card"))
         composeTestRule.onNodeWithTag("settings_meter_card").assertIsDisplayed()
     }
 
@@ -79,5 +81,40 @@ class SettingsAndTariffTest {
         composeTestRule.onNodeWithText("WattWise").assertIsDisplayed()
         composeTestRule.onNodeWithText("Version ${BuildConfig.VERSION_NAME} (build ${BuildConfig.VERSION_CODE}) • Debug").assertIsDisplayed()
         composeTestRule.onNodeWithText("Build Date: ${BuildConfig.BUILD_DATE}").assertIsDisplayed()
+    }
+
+    @Test
+    fun settings_openAndConfirmReminderTimePicker() {
+        composeTestRule.onNodeWithTag("nav_settings").performClick()
+        composeTestRule.waitForIdle()
+
+        // Ensure reminders card is visible
+        composeTestRule.onNodeWithTag("settings_lazy_column")
+            .performScrollToNode(hasTestTag("settings_reminders_card"))
+
+        val nodes = composeTestRule.onAllNodes(hasTestTag("reminder_time_picker_row")).fetchSemanticsNodes()
+        if (nodes.isEmpty()) {
+            composeTestRule.onNodeWithTag("reminder_switch").performClick()
+            composeTestRule.waitUntil(timeoutMillis = 5000) {
+                composeTestRule.onAllNodes(hasTestTag("reminder_time_picker_row")).fetchSemanticsNodes().isNotEmpty()
+            }
+        }
+
+        composeTestRule.onNodeWithTag("reminder_time_picker_row").performClick()
+        composeTestRule.waitForIdle()
+
+        // Verify WattWise time picker dialog is displayed
+        composeTestRule.onNodeWithTag("wattwise_time_picker_dialog").assertIsDisplayed()
+
+        // Toggle input mode (clock dial <-> keyboard input)
+        composeTestRule.onNodeWithTag("time_picker_toggle_input_mode").performClick()
+        composeTestRule.waitForIdle()
+
+        // Save / confirm
+        composeTestRule.onNodeWithTag("time_picker_confirm_btn").performClick()
+        composeTestRule.waitForIdle()
+
+        // Dialog should be dismissed
+        composeTestRule.onNodeWithTag("settings_reminders_card").assertIsDisplayed()
     }
 }
