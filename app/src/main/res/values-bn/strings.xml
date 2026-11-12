@@ -146,6 +146,14 @@
     <string name="tariff_revert_btn">পুনরুদ্ধার</string>
     <string name="tariff_open_ended">উর্ধ্বসীমা নেই (সীমাহীন)</string>
     <string name="tariff_auth_required">ট্যারিফ পরিবর্তনের জন্য বায়োমেট্রিক প্রমাণীকরণ প্রয়োজন।</string>
+    <string name="tariff_apply_month_title">কোন মাস থেকে কার্যকর হবে?</string>
+    <string name="tariff_apply_month_desc">বিলিং চক্রের মাস নির্বাচন করুন। নির্বাচিত মাস থেকে বর্তমান মাস পর্যন্ত বিল পুনঃগণনা করা হবে।</string>
+    <string name="tariff_effective_month">কার্যকর মাস</string>
+    <string name="tariff_recalculating">নতুন রেট ও পূর্ববর্তী বিল পুনঃগণনা করা হচ্ছে…</string>
+    <string name="tariff_updated_recalculated">%1$s থেকে রেট আপডেট করা হয়েছে, %2$d মাসের বিল পুনঃগণনা সম্পন্ন</string>
+    <string name="tariff_undo">পূর্বাবস্থায় ফেরান</string>
+    <string name="tariff_reverted">পূর্ববর্তী ট্যারিফ সংস্করণে ফিরে যাওয়া হয়েছে</string>
+    <string name="tariff_diff_title">ট্যারিফ পরিবর্তন পর্যালোচনা</string>
 
     <!-- WorkManager & Notifications -->
     <string name="notification_channel_reminders">মিটার রিমাইন্ডার</string>

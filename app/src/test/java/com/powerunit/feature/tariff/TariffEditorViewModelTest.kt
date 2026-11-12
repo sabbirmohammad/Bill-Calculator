@@ -1,10 +1,12 @@
 package com.powerunit.feature.tariff
 
+import com.powerunit.core.common.DateUtils
 import com.powerunit.core.datastore.SettingsPreferences
 import com.powerunit.domain.model.Tariff
 import com.powerunit.domain.model.TariffSlab
+import com.powerunit.domain.model.TariffVersion
+import com.powerunit.domain.repository.TariffRecalculationResult
 import com.powerunit.domain.repository.TariffRepository
-import com.powerunit.domain.usecase.CalculateCycleUsageUseCase
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -32,7 +34,6 @@ class TariffEditorViewModelTest {
     private val testDispatcher = StandardTestDispatcher()
     private val tariffRepository = mockk<TariffRepository>(relaxed = true)
     private val settingsPreferences = mockk<SettingsPreferences>(relaxed = true)
-    private val calculateCycleUsageUseCase = CalculateCycleUsageUseCase()
 
     private val sampleTariff = Tariff(
         id = 1L,
@@ -46,13 +47,15 @@ class TariffEditorViewModelTest {
             TariffSlab(2L, 1L, BigDecimal("76"), BigDecimal("200"), BigDecimal("6.63")),
             TariffSlab(3L, 1L, BigDecimal("201"), null, BigDecimal("7.95"))
         ),
-        isActive = true
+        isActive = true,
+        effectiveFromCycle = "2026-11"
     )
 
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
         coEvery { tariffRepository.getActiveTariffSync() } returns sampleTariff
+        coEvery { tariffRepository.seedDefaultsIfNeeded() } returns Unit
         every { settingsPreferences.appLockEnabled } returns flowOf(false)
         every { settingsPreferences.billingCycleDay } returns flowOf(1)
     }
@@ -65,8 +68,7 @@ class TariffEditorViewModelTest {
     private fun createViewModel(): TariffEditorViewModel {
         return TariffEditorViewModel(
             tariffRepository = tariffRepository,
-            settingsPreferences = settingsPreferences,
-            calculateCycleUsageUseCase = calculateCycleUsageUseCase
+            settingsPreferences = settingsPreferences
         )
     }
 
@@ -182,71 +184,90 @@ class TariffEditorViewModelTest {
         viewModel.onSaveClicked()
 
         assertTrue(viewModel.uiState.value.validationErrors.isNotEmpty())
-        assertFalse(viewModel.uiState.value.showConfirmDialog)
+        assertFalse(viewModel.uiState.value.showMonthPicker)
     }
 
     @Test
-    fun onSaveClicked_withValidChanges_showsConfirmDialogWithDiff() = runTest(testDispatcher) {
+    fun onSaveClicked_withValidChanges_showsMonthPicker() = runTest(testDispatcher) {
         val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.updateDemandCharge("45.00")
         viewModel.onSaveClicked()
 
-        assertTrue(viewModel.uiState.value.showConfirmDialog)
-        assertTrue(viewModel.uiState.value.diffItems.any { it.label == "Demand Charge" })
+        assertTrue(viewModel.uiState.value.showMonthPicker)
     }
 
     @Test
-    fun onConfirmSave_savesNewTariffVersionWithBillingCycleScope() = runTest(testDispatcher) {
+    fun onEffectiveMonthSelected_showsConfirmDialogWithDiff() = runTest(testDispatcher) {
         val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.updateDemandCharge("45.00")
-        viewModel.setScope(TariffEffectiveScope.CURRENT_BILLING_CYCLE)
+        viewModel.onEffectiveMonthSelected(2026, 11)
+
+        assertFalse(viewModel.uiState.value.showMonthPicker)
+        assertTrue(viewModel.uiState.value.showConfirmDialog)
+        assertEquals("2026-11", viewModel.uiState.value.selectedEffectiveCycle)
+        assertTrue(viewModel.uiState.value.diffItems.any { it.label == "Demand Charge" })
+    }
+
+    @Test
+    fun onConfirmSave_savesTariffVersionAndRecalculates_showsSuccessAndUndo() = runTest(testDispatcher) {
+        coEvery {
+            tariffRepository.saveTariffVersionAndRecalculate(any(), any())
+        } returns TariffRecalculationResult(
+            versionId = 2L,
+            effectiveFromCycle = "2026-11",
+            monthsRecalculated = 1,
+            previousVersionId = 1L
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.updateDemandCharge("45.00")
+        viewModel.onEffectiveMonthSelected(2026, 11)
         viewModel.onConfirmSave()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        val captured = slot<Tariff>()
-        coVerify { tariffRepository.saveNewTariffVersion(capture(captured)) }
+        val captured = slot<TariffVersion>()
+        coVerify { tariffRepository.saveTariffVersionAndRecalculate(capture(captured), any()) }
 
-        assertEquals(BigDecimal("45.00"), captured.captured.demandChargeFlat)
-        assertTrue(captured.captured.isActive)
+        assertEquals(BigDecimal("45.00"), captured.captured.demandCharge)
+        assertEquals("2026-11", captured.captured.effectiveFromCycle)
         assertTrue(viewModel.uiState.value.saveSuccess)
+        assertEquals(2L, viewModel.uiState.value.undoVersionId)
+        assertTrue(viewModel.uiState.value.successMessage?.contains("1 months recalculated") == true)
         assertFalse(viewModel.uiState.value.isDirty)
     }
 
     @Test
-    fun onConfirmSave_savesNewTariffVersionWithTodayScope() = runTest(testDispatcher) {
+    fun undoLastSave_callsRevertTariffVersion() = runTest(testDispatcher) {
+        coEvery {
+            tariffRepository.saveTariffVersionAndRecalculate(any(), any())
+        } returns TariffRecalculationResult(
+            versionId = 2L,
+            effectiveFromCycle = "2026-11",
+            monthsRecalculated = 1,
+            previousVersionId = 1L
+        )
+        coEvery { tariffRepository.revertTariffVersion(2L) } returns true
+
         val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        viewModel.updateServiceCharge("15.00")
-        viewModel.setScope(TariffEffectiveScope.TODAY)
+        viewModel.updateDemandCharge("45.00")
+        viewModel.onEffectiveMonthSelected(2026, 11)
         viewModel.onConfirmSave()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        val captured = slot<Tariff>()
-        coVerify { tariffRepository.saveNewTariffVersion(capture(captured)) }
+        assertEquals(2L, viewModel.uiState.value.undoVersionId)
 
-        assertEquals(BigDecimal("15.00"), captured.captured.serviceChargeFlat)
-        assertTrue(viewModel.uiState.value.saveSuccess)
-    }
-
-    @Test
-    fun revertToTariff_restoresPreviousVersionData() = runTest(testDispatcher) {
-        val viewModel = createViewModel()
+        viewModel.undoLastSave()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        val oldVersion = sampleTariff.copy(
-            name = "Old Tariff 2024",
-            demandChargeFlat = BigDecimal("25.00")
-        )
-        viewModel.revertToTariff(oldVersion)
-
-        val state = viewModel.uiState.value
-        assertEquals("Old Tariff 2024", state.tariffName)
-        assertEquals("25", state.demandCharge)
-        assertTrue(state.isDirty)
+        coVerify { tariffRepository.revertTariffVersion(2L) }
+        assertEquals(null, viewModel.uiState.value.undoVersionId)
     }
 }

@@ -53,7 +53,7 @@ interface TariffDao {
 
     @Transaction
     suspend fun updateTariffAndSlabs(tariff: TariffEntity, slabs: List<TariffSlabEntity>) {
-        updateTariff(tariff)
+        insertTariff(tariff)
         deleteSlabsByTariffId(tariff.id)
         insertSlabs(slabs.map { it.copy(tariffId = tariff.id) })
     }

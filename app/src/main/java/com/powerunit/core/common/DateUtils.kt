@@ -79,4 +79,33 @@ object DateUtils {
     fun instantToUtcEpochMillis(instant: Instant): Long {
         return instant.toEpochMilliseconds()
     }
+
+    fun toCycleString(year: Int, month: Int): String {
+        return "%04d-%02d".format(Locale.US, year, month)
+    }
+
+    fun currentCycleString(): String {
+        val today = currentDhakaDate()
+        return toCycleString(today.year, today.monthNumber)
+    }
+
+    fun cycleStringToInstant(cycle: String): Instant {
+        val parts = cycle.split("-")
+        val year = parts.getOrNull(0)?.toIntOrNull() ?: 1970
+        val month = parts.getOrNull(1)?.toIntOrNull() ?: 1
+        return toInstantAtDhaka(year, month, 1, 0, 0)
+    }
+
+    fun instantToCycleString(instant: Instant): String {
+        val ldt = instant.toLocalDateTime(DHAKA_ZONE)
+        return toCycleString(ldt.year, ldt.monthNumber)
+    }
+
+    fun formatCycleMonth(cycle: String): String {
+        val parts = cycle.split("-")
+        val year = parts.getOrNull(0)?.toIntOrNull() ?: 1970
+        val month = parts.getOrNull(1)?.toIntOrNull() ?: 1
+        val javaDate = java.time.LocalDate.of(year, month, 1)
+        return javaDate.format(DateTimeFormatter.ofPattern("MMM yyyy", Locale.US))
+    }
 }

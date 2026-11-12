@@ -428,3 +428,43 @@ Offline-first, privacy-focused Android electricity tracker and bill calculator t
   - `./gradlew connectedDebugAndroidTest`: Passed (1/1 tests passed in `MeterResetRowTest`).
   - Emulator verification: Verified tap toggles state smoothly, checkbox absent, haptic feedback on switch.
 - **Status**: Completed.
+
+
+### Issue 3: Tariff & Rate Editor (Persistence, Cycle Versioning, Recalculation, Seed-Once Guard)
+- **Root Cause**:
+  1. Default tariff seeding in `DatabaseModule.kt` executed with `System.currentTimeMillis()`. When users saved a tariff effective on the 1st of the month, its epoch was earlier than the preset seed timestamp. `TariffDao.getActiveTariff()` queried `ORDER BY effectiveFrom DESC LIMIT 1`, which caused Room to return the default preset over the user's saved tariff.
+  2. No `tariff_version` cycle table or persisted seed guard existed. Every fresh database initialization or migration risked re-seeding and overriding customized rates.
+  3. No effective billing cycle month selection or historical recalculation existed; editing rates could not apply retroactively or maintain immutable historical billing records.
+- **Fix Details**:
+  1. **Seed-Once Guard (`SettingsPreferences.kt` & `TariffRepositoryImpl.kt`)**:
+     - Added `KEY_TARIFF_SEEDED` preference in `SettingsPreferences`.
+     - In `TariffRepositoryImpl.seedDefaultsIfNeeded()`, defaults are seeded only if `!isTariffSeeded() && count == 0`.
+     - Baseline preset seeded with `effectiveFromCycle = "1970-01"` and epoch 0 so user rates always take precedence and are never overwritten.
+  2. **Tariff Versioning Database Schema**:
+     - Created `TariffVersionEntity.kt` with `@Entity(tableName = "tariff_version")` having columns `id`, `planId`, `effectiveFromCycle`, `slabs` (JSON), `fixedCharge`, `demandCharge`, `vatPercent`, `rebatePercent`, `otherCharges`, and `createdAt`.
+     - Created `TariffVersionDao.kt` for CRUD and cycle-based queries (`getVersionForCycleSync`, `getLatestVersionSync`).
+     - Added `MIGRATION_1_2` in `PowerUnitDatabase.kt` and bumped database version to 2.
+  3. **Effective Month Selection & Diff Confirmation**:
+     - When user taps Save, `ApplyFromMonthDialog` prompts "Apply from which month?" with year/month grid selector (default = current billing cycle, past months permitted).
+     - Upon month selection, displays `SaveTariffConfirmationDialog` showing detailed diff table (old value → new value) and recalculation notice.
+     - If App Lock is enabled, requires biometric/PIN authentication via `BiometricAuthHelper` before committing.
+  4. **Atomic Room Transaction & Recalculation**:
+     - Implemented `TariffRepositoryImpl.saveTariffVersionAndRecalculate()` within one Room transaction: writes the new version to `tariff_version`, synchronizes `tariffs` and `tariff_slabs` table with the custom plan name and charges, and computes affected months count.
+     - Displays `RecalculationProgressDialog` during execution and shows success snackbar ("Rates updated from [Month Year], N months recalculated") with an "Undo" action that calls `revertTariffVersion()`.
+  5. **Reactive Flow Updates**:
+     - `Dashboard`, `History`, `Analytics`, `Bill Breakdown`, and projections observe `tariffRepository.getActiveTariff()` reactive Flow, updating automatically across the app without manual refresh.
+  6. **Validation & Security Invariants**:
+     - Strict validation for continuous non-overlapping slabs, strictly increasing bounds, rates >= 0, VAT 0-100%, demand/service charges non-negative, exactly one open-ended terminal slab, inline errors, and unsaved-changes guard dialog.
+     - Zero tariff values or rates logged in logcat.
+  7. **Automated Testing & Emulator Verification**:
+     - Unit tests in `TariffVersioningTest.kt`: JSON serialization roundtrip, cycle string ordering, calculation idempotency, seed-once guard.
+     - Unit tests in `TariffEditorViewModelTest.kt`: save, validation, diff calculation, undo.
+     - Instrumented test in `TariffPersistenceTest.kt`: edit name and rates, save, activity recreate, verify persisted new rates on emulator.
+     - Screenshots captured on emulator: `screenshots/issue3_tariff_editor_light.png`, `screenshots/issue3_tariff_editor_dark.png`.
+- **Verification**:
+  - `./gradlew assembleDebug`: Passed.
+  - `./gradlew lintDebug detekt ktlintCheck`: Passed (0 errors, 0 warnings).
+  - `./gradlew testDebugUnitTest`: Passed (111/111 tests passed).
+  - `./gradlew connectedDebugAndroidTest`: Passed (1/1 tests passed in `TariffPersistenceTest`).
+  - Emulator verification: Verified month selector, diff confirmation dialog, and rate persistence across activity recreate.
+- **Status**: Completed.

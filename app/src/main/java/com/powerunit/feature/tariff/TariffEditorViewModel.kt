@@ -6,8 +6,8 @@ import com.powerunit.core.common.DateUtils
 import com.powerunit.core.datastore.SettingsPreferences
 import com.powerunit.domain.model.Tariff
 import com.powerunit.domain.model.TariffSlab
+import com.powerunit.domain.model.TariffVersion
 import com.powerunit.domain.repository.TariffRepository
-import com.powerunit.domain.usecase.CalculateCycleUsageUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -22,14 +22,9 @@ import javax.inject.Inject
 data class EditableSlab(
     val slabIndex: Int,
     val fromUnit: String,
-    val toUnit: String, // Blank means unlimited / open-ended
+    val toUnit: String,
     val ratePerUnit: String
 )
-
-enum class TariffEffectiveScope {
-    CURRENT_BILLING_CYCLE,
-    TODAY
-}
 
 data class TariffDiffItem(
     val label: String,
@@ -39,30 +34,36 @@ data class TariffDiffItem(
 
 data class TariffEditorUiState(
     val isLoading: Boolean = true,
+    val isRecalculating: Boolean = false,
     val tariffId: Long = 1L,
     val tariffName: String = "Bangladesh Electricity Tariff",
     val slabs: List<EditableSlab> = emptyList(),
     val demandCharge: String = "35.00",
     val serviceCharge: String = "10.00",
     val vatPercent: String = "5.0",
+    val rebatePercent: String = "0.0",
+    val otherCharges: String = "0.0",
     val validationErrors: List<String> = emptyList(),
+    val inlineSlabErrors: Map<Int, String> = emptyMap(),
     val isDirty: Boolean = false,
+    val showMonthPicker: Boolean = false,
     val showConfirmDialog: Boolean = false,
     val showUnsavedDialog: Boolean = false,
     val showHistorySheet: Boolean = false,
-    val historyTariffs: List<Tariff> = emptyList(),
+    val historyVersions: List<TariffVersion> = emptyList(),
     val diffItems: List<TariffDiffItem> = emptyList(),
-    val selectedScope: TariffEffectiveScope = TariffEffectiveScope.CURRENT_BILLING_CYCLE,
+    val selectedEffectiveCycle: String = DateUtils.currentCycleString(),
     val isAppLockEnabled: Boolean = false,
     val saveSuccess: Boolean = false,
+    val successMessage: String? = null,
+    val undoVersionId: Long? = null,
     val errorMessage: String? = null
 )
 
 @HiltViewModel
 class TariffEditorViewModel @Inject constructor(
     private val tariffRepository: TariffRepository,
-    private val settingsPreferences: SettingsPreferences,
-    private val calculateCycleUsageUseCase: CalculateCycleUsageUseCase
+    private val settingsPreferences: SettingsPreferences
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TariffEditorUiState())
@@ -74,7 +75,10 @@ class TariffEditorViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
     init {
-        loadActiveTariff()
+        viewModelScope.launch {
+            tariffRepository.seedDefaultsIfNeeded()
+            loadActiveTariff()
+        }
     }
 
     fun loadActiveTariff() {
@@ -101,6 +105,9 @@ class TariffEditorViewModel @Inject constructor(
                     demandCharge = tariff.demandChargeFlat.stripTrailingZeros().toPlainString(),
                     serviceCharge = tariff.serviceChargeFlat.stripTrailingZeros().toPlainString(),
                     vatPercent = tariff.vatPercent.stripTrailingZeros().toPlainString(),
+                    rebatePercent = tariff.rebatePercent.stripTrailingZeros().toPlainString(),
+                    otherCharges = tariff.otherCharges.stripTrailingZeros().toPlainString(),
+                    selectedEffectiveCycle = tariff.effectiveFromCycle ?: DateUtils.currentCycleString(),
                     isAppLockEnabled = isLock
                 )
             } else {
@@ -142,7 +149,7 @@ class TariffEditorViewModel @Inject constructor(
         val lastTo = currentSlabs.lastOrNull()?.toUnit?.toDoubleOrNull()?.toInt()
         val calculatedFrom = if (from.isNotBlank()) from else if (lastTo != null) "${lastTo + 1}" else "0"
 
-        // If the previous last slab was open-ended, give it an upper bound
+        // If previous last slab was open-ended, cap it
         if (currentSlabs.isNotEmpty() && currentSlabs.last().toUnit.isBlank()) {
             val prevFrom = currentSlabs.last().fromUnit.toIntOrNull() ?: 0
             val autoTo = (prevFrom + 100).toString()
@@ -166,7 +173,6 @@ class TariffEditorViewModel @Inject constructor(
         val currentSlabs = _uiState.value.slabs.toMutableList()
         if (currentSlabs.size > 1 && index in currentSlabs.indices) {
             currentSlabs.removeAt(index)
-            // Ensure final slab is open-ended
             val reIndexed = currentSlabs.mapIndexed { idx, s ->
                 if (idx == currentSlabs.size - 1) {
                     s.copy(slabIndex = idx + 1, toUnit = "")
@@ -194,8 +200,14 @@ class TariffEditorViewModel @Inject constructor(
         recomputeDirtyAndValidation()
     }
 
-    fun setScope(scope: TariffEffectiveScope) {
-        _uiState.value = _uiState.value.copy(selectedScope = scope)
+    fun updateRebatePercent(value: String) {
+        _uiState.value = _uiState.value.copy(rebatePercent = value.trim())
+        recomputeDirtyAndValidation()
+    }
+
+    fun updateOtherCharges(value: String) {
+        _uiState.value = _uiState.value.copy(otherCharges = value.trim())
+        recomputeDirtyAndValidation()
     }
 
     fun onSaveClicked() {
@@ -205,13 +217,24 @@ class TariffEditorViewModel @Inject constructor(
             return
         }
 
+        // Show "Apply from which month?" picker dialog
+        _uiState.value = _uiState.value.copy(
+            showMonthPicker = true,
+            validationErrors = emptyList()
+        )
+    }
+
+    fun dismissMonthPicker() {
+        _uiState.value = _uiState.value.copy(showMonthPicker = false)
+    }
+
+    fun onEffectiveMonthSelected(year: Int, month: Int) {
+        val cycleString = DateUtils.toCycleString(year, month)
         val diffs = calculateDiff()
-        if (diffs.isEmpty() && !_uiState.value.isDirty) {
-            _uiState.value = _uiState.value.copy(errorMessage = "No changes detected.")
-            return
-        }
 
         _uiState.value = _uiState.value.copy(
+            showMonthPicker = false,
+            selectedEffectiveCycle = cycleString,
             diffItems = diffs,
             showConfirmDialog = true
         )
@@ -222,7 +245,10 @@ class TariffEditorViewModel @Inject constructor(
     }
 
     fun onConfirmSave() {
-        _uiState.value = _uiState.value.copy(showConfirmDialog = false)
+        _uiState.value = _uiState.value.copy(
+            showConfirmDialog = false,
+            isRecalculating = true
+        )
         executeSave()
     }
 
@@ -240,12 +266,10 @@ class TariffEditorViewModel @Inject constructor(
 
     fun openHistorySheet() {
         viewModelScope.launch {
-            val all = tariffRepository.getActiveTariffSync()
-            val tariffs = mutableListOf<Tariff>()
-            if (all != null) tariffs.add(all)
+            val versions = tariffRepository.getAllTariffVersions().first()
             _uiState.value = _uiState.value.copy(
                 showHistorySheet = true,
-                historyTariffs = tariffs
+                historyVersions = versions
             )
         }
     }
@@ -254,8 +278,8 @@ class TariffEditorViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(showHistorySheet = false)
     }
 
-    fun revertToTariff(tariff: Tariff) {
-        val editableSlabs = tariff.slabs.sortedBy { it.fromUnit }.mapIndexed { idx, s ->
+    fun loadVersionIntoEditor(version: TariffVersion) {
+        val editableSlabs = version.slabs.sortedBy { it.fromUnit }.mapIndexed { idx, s ->
             EditableSlab(
                 slabIndex = idx + 1,
                 fromUnit = s.fromUnit.stripTrailingZeros().toPlainString(),
@@ -265,11 +289,13 @@ class TariffEditorViewModel @Inject constructor(
         }
         _uiState.value = _uiState.value.copy(
             showHistorySheet = false,
-            tariffName = tariff.name,
             slabs = editableSlabs,
-            demandCharge = tariff.demandChargeFlat.stripTrailingZeros().toPlainString(),
-            serviceCharge = tariff.serviceChargeFlat.stripTrailingZeros().toPlainString(),
-            vatPercent = tariff.vatPercent.stripTrailingZeros().toPlainString()
+            demandCharge = version.demandCharge.stripTrailingZeros().toPlainString(),
+            serviceCharge = version.fixedCharge.stripTrailingZeros().toPlainString(),
+            vatPercent = version.vatPercent.stripTrailingZeros().toPlainString(),
+            rebatePercent = version.rebatePercent.stripTrailingZeros().toPlainString(),
+            otherCharges = version.otherCharges.stripTrailingZeros().toPlainString(),
+            selectedEffectiveCycle = version.effectiveFromCycle
         )
         recomputeDirtyAndValidation()
     }
@@ -277,16 +303,6 @@ class TariffEditorViewModel @Inject constructor(
     private fun executeSave() {
         viewModelScope.launch {
             val state = _uiState.value
-            val cycleDay = settingsPreferences.billingCycleDay.first()
-            val todayDate = DateUtils.currentDhakaDate()
-
-            val effectiveDate = when (state.selectedScope) {
-                TariffEffectiveScope.CURRENT_BILLING_CYCLE -> {
-                    val (start, _) = calculateCycleUsageUseCase.computeCycleRange(cycleDay, todayDate)
-                    DateUtils.startOfDayInstant(start)
-                }
-                TariffEffectiveScope.TODAY -> DateUtils.currentInstant()
-            }
 
             val domainSlabs = state.slabs.mapIndexed { idx, s ->
                 val from = s.fromUnit.toBigDecimalOrNull() ?: BigDecimal.ZERO
@@ -301,30 +317,51 @@ class TariffEditorViewModel @Inject constructor(
                 )
             }
 
-            val newTariff = Tariff(
-                id = 0,
-                name = state.tariffName.ifBlank { "Bangladesh Residential Tariff" },
-                effectiveFrom = effectiveDate,
-                vatPercent = state.vatPercent.toBigDecimalOrNull() ?: BigDecimal("5.0"),
-                serviceChargeFlat = state.serviceCharge.toBigDecimalOrNull() ?: BigDecimal("10.00"),
-                demandChargeFlat = state.demandCharge.toBigDecimalOrNull() ?: BigDecimal("35.00"),
+            val newVersion = TariffVersion(
+                planId = 1L,
+                effectiveFromCycle = state.selectedEffectiveCycle,
                 slabs = domainSlabs,
-                isActive = true
+                fixedCharge = state.serviceCharge.toBigDecimalOrNull() ?: BigDecimal("10.00"),
+                demandCharge = state.demandCharge.toBigDecimalOrNull() ?: BigDecimal("35.00"),
+                vatPercent = state.vatPercent.toBigDecimalOrNull() ?: BigDecimal("5.0"),
+                rebatePercent = state.rebatePercent.toBigDecimalOrNull() ?: BigDecimal.ZERO,
+                otherCharges = state.otherCharges.toBigDecimalOrNull() ?: BigDecimal.ZERO
             )
 
-            tariffRepository.saveNewTariffVersion(newTariff)
-            originalTariff = newTariff
+            val result = tariffRepository.saveTariffVersionAndRecalculate(newVersion, planName = state.tariffName)
+            originalTariff = newVersion.toTariff()
+
+            val monthLabel = DateUtils.formatCycleMonth(result.effectiveFromCycle)
+            val successMsg = "Rates updated from $monthLabel, ${result.monthsRecalculated} months recalculated"
 
             _uiState.value = _uiState.value.copy(
                 isDirty = false,
+                isRecalculating = false,
                 saveSuccess = true,
+                undoVersionId = result.versionId,
+                successMessage = successMsg,
                 errorMessage = null
             )
         }
     }
 
+    fun undoLastSave() {
+        val versionId = _uiState.value.undoVersionId ?: return
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isRecalculating = true)
+            tariffRepository.revertTariffVersion(versionId)
+            loadActiveTariff()
+            _uiState.value = _uiState.value.copy(
+                isRecalculating = false,
+                saveSuccess = false,
+                undoVersionId = null,
+                successMessage = "Reverted to previous tariff version"
+            )
+        }
+    }
+
     fun clearSaveSuccess() {
-        _uiState.value = _uiState.value.copy(saveSuccess = false)
+        _uiState.value = _uiState.value.copy(saveSuccess = false, successMessage = null)
     }
 
     fun clearErrorMessage() {
@@ -333,15 +370,22 @@ class TariffEditorViewModel @Inject constructor(
 
     fun validateTariff(): List<String> {
         val errors = mutableListOf<String>()
+        val inlineErrors = mutableMapOf<Int, String>()
         val state = _uiState.value
 
-        // VAT validation
+        // VAT validation (0% to 100%)
         val vat = state.vatPercent.toBigDecimalOrNull()
         if (vat == null || vat < BigDecimal.ZERO || vat > BigDecimal("100")) {
             errors.add("VAT must be a valid percentage between 0% and 100%.")
         }
 
-        // Fixed charges validation
+        // Rebate validation (0% to 100%)
+        val rebate = state.rebatePercent.toBigDecimalOrNull()
+        if (rebate == null || rebate < BigDecimal.ZERO || rebate > BigDecimal("100")) {
+            errors.add("Rebate must be a valid percentage between 0% and 100%.")
+        }
+
+        // Fixed charges validation (>= 0)
         val demand = state.demandCharge.toBigDecimalOrNull()
         if (demand == null || demand < BigDecimal.ZERO) {
             errors.add("Demand charge must be a non-negative amount.")
@@ -350,10 +394,15 @@ class TariffEditorViewModel @Inject constructor(
         if (service == null || service < BigDecimal.ZERO) {
             errors.add("Service charge must be a non-negative amount.")
         }
+        val other = state.otherCharges.toBigDecimalOrNull()
+        if (other == null || other < BigDecimal.ZERO) {
+            errors.add("Other charges must be non-negative.")
+        }
 
         // Slab validation
         if (state.slabs.isEmpty()) {
             errors.add("At least one consumption slab is required.")
+            _uiState.value = _uiState.value.copy(inlineSlabErrors = emptyMap())
             return errors
         }
 
@@ -362,47 +411,60 @@ class TariffEditorViewModel @Inject constructor(
             val slab = state.slabs[i]
             val from = slab.fromUnit.toBigDecimalOrNull()
             if (from == null || from < BigDecimal.ZERO) {
-                errors.add("Slab ${i + 1}: 'From' unit must be 0 or greater.")
+                val err = "Slab ${i + 1}: 'From' unit must be >= 0."
+                errors.add(err)
+                inlineErrors[i] = err
             }
 
             val rate = slab.ratePerUnit.toBigDecimalOrNull()
             if (rate == null || rate < BigDecimal.ZERO) {
-                errors.add("Slab ${i + 1}: Rate must be non-negative (>= ৳0).")
+                val err = "Slab ${i + 1}: Rate must be >= ৳0."
+                errors.add(err)
+                inlineErrors[i] = err
             }
 
             if (from != null) {
                 if (i < slabCount - 1) {
-                    // Not last slab: must have toUnit
                     val to = slab.toUnit.toBigDecimalOrNull()
                     if (to == null) {
-                        errors.add("Slab ${i + 1}: Must specify an upper bound. Only the final slab can be open-ended.")
+                        val err = "Slab ${i + 1}: Only the last slab can be open-ended."
+                        errors.add(err)
+                        inlineErrors[i] = err
                     } else if (to <= from) {
-                        errors.add("Slab ${i + 1}: 'To' bound ($to) must be greater than 'From' bound ($from).")
+                        val err = "Slab ${i + 1}: 'To' bound must be greater than 'From' bound."
+                        errors.add(err)
+                        inlineErrors[i] = err
                     }
                 } else if (slab.toUnit.isNotBlank()) {
-                    // Last slab: must be open-ended or to > from
                     val to = slab.toUnit.toBigDecimalOrNull()
                     if (to != null && to <= from) {
-                        errors.add("Slab ${i + 1}: 'To' bound ($to) must be greater than 'From' bound ($from).")
+                        val err = "Slab ${i + 1}: 'To' bound must be greater than 'From' bound."
+                        errors.add(err)
+                        inlineErrors[i] = err
                     }
                 }
             }
         }
 
-        // Check continuity and non-overlapping
+        // Continuity and non-overlapping validation
         for (i in 0 until slabCount - 1) {
             val currTo = state.slabs[i].toUnit.toBigDecimalOrNull()
             val nextFrom = state.slabs[i + 1].fromUnit.toBigDecimalOrNull()
 
             if (currTo != null && nextFrom != null) {
                 if (nextFrom < currTo) {
-                    errors.add("Slabs ${i + 1} and ${i + 2} overlap: Slab ${i + 1} ends at $currTo, but Slab ${i + 2} starts at $nextFrom.")
+                    val err = "Slabs ${i + 1} and ${i + 2} overlap."
+                    errors.add(err)
+                    inlineErrors[i + 1] = err
                 } else if (nextFrom > currTo + BigDecimal.ONE) {
-                    errors.add("Gap detected between Slab ${i + 1} (ends at $currTo) and Slab ${i + 2} (starts at $nextFrom).")
+                    val err = "Gap detected between Slab ${i + 1} and Slab ${i + 2}."
+                    errors.add(err)
+                    inlineErrors[i + 1] = err
                 }
             }
         }
 
+        _uiState.value = _uiState.value.copy(inlineSlabErrors = inlineErrors)
         return errors
     }
 
@@ -414,6 +476,9 @@ class TariffEditorViewModel @Inject constructor(
         if (state.tariffName != orig.name) {
             diffs.add(TariffDiffItem("Plan Name", orig.name, state.tariffName))
         }
+
+        val effectiveMonthFormatted = DateUtils.formatCycleMonth(state.selectedEffectiveCycle)
+        diffs.add(TariffDiffItem("Effective From", "Current", effectiveMonthFormatted))
 
         val origDemand = orig.demandChargeFlat.stripTrailingZeros().toPlainString()
         if (state.demandCharge != origDemand) {
@@ -432,7 +497,7 @@ class TariffEditorViewModel @Inject constructor(
 
         // Slabs diff
         if (state.slabs.size != orig.slabs.size) {
-            diffs.add(TariffDiffItem("Slab Count", "${orig.slabs.size} slabs", "${state.slabs.size} slabs"))
+            diffs.add(TariffDiffItem("Slabs Count", "${orig.slabs.size} slabs", "${state.slabs.size} slabs"))
         } else {
             val sortedOrigSlabs = orig.slabs.sortedBy { it.fromUnit }
             for (i in state.slabs.indices) {
@@ -443,7 +508,7 @@ class TariffEditorViewModel @Inject constructor(
                 val prevRate = prev.ratePerUnit.stripTrailingZeros().toPlainString()
 
                 if (current.fromUnit != prevFrom || current.toUnit != prevTo || current.ratePerUnit != prevRate) {
-                    val oldLabel = "${prevFrom}-${if (prevTo.isBlank()) "∞" else prevTo}: ৳$prevRate"
+                    val oldLabel = "$prevFrom-${if (prevTo.isBlank()) "∞" else prevTo}: ৳$prevRate"
                     val newLabel = "${current.fromUnit}-${if (current.toUnit.isBlank()) "∞" else current.toUnit}: ৳${current.ratePerUnit}"
                     diffs.add(TariffDiffItem("Slab ${i + 1}", oldLabel, newLabel))
                 }
@@ -463,6 +528,8 @@ class TariffEditorViewModel @Inject constructor(
                 state.demandCharge != orig.demandChargeFlat.stripTrailingZeros().toPlainString() ||
                 state.serviceCharge != orig.serviceChargeFlat.stripTrailingZeros().toPlainString() ||
                 state.vatPercent != orig.vatPercent.stripTrailingZeros().toPlainString() ||
+                state.rebatePercent != orig.rebatePercent.stripTrailingZeros().toPlainString() ||
+                state.otherCharges != orig.otherCharges.stripTrailingZeros().toPlainString() ||
                 state.slabs.size != orig.slabs.size ||
                 state.slabs.indices.any { i ->
                     val s = state.slabs[i]

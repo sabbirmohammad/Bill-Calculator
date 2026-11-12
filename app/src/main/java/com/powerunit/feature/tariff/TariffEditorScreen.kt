@@ -23,7 +23,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -36,7 +38,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -46,8 +47,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import com.powerunit.core.designsystem.component.WattWiseCheckbox
+import com.powerunit.core.designsystem.component.WattWiseRadioButton
+import com.powerunit.core.designsystem.theme.PillShape
 import kotlinx.coroutines.launch
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -109,9 +112,17 @@ fun TariffEditorScreen(
         handleBack()
     }
 
-    LaunchedEffect(uiState.saveSuccess) {
+    LaunchedEffect(uiState.saveSuccess, uiState.successMessage) {
         if (uiState.saveSuccess) {
-            snackbarHostState.showSnackbar("Tariff rates updated successfully!")
+            val msg = uiState.successMessage ?: "Tariff rates updated successfully!"
+            val result = snackbarHostState.showSnackbar(
+                message = msg,
+                actionLabel = if (uiState.undoVersionId != null) "Undo" else null,
+                duration = androidx.compose.material3.SnackbarDuration.Long
+            )
+            if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) {
+                viewModel.undoLastSave()
+            }
             viewModel.clearSaveSuccess()
         }
     }
@@ -178,7 +189,8 @@ fun TariffEditorScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
-                    .padding(horizontal = Dimens.screenHorizontalPadding),
+                    .padding(horizontal = Dimens.screenHorizontalPadding)
+                    .testTag("tariff_editor_lazy_column"),
                 verticalArrangement = Arrangement.spacedBy(Dimens.cardGap)
             ) {
                 item {
@@ -338,12 +350,20 @@ fun TariffEditorScreen(
         )
     }
 
-    // Confirmation Dialog on Save
+    // Apply From Which Month Dialog
+    if (uiState.showMonthPicker) {
+        ApplyFromMonthDialog(
+            initialCycle = uiState.selectedEffectiveCycle,
+            onDismiss = viewModel::dismissMonthPicker,
+            onMonthSelected = viewModel::onEffectiveMonthSelected
+        )
+    }
+
+    // Confirmation & Diff Dialog on Save
     if (uiState.showConfirmDialog) {
         SaveTariffConfirmationDialog(
+            effectiveCycle = uiState.selectedEffectiveCycle,
             diffItems = uiState.diffItems,
-            selectedScope = uiState.selectedScope,
-            onScopeSelected = viewModel::setScope,
             onDismiss = viewModel::dismissConfirmDialog,
             onConfirm = {
                 if (uiState.isAppLockEnabled && activity != null && BiometricAuthHelper.canAuthenticate(context)) {
@@ -365,6 +385,11 @@ fun TariffEditorScreen(
                 }
             }
         )
+    }
+
+    // Recalculating Progress Dialog
+    if (uiState.isRecalculating) {
+        RecalculationProgressDialog()
     }
 
     // Unsaved Changes Guard Dialog
@@ -408,9 +433,9 @@ fun TariffEditorScreen(
     // History Bottom Sheet
     if (uiState.showHistorySheet) {
         TariffHistoryBottomSheet(
-            tariffs = uiState.historyTariffs,
+            versions = uiState.historyVersions,
             onDismiss = viewModel::dismissHistorySheet,
-            onRevert = viewModel::revertToTariff
+            onSelectVersion = viewModel::loadVersionIntoEditor
         )
     }
 }
@@ -709,7 +734,7 @@ private fun SlabEditorBottomSheet(
                     .fillMaxWidth()
                     .clickable { isOpenEnded = !isOpenEnded }
             ) {
-                Checkbox(
+                WattWiseCheckbox(
                     checked = isOpenEnded,
                     onCheckedChange = { isOpenEnded = it }
                 )
@@ -788,7 +813,9 @@ private fun FixedChargesBottomSheet(
                 value = name,
                 onValueChange = { name = it },
                 label = { Text(stringResource(R.string.tariff_name)) },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("tariff_plan_name_input"),
                 singleLine = true
             )
 
@@ -844,27 +871,188 @@ private fun FixedChargesBottomSheet(
 }
 
 @Composable
-private fun SaveTariffConfirmationDialog(
-    diffItems: List<TariffDiffItem>,
-    selectedScope: TariffEffectiveScope,
-    onScopeSelected: (TariffEffectiveScope) -> Unit,
+private fun ApplyFromMonthDialog(
+    initialCycle: String,
     onDismiss: () -> Unit,
-    onConfirm: () -> Unit
+    onMonthSelected: (year: Int, month: Int) -> Unit
 ) {
+    val initialParts = initialCycle.split("-")
+    val defaultYear = initialParts.getOrNull(0)?.toIntOrNull() ?: com.powerunit.core.common.DateUtils.currentDhakaDate().year
+    val defaultMonth = initialParts.getOrNull(1)?.toIntOrNull() ?: com.powerunit.core.common.DateUtils.currentDhakaDate().monthNumber
+
+    var selectedYear by remember { mutableStateOf(defaultYear) }
+    var selectedMonth by remember { mutableStateOf(defaultMonth) }
+
+    val monthNames = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+
     AlertDialog(
         onDismissRequest = onDismiss,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp),
+        icon = {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.CalendarMonth,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+        },
         title = {
-            Text(stringResource(R.string.tariff_confirm_title))
+            Text(
+                text = stringResource(R.string.tariff_apply_month_title),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
         },
         text = {
             Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(Dimens.xs)
+                verticalArrangement = Arrangement.spacedBy(Dimens.spacingSm)
             ) {
                 Text(
-                    text = stringResource(R.string.tariff_confirm_desc),
-                    style = MaterialTheme.typography.bodyMedium
+                    text = stringResource(R.string.tariff_apply_month_desc),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(
+                        onClick = { selectedYear = (selectedYear - 1).coerceAtLeast(defaultYear - 5) }
+                    ) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Prev Year")
+                    }
+                    Text(
+                        text = "$selectedYear",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    IconButton(
+                        onClick = { selectedYear = (selectedYear + 1).coerceAtMost(defaultYear + 1) }
+                    ) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Next Year")
+                    }
+                }
+
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    for (row in 0 until 4) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            for (col in 0 until 3) {
+                                val monthNum = row * 3 + col + 1
+                                val isSelected = monthNum == selectedMonth
+                                Surface(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(38.dp)
+                                        .clickable { selectedMonth = monthNum },
+                                    shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
+                                    color = if (isSelected) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.surfaceVariant
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Text(
+                                            text = monthNames[monthNum - 1],
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                                            else MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onMonthSelected(selectedYear, selectedMonth) },
+                shape = PillShape,
+                modifier = Modifier.testTag("apply_month_confirm_btn")
+            ) {
+                Text("Next")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.cancel))
+            }
+        }
+    )
+}
+
+@Composable
+private fun SaveTariffConfirmationDialog(
+    effectiveCycle: String,
+    diffItems: List<TariffDiffItem>,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    val monthName = com.powerunit.core.common.DateUtils.formatCycleMonth(effectiveCycle)
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp),
+        icon = {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Save,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+        },
+        title = {
+            Text(
+                text = stringResource(R.string.tariff_diff_title),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(Dimens.spacingSm)
+            ) {
+                Surface(
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text(
+                            text = "Effective Month: $monthName",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                        Text(
+                            text = "Past bills from $monthName to now will be recalculated automatically.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                }
 
                 if (diffItems.isNotEmpty()) {
                     Card(
@@ -899,53 +1087,12 @@ private fun SaveTariffConfirmationDialog(
                         }
                     }
                 }
-
-                Spacer(modifier = Modifier.height(Dimens.xxs))
-                Text(
-                    text = "Effective Scope:",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onScopeSelected(TariffEffectiveScope.CURRENT_BILLING_CYCLE) }
-                ) {
-                    RadioButton(
-                        selected = selectedScope == TariffEffectiveScope.CURRENT_BILLING_CYCLE,
-                        onClick = { onScopeSelected(TariffEffectiveScope.CURRENT_BILLING_CYCLE) }
-                    )
-                    Spacer(modifier = Modifier.width(Dimens.xxs))
-                    Text(
-                        text = stringResource(R.string.tariff_scope_cycle),
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onScopeSelected(TariffEffectiveScope.TODAY) }
-                ) {
-                    RadioButton(
-                        selected = selectedScope == TariffEffectiveScope.TODAY,
-                        onClick = { onScopeSelected(TariffEffectiveScope.TODAY) }
-                    )
-                    Spacer(modifier = Modifier.width(Dimens.xxs))
-                    Text(
-                        text = stringResource(R.string.tariff_scope_today),
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
             }
         },
         confirmButton = {
             Button(
                 onClick = onConfirm,
-                shape = ButtonShape,
+                shape = PillShape,
                 modifier = Modifier.testTag("confirm_save_tariff_btn")
             ) {
                 Text("Confirm & Save")
@@ -959,12 +1106,42 @@ private fun SaveTariffConfirmationDialog(
     )
 }
 
+@Composable
+private fun RecalculationProgressDialog() {
+    androidx.compose.ui.window.Dialog(onDismissRequest = {}) {
+        Card(
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .padding(24.dp)
+                    .fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(32.dp),
+                    strokeWidth = 3.dp,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = stringResource(R.string.tariff_recalculating),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TariffHistoryBottomSheet(
-    tariffs: List<com.powerunit.domain.model.Tariff>,
+    versions: List<com.powerunit.domain.model.TariffVersion>,
     onDismiss: () -> Unit,
-    onRevert: (com.powerunit.domain.model.Tariff) -> Unit
+    onSelectVersion: (com.powerunit.domain.model.TariffVersion) -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
@@ -985,14 +1162,14 @@ private fun TariffHistoryBottomSheet(
                 fontWeight = FontWeight.Bold
             )
 
-            if (tariffs.isEmpty()) {
+            if (versions.isEmpty()) {
                 Text(
                     text = "No recorded tariff history versions.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             } else {
-                tariffs.forEachIndexed { idx, t ->
+                versions.forEachIndexed { idx, v ->
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = CardShape,
@@ -1007,18 +1184,14 @@ private fun TariffHistoryBottomSheet(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
+                                val monthStr = com.powerunit.core.common.DateUtils.formatCycleMonth(v.effectiveFromCycle)
                                 Text(
-                                    text = t.name,
+                                    text = "Version: $monthStr (${v.effectiveFromCycle})",
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    text = "Effective: ${com.powerunit.core.common.DateUtils.formatDate(t.effectiveFrom)}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Text(
-                                    text = "${t.slabs.size} slabs • VAT: ${t.vatPercent}% • Demand: ৳${t.demandChargeFlat}",
+                                    text = "${v.slabs.size} slabs • VAT: ${v.vatPercent}% • Demand: ৳${v.demandCharge}",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.primary
                                 )
@@ -1026,7 +1199,7 @@ private fun TariffHistoryBottomSheet(
 
                             if (idx > 0) {
                                 Button(
-                                    onClick = { onRevert(t) },
+                                    onClick = { onSelectVersion(v) },
                                     shape = ButtonShape
                                 ) {
                                     Text(stringResource(R.string.tariff_revert_btn))

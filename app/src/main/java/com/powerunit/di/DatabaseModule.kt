@@ -10,6 +10,7 @@ import com.powerunit.core.database.dao.MeterDao
 import com.powerunit.core.database.dao.ReadingDao
 import com.powerunit.core.database.dao.RechargeDao
 import com.powerunit.core.database.dao.TariffDao
+import com.powerunit.core.database.dao.TariffVersionDao
 import com.powerunit.core.database.security.DatabasePassphraseHelper
 import dagger.Module
 import dagger.Provides
@@ -44,6 +45,7 @@ object DatabaseModule {
             PowerUnitDatabase.DATABASE_NAME
         )
             .openHelperFactory(factory)
+            .addMigrations(PowerUnitDatabase.MIGRATION_1_2)
             .fallbackToDestructiveMigration(dropAllTables = true)
             .addCallback(object : RoomDatabase.Callback() {
                 override fun onCreate(db: SupportSQLiteDatabase) {
@@ -53,9 +55,10 @@ object DatabaseModule {
                         "INSERT OR IGNORE INTO meters (id, name, type, startReading, multiplierFactor, isActive, createdAt) " +
                             "VALUES (1, 'Main Meter', 'POSTPAID', '0.0', '1.0', 1, $nowMillis)"
                     )
+                    // Seed default tariff with epoch 0 so any user-created version takes precedence
                     db.execSQL(
                         "INSERT OR IGNORE INTO tariffs (id, name, effectiveFrom, vatPercent, serviceChargeFlat, demandChargeFlat, isActive) " +
-                            "VALUES (1, 'Bangladesh Domestic Postpaid (LT-A)', $nowMillis, '5.0', '10.00', '35.00', 1)"
+                            "VALUES (1, 'Bangladesh Domestic Postpaid (LT-A)', 0, '5.0', '10.00', '35.00', 1)"
                     )
                     db.execSQL("INSERT OR IGNORE INTO tariff_slabs (tariffId, fromUnit, toUnit, ratePerUnit) VALUES (1, '0', '75', '4.85')")
                     db.execSQL("INSERT OR IGNORE INTO tariff_slabs (tariffId, fromUnit, toUnit, ratePerUnit) VALUES (1, '76', '200', '6.63')")
@@ -63,6 +66,13 @@ object DatabaseModule {
                     db.execSQL("INSERT OR IGNORE INTO tariff_slabs (tariffId, fromUnit, toUnit, ratePerUnit) VALUES (1, '301', '400', '7.34')")
                     db.execSQL("INSERT OR IGNORE INTO tariff_slabs (tariffId, fromUnit, toUnit, ratePerUnit) VALUES (1, '401', '600', '11.51')")
                     db.execSQL("INSERT OR IGNORE INTO tariff_slabs (tariffId, fromUnit, toUnit, ratePerUnit) VALUES (1, '601', NULL, '13.26')")
+
+                    // Seed initial tariff_version with baseline cycle 1970-01
+                    val defaultSlabsJson = """[{"from":"0","to":"75","rate":"4.85"},{"from":"76","to":"200","rate":"6.63"},{"from":"201","to":"300","rate":"6.95"},{"from":"301","to":"400","rate":"7.34"},{"from":"401","to":"600","rate":"11.51"},{"from":"601","to":null,"rate":"13.26"}]"""
+                    db.execSQL(
+                        "INSERT OR IGNORE INTO tariff_version (id, planId, effectiveFromCycle, slabs, fixedCharge, demandCharge, vatPercent, rebatePercent, otherCharges, createdAt) " +
+                            "VALUES (1, 1, '1970-01', '$defaultSlabsJson', '10.00', '35.00', '5.0', '0.0', '0.0', $nowMillis)"
+                    )
                 }
             })
             .build()
@@ -76,6 +86,9 @@ object DatabaseModule {
 
     @Provides
     fun provideTariffDao(database: PowerUnitDatabase): TariffDao = database.tariffDao()
+
+    @Provides
+    fun provideTariffVersionDao(database: PowerUnitDatabase): TariffVersionDao = database.tariffVersionDao()
 
     @Provides
     fun provideBudgetDao(database: PowerUnitDatabase): BudgetDao = database.budgetDao()

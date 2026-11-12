@@ -146,6 +146,14 @@
     <string name="tariff_revert_btn">Revert</string>
     <string name="tariff_open_ended">No upper limit (open-ended)</string>
     <string name="tariff_auth_required">Biometric authentication required to save tariff changes.</string>
+    <string name="tariff_apply_month_title">Apply from which month?</string>
+    <string name="tariff_apply_month_desc">Select the billing cycle month. Past bills from this month through the current month will be recalculated.</string>
+    <string name="tariff_effective_month">Effective Month</string>
+    <string name="tariff_recalculating">Recalculating rates and past bills…</string>
+    <string name="tariff_updated_recalculated">Rates updated from %1$s, %2$d months recalculated</string>
+    <string name="tariff_undo">Undo</string>
+    <string name="tariff_reverted">Reverted to previous tariff version</string>
+    <string name="tariff_diff_title">Review Rate Changes</string>
 
     <!-- WorkManager & Notifications -->
     <string name="notification_channel_reminders">Meter Reminders</string>

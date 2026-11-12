@@ -11,6 +11,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -38,7 +39,10 @@ class SettingsPreferences @Inject constructor(
         val KEY_ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
         val KEY_GITHUB_REPO = stringPreferencesKey("github_repo")
         val KEY_AUTO_CHECK_UPDATES = booleanPreferencesKey("auto_check_updates")
+        val KEY_TARIFF_SEEDED = booleanPreferencesKey("tariff_seeded")
     }
+
+    val tariffSeeded: Flow<Boolean> = context.dataStore.data.map { it[KEY_TARIFF_SEEDED] ?: false }
 
     val billingCycleDay: Flow<Int> = context.dataStore.data.map { it[KEY_BILLING_CYCLE_DAY] ?: 1 }
     val co2Factor: Flow<Double> = context.dataStore.data.map { it[KEY_CO2_EMISSION_FACTOR] ?: 0.55 }
@@ -121,5 +125,13 @@ class SettingsPreferences @Inject constructor(
 
     suspend fun setAutoCheckUpdates(enabled: Boolean) {
         context.dataStore.edit { it[KEY_AUTO_CHECK_UPDATES] = enabled }
+    }
+
+    suspend fun setTariffSeeded(seeded: Boolean) {
+        context.dataStore.edit { it[KEY_TARIFF_SEEDED] = seeded }
+    }
+
+    suspend fun isTariffSeeded(): Boolean {
+        return context.dataStore.data.first()[KEY_TARIFF_SEEDED] ?: false
     }
 }
