@@ -221,56 +221,53 @@ fun AddReadingScreen(
             )
         },
         bottomBar = {
-            Surface(
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.background)
                     .imePadding()
-                    .windowInsetsPadding(WindowInsets.navigationBars),
-                color = MaterialTheme.colorScheme.surface,
-                tonalElevation = Dimens.level3,
-                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                    .windowInsetsPadding(WindowInsets.navigationBars)
+                    .padding(horizontal = Dimens.screenHorizontalPadding, vertical = Dimens.spacingSm)
             ) {
-                Box(
+                val isValid = state.readingInput.isNotBlank() &&
+                    state.readingInput.toBigDecimalOrNull() != null &&
+                    !state.isSaving
+
+                val delta = state.calculatedDelta
+                val saveLabel = stringResource(R.string.btn_save_reading)
+                val buttonText = when {
+                    state.isSaving -> stringResource(R.string.btn_saving)
+                    delta != null && delta > BigDecimal.ZERO -> "$saveLabel • +${Formatters.formatUnits(delta)} kWh"
+                    else -> saveLabel
+                }
+
+                Button(
+                    onClick = { viewModel.saveReading() },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = Dimens.screenHorizontalPadding, vertical = Dimens.spacingSm)
+                        .height(Dimens.buttonHeightPrimary)
+                        .testTag("save_reading_btn"),
+                    enabled = isValid,
+                    shape = PillShape,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                        disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                        disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                    ),
+                    elevation = if (isValid) ButtonDefaults.buttonElevation(defaultElevation = 2.dp) else ButtonDefaults.buttonElevation()
                 ) {
-                    val isValid = state.readingInput.isNotBlank() &&
-                        state.readingInput.toBigDecimalOrNull() != null &&
-                        !state.isSaving
-
-                    val delta = state.calculatedDelta
-                    val buttonText = when {
-                        state.isSaving -> "Saving..."
-                        delta != null && delta > BigDecimal.ZERO -> "Save Reading • +${Formatters.formatUnits(delta)} kWh"
-                        else -> "Save Reading"
-                    }
-
-                    Button(
-                        onClick = { viewModel.saveReading() },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(Dimens.buttonHeightPrimary)
-                            .testTag("save_reading_btn"),
-                        enabled = isValid,
-                        shape = PillShape,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant
-                        )
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = null,
-                            modifier = Modifier.size(Dimens.iconSizeSmall)
-                        )
-                        Spacer(modifier = Modifier.width(Dimens.xs))
-                        Text(
-                            text = buttonText,
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = null,
+                        modifier = Modifier.size(Dimens.iconSizeSmall)
+                    )
+                    Spacer(modifier = Modifier.width(Dimens.xs))
+                    Text(
+                        text = buttonText,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
         }
@@ -838,8 +835,8 @@ private fun ModernQuickNotesSection(
 
 /**
  * Modern Switch Card for Meter Reset or Replacement.
- * The entire row is clickable (48dp+ touch target), with label on the left
- * and unified WattWiseSwitch on the right.
+ * Responsive, clean single-row design with icon, title, and WattWiseSwitch.
+ * The entire card is clickable with a comfortable touch target.
  */
 @Composable
 internal fun ModernMeterResetCard(
@@ -853,84 +850,53 @@ internal fun ModernMeterResetCard(
             .clickable { onMeterResetChange(!isMeterReset) },
         shape = CardShape,
         colors = CardDefaults.cardColors(
-            containerColor = if (isMeterReset) MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f)
+            containerColor = if (isMeterReset) MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.25f)
             else MaterialTheme.colorScheme.surface
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(Dimens.cardPaddingStandard),
-            verticalArrangement = Arrangement.spacedBy(Dimens.xs)
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(androidx.compose.ui.unit.max(48.dp, Dimens.iconContainerSize)),
+                modifier = Modifier.weight(1f),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.spacedBy(Dimens.iconToTextGap)
             ) {
-                Row(
-                    modifier = Modifier.weight(1f),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(Dimens.iconToTextGap)
+                Box(
+                    modifier = Modifier
+                        .size(Dimens.iconContainerSize)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.6f)),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(Dimens.iconContainerSize)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.6f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.RestartAlt,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.tertiary,
-                            modifier = Modifier.size(Dimens.iconSizeStandard)
-                        )
-                    }
-
-                    Column {
-                        Text(
-                            text = stringResource(R.string.meter_reset_title),
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            text = stringResource(R.string.meter_reset_desc),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Default.RestartAlt,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.tertiary,
+                        modifier = Modifier.size(Dimens.iconSizeStandard)
+                    )
                 }
 
-                Spacer(modifier = Modifier.width(Dimens.spacingSm))
-
-                WattWiseSwitch(
-                    checked = isMeterReset,
-                    onCheckedChange = onMeterResetChange,
-                    modifier = Modifier.testTag("meter_reset_switch")
+                Text(
+                    text = stringResource(R.string.meter_reset_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
 
-            if (isMeterReset) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f))
-                        .padding(horizontal = Dimens.spacingSm, vertical = Dimens.xxs)
-                ) {
-                    Text(
-                        text = stringResource(R.string.meter_reset_warning_badge),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer
-                    )
-                }
-            }
+            Spacer(modifier = Modifier.width(Dimens.spacingSm))
+
+            WattWiseSwitch(
+                checked = isMeterReset,
+                onCheckedChange = onMeterResetChange,
+                modifier = Modifier.testTag("meter_reset_switch")
+            )
         }
     }
 }

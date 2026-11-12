@@ -244,4 +244,6 @@
     <string name="previous_reading_label">Previous Reading</string>
     <string name="current_meter_reading_label">CURRENT METER READING</string>
     <string name="entry_date_and_time">Entry Date &amp; Time</string>
+    <string name="btn_save_reading">Save Reading</string>
+    <string name="btn_saving">Saving…</string>
 </resources>

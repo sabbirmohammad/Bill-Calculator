@@ -244,4 +244,6 @@
     <string name="previous_reading_label">পূর্ববর্তী রিডিং</string>
     <string name="current_meter_reading_label">বর্তমান মিটার রিডিং</string>
     <string name="entry_date_and_time">রিডিংয়ের তারিখ ও সময়</string>
+    <string name="btn_save_reading">রিডিং সংরক্ষণ করুন</string>
+    <string name="btn_saving">সংরক্ষণ করা হচ্ছে…</string>
 </resources>
