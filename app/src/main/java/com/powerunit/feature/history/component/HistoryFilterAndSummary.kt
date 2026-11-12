@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -44,11 +45,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.powerunit.core.common.Formatters
+import com.powerunit.core.designsystem.theme.CardShape
 import com.powerunit.core.designsystem.theme.Dimens
 import com.powerunit.feature.history.MonthChipUiModel
 import com.powerunit.feature.history.MonthSummaryUiModel
@@ -271,101 +275,161 @@ fun MonthSummaryCard(
         modifier = modifier
             .fillMaxWidth()
             .testTag("history_month_summary"),
-        shape = RoundedCornerShape(16.dp),
+        shape = CardShape,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = Dimens.level1)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(14.dp)
+                .padding(Dimens.cardPaddingStandard)
         ) {
             BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-                val isNarrow = maxWidth < 300.dp
-                if (isNarrow) {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                val configuration = LocalConfiguration.current
+                val isWide = maxWidth >= 560.dp && configuration.fontScale <= 1.15f
+                val isStacked = maxWidth < 280.dp || configuration.fontScale > 1.3f
+
+                val totalUnitsLabel = if (isBangla) "মোট বিদ্যুৎ" else "Total Units"
+                val totalUnitsValue = "${Formatters.formatUnits(summary.totalUnits, useBengaliDigits)} kWh"
+
+                val estBillLabel = if (isBangla) "আনুমানিক বিল" else "Est. Bill"
+                val estBillValue = if (hideAmounts) "৳ ••••" else Formatters.formatMoney(summary.totalCost, includeSymbol = true, useBengaliDigits = useBengaliDigits)
+
+                val readingsLabel = if (isBangla) "রিডিং" else "Readings"
+                val readingsValue = if (useBengaliDigits) {
+                    "${Formatters.toBengaliDigits(summary.readingsCount.toString())}টি"
+                } else {
+                    "${summary.readingsCount} total"
+                }
+
+                val dailyAvgLabel = if (isBangla) "দৈনিক গড়" else "Daily Avg"
+                val dailyAvgValue = "${Formatters.formatUnits(summary.avgPerDay, useBengaliDigits)} kWh/d"
+
+                when {
+                    isWide -> {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            horizontalArrangement = Arrangement.spacedBy(Dimens.xs),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            SummaryStatItem(
+                            MonthSummaryTile(
                                 icon = Icons.Default.Bolt,
                                 iconColor = MaterialTheme.colorScheme.primary,
-                                label = if (isBangla) "মোট ব্যবহার" else "Total Usage",
-                                value = "${Formatters.formatUnits(summary.totalUnits, useBengaliDigits)} kWh",
+                                label = totalUnitsLabel,
+                                value = totalUnitsValue,
                                 modifier = Modifier.weight(1f)
                             )
-                            SummaryStatItem(
+                            MonthSummaryTile(
                                 icon = Icons.AutoMirrored.Filled.ReceiptLong,
                                 iconColor = MaterialTheme.colorScheme.secondary,
-                                label = if (isBangla) "আনুমানিক বিল" else "Est. Cost",
-                                value = if (hideAmounts) "৳ ••••" else Formatters.formatMoney(summary.totalCost, includeSymbol = true, useBengaliDigits = useBengaliDigits),
+                                label = estBillLabel,
+                                value = estBillValue,
                                 modifier = Modifier.weight(1f)
                             )
-                        }
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            SummaryStatItem(
+                            MonthSummaryTile(
                                 icon = Icons.Default.CalendarMonth,
                                 iconColor = MaterialTheme.colorScheme.tertiary,
-                                label = if (isBangla) "রিডিং সংখ্যা" else "Readings",
-                                value = if (useBengaliDigits) {
-                                    "${Formatters.toBengaliDigits(summary.readingsCount.toString())}টি"
-                                } else {
-                                    "${summary.readingsCount} entries"
-                                },
+                                label = readingsLabel,
+                                value = readingsValue,
                                 modifier = Modifier.weight(1f)
                             )
-                            SummaryStatItem(
+                            MonthSummaryTile(
                                 icon = Icons.AutoMirrored.Filled.TrendingUp,
                                 iconColor = MaterialTheme.colorScheme.primary,
-                                label = if (isBangla) "দৈনিক গড়" else "Daily Avg",
-                                value = "${Formatters.formatUnits(summary.avgPerDay, useBengaliDigits)} kWh/d",
+                                label = dailyAvgLabel,
+                                value = dailyAvgValue,
                                 modifier = Modifier.weight(1f)
                             )
                         }
                     }
-                } else {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        SummaryStatItem(
-                            icon = Icons.Default.Bolt,
-                            iconColor = MaterialTheme.colorScheme.primary,
-                            label = if (isBangla) "মোট বিদ্যুৎ" else "Total Units",
-                            value = "${Formatters.formatUnits(summary.totalUnits, useBengaliDigits)} kWh",
-                            modifier = Modifier.weight(1f)
-                        )
-                        SummaryStatItem(
-                            icon = Icons.AutoMirrored.Filled.ReceiptLong,
-                            iconColor = MaterialTheme.colorScheme.secondary,
-                            label = if (isBangla) "আনুমানিক বিল" else "Est. Bill",
-                            value = if (hideAmounts) "৳ ••••" else Formatters.formatMoney(summary.totalCost, includeSymbol = true, useBengaliDigits = useBengaliDigits),
-                            modifier = Modifier.weight(1f)
-                        )
-                        SummaryStatItem(
-                            icon = Icons.Default.CalendarMonth,
-                            iconColor = MaterialTheme.colorScheme.tertiary,
-                            label = if (isBangla) "রিডিং" else "Readings",
-                            value = if (useBengaliDigits) {
-                                "${Formatters.toBengaliDigits(summary.readingsCount.toString())}টি"
-                            } else {
-                                "${summary.readingsCount} total"
-                            },
-                            modifier = Modifier.weight(1f)
-                        )
-                        SummaryStatItem(
-                            icon = Icons.AutoMirrored.Filled.TrendingUp,
-                            iconColor = MaterialTheme.colorScheme.primary,
-                            label = if (isBangla) "দৈনিক গড়" else "Daily Avg",
-                            value = "${Formatters.formatUnits(summary.avgPerDay, useBengaliDigits)} kWh",
-                            modifier = Modifier.weight(1f)
-                        )
+                    isStacked -> {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(Dimens.xs)
+                        ) {
+                            MonthSummaryStackedRow(
+                                icon = Icons.Default.Bolt,
+                                iconColor = MaterialTheme.colorScheme.primary,
+                                label = totalUnitsLabel,
+                                value = totalUnitsValue
+                            )
+                            HorizontalDivider(
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                                thickness = 1.dp
+                            )
+                            MonthSummaryStackedRow(
+                                icon = Icons.AutoMirrored.Filled.ReceiptLong,
+                                iconColor = MaterialTheme.colorScheme.secondary,
+                                label = estBillLabel,
+                                value = estBillValue
+                            )
+                            HorizontalDivider(
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                                thickness = 1.dp
+                            )
+                            MonthSummaryStackedRow(
+                                icon = Icons.Default.CalendarMonth,
+                                iconColor = MaterialTheme.colorScheme.tertiary,
+                                label = readingsLabel,
+                                value = readingsValue
+                            )
+                            HorizontalDivider(
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                                thickness = 1.dp
+                            )
+                            MonthSummaryStackedRow(
+                                icon = Icons.AutoMirrored.Filled.TrendingUp,
+                                iconColor = MaterialTheme.colorScheme.primary,
+                                label = dailyAvgLabel,
+                                value = dailyAvgValue
+                            )
+                        }
+                    }
+                    else -> {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(Dimens.xs)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(Dimens.xs)
+                            ) {
+                                MonthSummaryTile(
+                                    icon = Icons.Default.Bolt,
+                                    iconColor = MaterialTheme.colorScheme.primary,
+                                    label = totalUnitsLabel,
+                                    value = totalUnitsValue,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                MonthSummaryTile(
+                                    icon = Icons.AutoMirrored.Filled.ReceiptLong,
+                                    iconColor = MaterialTheme.colorScheme.secondary,
+                                    label = estBillLabel,
+                                    value = estBillValue,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(Dimens.xs)
+                            ) {
+                                MonthSummaryTile(
+                                    icon = Icons.Default.CalendarMonth,
+                                    iconColor = MaterialTheme.colorScheme.tertiary,
+                                    label = readingsLabel,
+                                    value = readingsValue,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                MonthSummaryTile(
+                                    icon = Icons.AutoMirrored.Filled.TrendingUp,
+                                    iconColor = MaterialTheme.colorScheme.primary,
+                                    label = dailyAvgLabel,
+                                    value = dailyAvgValue,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -374,7 +438,70 @@ fun MonthSummaryCard(
 }
 
 @Composable
-private fun SummaryStatItem(
+private fun MonthSummaryTile(
+    icon: ImageVector,
+    iconColor: Color,
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Dimens.xs, vertical = Dimens.xs),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                shape = CircleShape,
+                color = iconColor.copy(alpha = 0.14f),
+                modifier = Modifier.size(32.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = iconColor,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(Dimens.xs))
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = value,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontFeatureSettings = "tnum"
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun MonthSummaryStackedRow(
     icon: ImageVector,
     iconColor: Color,
     label: String,
@@ -382,12 +509,14 @@ private fun SummaryStatItem(
     modifier: Modifier = Modifier
 ) {
     Row(
-        modifier = modifier.padding(horizontal = 4.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = Dimens.xs),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Surface(
             shape = CircleShape,
-            color = iconColor.copy(alpha = 0.12f),
+            color = iconColor.copy(alpha = 0.14f),
             modifier = Modifier.size(32.dp)
         ) {
             Box(contentAlignment = Alignment.Center) {
@@ -400,19 +529,28 @@ private fun SummaryStatItem(
             }
         }
 
-        Spacer(modifier = Modifier.width(8.dp))
+        Spacer(modifier = Modifier.width(Dimens.sm))
 
-        Column {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = value,
-                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.onSurface
-            )
-        }
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+
+        Spacer(modifier = Modifier.width(Dimens.xs))
+
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontWeight = FontWeight.Bold,
+                fontFeatureSettings = "tnum"
+            ),
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }

@@ -23,7 +23,7 @@ interface MeterDao {
     @Query("SELECT * FROM meters WHERE id = :id")
     suspend fun getMeterById(id: Long): MeterEntity?
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertMeter(meter: MeterEntity): Long
 
     @Update

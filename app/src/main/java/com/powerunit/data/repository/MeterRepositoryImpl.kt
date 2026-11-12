@@ -39,8 +39,16 @@ class MeterRepositoryImpl @Inject constructor(
     override suspend fun getMeterById(id: Long): Meter? =
         meterDao.getMeterById(id)?.toDomain()
 
-    override suspend fun saveMeter(meter: Meter): Long =
-        meterDao.insertMeter(meter.toEntity())
+    override suspend fun saveMeter(meter: Meter): Long {
+        if (meter.id > 0) {
+            val existing = meterDao.getMeterById(meter.id)
+            if (existing != null) {
+                meterDao.updateMeter(meter.toEntity())
+                return meter.id
+            }
+        }
+        return meterDao.insertMeter(meter.toEntity())
+    }
 
     override suspend fun updateMeter(meter: Meter) =
         meterDao.updateMeter(meter.toEntity())
