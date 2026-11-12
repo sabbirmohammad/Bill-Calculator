@@ -18,7 +18,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.powerunit.core.designsystem.theme.Dimens
-import com.powerunit.core.designsystem.theme.VoltTrackTheme
+import com.powerunit.core.designsystem.theme.WattWiseTheme
 
 /**
  * TariffSlabRow (§5.7):
@@ -106,7 +106,7 @@ fun TariffSlabRow(
 @Preview(name = "TariffSlabRow - Light", showBackground = true)
 @Composable
 private fun PreviewTariffSlabRowLight() {
-    VoltTrackTheme(darkTheme = false) {
+    WattWiseTheme(darkTheme = false) {
         Column {
             TariffSlabRow("0 - 75 units", "৳ 4.63/unit", "75", "৳ 347.25")
             TariffSlabRow("76 - 200 units", "৳ 6.31/unit", "42", "৳ 265.02")
@@ -118,7 +118,7 @@ private fun PreviewTariffSlabRowLight() {
 @Preview(name = "TariffSlabRow - Dark", showBackground = true)
 @Composable
 private fun PreviewTariffSlabRowDark() {
-    VoltTrackTheme(darkTheme = true) {
+    WattWiseTheme(darkTheme = true) {
         Column {
             TariffSlabRow("0 - 75 units", "৳ 4.63/unit", "75", "৳ 347.25")
             TariffSlabRow("76 - 200 units", "৳ 6.31/unit", "42", "৳ 265.02")
@@ -130,7 +130,7 @@ private fun PreviewTariffSlabRowDark() {
 @Preview(name = "TariffSlabRow - 200% Font", fontScale = 2.0f, showBackground = true)
 @Composable
 private fun PreviewTariffSlabRowFont() {
-    VoltTrackTheme {
+    WattWiseTheme {
         TariffSlabRow("0-75", "4.63", "75", "৳ 347")
     }
 }
@@ -138,7 +138,7 @@ private fun PreviewTariffSlabRowFont() {
 @Preview(name = "TariffSlabRow - Bangla", showBackground = true)
 @Composable
 private fun PreviewTariffSlabRowBangla() {
-    VoltTrackTheme {
+    WattWiseTheme {
         TariffSlabRow("০ - ৭৫ ইউনিট", "৳ ৪.৬৩/ইউনিট", "৭৫", "৳ ৩৪৭.২৫")
     }
 }

@@ -61,7 +61,7 @@ import com.powerunit.core.designsystem.theme.Dimens
 import com.powerunit.core.designsystem.theme.NumberLarge
 import com.powerunit.core.designsystem.theme.NumberMedium
 import com.powerunit.core.designsystem.theme.PillShape
-import com.powerunit.core.designsystem.theme.VoltTrackTheme
+import com.powerunit.core.designsystem.theme.WattWiseTheme
 import com.powerunit.domain.model.BillBreakdown
 import com.powerunit.domain.model.SlabCharge
 import java.math.BigDecimal
@@ -731,7 +731,7 @@ private fun WhatIfSimulatorCard(
 @Preview(name = "Itemized Receipt - Light", showBackground = true)
 @Composable
 private fun PreviewItemizedReceiptLight() {
-    VoltTrackTheme(darkTheme = false) {
+    WattWiseTheme(darkTheme = false) {
         Box(modifier = Modifier.padding(16.dp)) {
             ItemizedReceiptCard(bill = sampleBillBreakdown)
         }
@@ -741,7 +741,7 @@ private fun PreviewItemizedReceiptLight() {
 @Preview(name = "Itemized Receipt - Dark", showBackground = true)
 @Composable
 private fun PreviewItemizedReceiptDark() {
-    VoltTrackTheme(darkTheme = true) {
+    WattWiseTheme(darkTheme = true) {
         Box(modifier = Modifier.padding(16.dp)) {
             ItemizedReceiptCard(bill = sampleBillBreakdown)
         }
@@ -751,7 +751,7 @@ private fun PreviewItemizedReceiptDark() {
 @Preview(name = "Itemized Receipt - 200% Font", fontScale = 2.0f, showBackground = true)
 @Composable
 private fun PreviewItemizedReceiptFontScale() {
-    VoltTrackTheme {
+    WattWiseTheme {
         Box(modifier = Modifier.padding(16.dp)) {
             ItemizedReceiptCard(bill = sampleBillBreakdown)
         }

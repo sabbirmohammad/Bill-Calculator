@@ -37,7 +37,7 @@ import com.powerunit.core.designsystem.theme.Dimens
 import com.powerunit.core.designsystem.theme.HeroShape
 import com.powerunit.core.designsystem.theme.Motion
 import com.powerunit.core.designsystem.theme.PillShape
-import com.powerunit.core.designsystem.theme.VoltTrackTheme
+import com.powerunit.core.designsystem.theme.WattWiseTheme
 
 /**
  * Skeleton shimmer (§5.12):
@@ -297,7 +297,7 @@ fun BillSkeleton(modifier: Modifier = Modifier) {
 @Preview(name = "ShimmerSkeleton - Light", showBackground = true)
 @Composable
 private fun PreviewSkeletonLight() {
-    VoltTrackTheme(darkTheme = false) {
+    WattWiseTheme(darkTheme = false) {
         DashboardSkeleton()
     }
 }

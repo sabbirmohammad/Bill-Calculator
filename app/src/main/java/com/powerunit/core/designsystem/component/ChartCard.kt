@@ -26,7 +26,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.powerunit.core.designsystem.theme.CardShape
 import com.powerunit.core.designsystem.theme.Dimens
-import com.powerunit.core.designsystem.theme.VoltTrackTheme
+import com.powerunit.core.designsystem.theme.WattWiseTheme
 
 /**
  * ChartCard (§5.14):
@@ -102,7 +102,7 @@ fun ChartCard(
 @Preview(name = "ChartCard - Light", showBackground = true)
 @Composable
 private fun PreviewChartCardLight() {
-    VoltTrackTheme(darkTheme = false) {
+    WattWiseTheme(darkTheme = false) {
         ChartCard(
             title = "Usage Trend",
             semanticSummary = "Average 8.4 units daily over the past week.",
@@ -123,7 +123,7 @@ private fun PreviewChartCardLight() {
 @Preview(name = "ChartCard - Dark", showBackground = true)
 @Composable
 private fun PreviewChartCardDark() {
-    VoltTrackTheme(darkTheme = true) {
+    WattWiseTheme(darkTheme = true) {
         ChartCard(
             title = "Usage Trend",
             semanticSummary = "Average 8.4 units daily over the past week.",

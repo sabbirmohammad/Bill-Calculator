@@ -14,7 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.powerunit.core.designsystem.theme.Dimens
-import com.powerunit.core.designsystem.theme.VoltTrackTheme
+import com.powerunit.core.designsystem.theme.WattWiseTheme
 
 /**
  * SectionHeader (§5.5):
@@ -61,7 +61,7 @@ fun SectionHeader(
 @Preview(name = "SectionHeader - Light", showBackground = true)
 @Composable
 private fun PreviewSectionHeaderLight() {
-    VoltTrackTheme(darkTheme = false) {
+    WattWiseTheme(darkTheme = false) {
         SectionHeader(
             title = "Last 7 days",
             actionLabel = "View details",
@@ -73,7 +73,7 @@ private fun PreviewSectionHeaderLight() {
 @Preview(name = "SectionHeader - Dark", showBackground = true)
 @Composable
 private fun PreviewSectionHeaderDark() {
-    VoltTrackTheme(darkTheme = true) {
+    WattWiseTheme(darkTheme = true) {
         SectionHeader(
             title = "Last 7 days",
             actionLabel = "View details",
@@ -85,7 +85,7 @@ private fun PreviewSectionHeaderDark() {
 @Preview(name = "SectionHeader - 200% Font", fontScale = 2.0f, showBackground = true)
 @Composable
 private fun PreviewSectionHeaderFont() {
-    VoltTrackTheme {
+    WattWiseTheme {
         SectionHeader(
             title = "Last 7 days",
             actionLabel = "Details",
@@ -97,7 +97,7 @@ private fun PreviewSectionHeaderFont() {
 @Preview(name = "SectionHeader - Bangla", showBackground = true)
 @Composable
 private fun PreviewSectionHeaderBangla() {
-    VoltTrackTheme {
+    WattWiseTheme {
         SectionHeader(
             title = "গত ৭ দিন",
             actionLabel = "বিস্তারিত",

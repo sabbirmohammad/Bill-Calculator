@@ -41,7 +41,7 @@ import com.powerunit.core.designsystem.theme.HeroGradientDark
 import com.powerunit.core.designsystem.theme.HeroGradientLight
 import com.powerunit.core.designsystem.theme.HeroShape
 import com.powerunit.core.designsystem.theme.NumberHero
-import com.powerunit.core.designsystem.theme.VoltTrackTheme
+import com.powerunit.core.designsystem.theme.WattWiseTheme
 
 /**
  * GradientHeroCard (§5.1):
@@ -259,7 +259,7 @@ fun GradientHeroCard(
 @Preview(name = "HeroCard - Light", showBackground = true)
 @Composable
 private fun PreviewGradientHeroCardLight() {
-    VoltTrackTheme(darkTheme = false) {
+    WattWiseTheme(darkTheme = false) {
         GradientHeroCard(
             monthLabel = "Current Billing Cycle",
             unitsUsed = "142.8",
@@ -276,7 +276,7 @@ private fun PreviewGradientHeroCardLight() {
 @Preview(name = "HeroCard - Dark", showBackground = true)
 @Composable
 private fun PreviewGradientHeroCardDark() {
-    VoltTrackTheme(darkTheme = true) {
+    WattWiseTheme(darkTheme = true) {
         GradientHeroCard(
             monthLabel = "Current Billing Cycle",
             unitsUsed = "142.8",
@@ -293,7 +293,7 @@ private fun PreviewGradientHeroCardDark() {
 @Preview(name = "HeroCard - 200% Font", fontScale = 2.0f, showBackground = true)
 @Composable
 private fun PreviewGradientHeroCardFontScale() {
-    VoltTrackTheme {
+    WattWiseTheme {
         GradientHeroCard(
             monthLabel = "Billing Cycle",
             unitsUsed = "142.8",
@@ -309,7 +309,7 @@ private fun PreviewGradientHeroCardFontScale() {
 @Preview(name = "HeroCard - Bangla", showBackground = true)
 @Composable
 private fun PreviewGradientHeroCardBangla() {
-    VoltTrackTheme {
+    WattWiseTheme {
         GradientHeroCard(
             monthLabel = "বর্তমান বিলিং সাইকেল",
             unitsUsed = "১৪২.৮",

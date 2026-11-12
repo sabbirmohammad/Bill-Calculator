@@ -215,7 +215,7 @@ Material Symbols Rounded, weight 400, 24dp (20dp inside wells, 14dp inside chips
 ---
 
 ## 11. DELIVERABLES FOR THIS STEP
-1. `Color.kt`, `Type.kt` (with font resources + tnum), `Shape.kt`, `Spacing.kt` (`object Dimens`), `Elevation.kt`, `Motion.kt`, `VoltTrackTheme.kt` (light/dark/dynamic switch).
+1. `Color.kt`, `Type.kt` (with font resources + tnum), `Shape.kt`, `Spacing.kt` (`object Dimens`), `Elevation.kt`, `Motion.kt`, `Theme.kt` / `WattWiseTheme.kt` (light/dark/dynamic switch).
 2. All components in §5 as stateless composables with `@Preview` (light, dark, 200% font, Bangla).
 3. A debug-only **Design Gallery screen** showing tokens, type scale, spacing, and every component.
 4. Then **refactor existing screens** to use only these tokens; fix any hard-coded values; screenshot-test Dashboard, Add Reading, Analytics, History, Settings in light and dark.

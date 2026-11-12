@@ -41,7 +41,7 @@ import com.powerunit.R
 import com.powerunit.core.designsystem.theme.CardShape
 import com.powerunit.core.designsystem.theme.Dimens
 import com.powerunit.core.designsystem.theme.NumberMedium
-import com.powerunit.core.designsystem.theme.VoltTrackTheme
+import com.powerunit.core.designsystem.theme.WattWiseTheme
 
 /**
  * Cohesive Usage Summary card displaying Today, Yesterday, and Daily Average
@@ -365,7 +365,7 @@ private fun UsageSummaryStackedRow(
 @Preview(name = "UsageSummary - Light", showBackground = true)
 @Composable
 private fun PreviewUsageSummaryLight() {
-    VoltTrackTheme(darkTheme = false) {
+    WattWiseTheme(darkTheme = false) {
         UsageSummaryCard(
             todayUnits = "14.2",
             yesterdayUnits = "12.8",
@@ -378,7 +378,7 @@ private fun PreviewUsageSummaryLight() {
 @Preview(name = "UsageSummary - Dark", showBackground = true)
 @Composable
 private fun PreviewUsageSummaryDark() {
-    VoltTrackTheme(darkTheme = true) {
+    WattWiseTheme(darkTheme = true) {
         UsageSummaryCard(
             todayUnits = "14.2",
             yesterdayUnits = "12.8",
@@ -391,7 +391,7 @@ private fun PreviewUsageSummaryDark() {
 @Preview(name = "UsageSummary - Narrow (320dp)", widthDp = 320, showBackground = true)
 @Composable
 private fun PreviewUsageSummaryNarrow() {
-    VoltTrackTheme(darkTheme = false) {
+    WattWiseTheme(darkTheme = false) {
         UsageSummaryCard(
             todayUnits = "0.0",
             yesterdayUnits = "15.0",
@@ -404,7 +404,7 @@ private fun PreviewUsageSummaryNarrow() {
 @Preview(name = "UsageSummary - Large Font", fontScale = 1.3f, showBackground = true)
 @Composable
 private fun PreviewUsageSummaryLargeFont() {
-    VoltTrackTheme(darkTheme = false) {
+    WattWiseTheme(darkTheme = false) {
         UsageSummaryCard(
             todayUnits = "14.2",
             yesterdayUnits = "12.8",
@@ -417,7 +417,7 @@ private fun PreviewUsageSummaryLargeFont() {
 @Preview(name = "UsageSummary - Bangla", showBackground = true)
 @Composable
 private fun PreviewUsageSummaryBangla() {
-    VoltTrackTheme {
+    WattWiseTheme {
         UsageSummaryCard(
             todayUnits = "১৪.২",
             yesterdayUnits = "১২.৮",

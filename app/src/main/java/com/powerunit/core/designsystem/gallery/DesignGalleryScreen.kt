@@ -75,7 +75,7 @@ import com.powerunit.core.designsystem.theme.NumberMedium
 import com.powerunit.core.designsystem.theme.UsageHigh
 import com.powerunit.core.designsystem.theme.UsageLow
 import com.powerunit.core.designsystem.theme.UsageMedium
-import com.powerunit.core.designsystem.theme.VoltTrackTheme
+import com.powerunit.core.designsystem.theme.WattWiseTheme
 
 /**
  * Design Gallery Screen (§11.3):
@@ -444,7 +444,7 @@ private fun ColorSwatch(label: String, color: Color) {
 @Preview(name = "Design Gallery - Light", showBackground = true)
 @Composable
 private fun PreviewDesignGalleryLight() {
-    VoltTrackTheme(darkTheme = false) {
+    WattWiseTheme(darkTheme = false) {
         DesignGalleryScreen()
     }
 }
@@ -452,7 +452,7 @@ private fun PreviewDesignGalleryLight() {
 @Preview(name = "Design Gallery - Dark", showBackground = true)
 @Composable
 private fun PreviewDesignGalleryDark() {
-    VoltTrackTheme(darkTheme = true) {
+    WattWiseTheme(darkTheme = true) {
         DesignGalleryScreen()
     }
 }

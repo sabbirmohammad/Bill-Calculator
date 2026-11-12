@@ -15,10 +15,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Notes
 import androidx.compose.material.icons.outlined.CameraAlt
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.Notes
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -33,7 +33,7 @@ import androidx.compose.ui.unit.dp
 import com.powerunit.core.designsystem.theme.CardShape
 import com.powerunit.core.designsystem.theme.Dimens
 import com.powerunit.core.designsystem.theme.NumberMedium
-import com.powerunit.core.designsystem.theme.VoltTrackTheme
+import com.powerunit.core.designsystem.theme.WattWiseTheme
 
 /**
  * ReadingListItem (§5.6):
@@ -140,7 +140,7 @@ fun ReadingListItem(
                     }
                     if (hasNote) {
                         Icon(
-                            imageVector = Icons.Outlined.Notes,
+                            imageVector = Icons.AutoMirrored.Outlined.Notes,
                             contentDescription = "Note",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(Dimens.iconSizeSmall)
@@ -163,7 +163,7 @@ fun ReadingListItem(
 @Preview(name = "ReadingListItem - Light", showBackground = true)
 @Composable
 private fun PreviewReadingListItemLight() {
-    VoltTrackTheme(darkTheme = false) {
+    WattWiseTheme(darkTheme = false) {
         ReadingListItem(
             dayString = "14",
             monthString = "Nov",
@@ -180,7 +180,7 @@ private fun PreviewReadingListItemLight() {
 @Preview(name = "ReadingListItem - Dark", showBackground = true)
 @Composable
 private fun PreviewReadingListItemDark() {
-    VoltTrackTheme(darkTheme = true) {
+    WattWiseTheme(darkTheme = true) {
         ReadingListItem(
             dayString = "14",
             monthString = "Nov",
@@ -197,7 +197,7 @@ private fun PreviewReadingListItemDark() {
 @Preview(name = "ReadingListItem - 200% Font", fontScale = 2.0f, showBackground = true)
 @Composable
 private fun PreviewReadingListItemFont() {
-    VoltTrackTheme {
+    WattWiseTheme {
         ReadingListItem(
             dayString = "14",
             monthString = "Nov",
@@ -212,7 +212,7 @@ private fun PreviewReadingListItemFont() {
 @Preview(name = "ReadingListItem - Bangla", showBackground = true)
 @Composable
 private fun PreviewReadingListItemBangla() {
-    VoltTrackTheme {
+    WattWiseTheme {
         ReadingListItem(
             dayString = "১৪",
             monthString = "নভে",

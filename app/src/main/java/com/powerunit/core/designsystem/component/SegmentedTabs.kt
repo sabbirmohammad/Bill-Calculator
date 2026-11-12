@@ -30,7 +30,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.powerunit.core.designsystem.theme.Dimens
 import com.powerunit.core.designsystem.theme.SegmentedTabsContainerShape
-import com.powerunit.core.designsystem.theme.VoltTrackTheme
+import com.powerunit.core.designsystem.theme.WattWiseTheme
 
 /**
  * SegmentedTabs (§5.9):
@@ -108,7 +108,7 @@ fun SegmentedTabs(
 @Preview(name = "SegmentedTabs - Light", showBackground = true)
 @Composable
 private fun PreviewSegmentedTabsLight() {
-    VoltTrackTheme(darkTheme = false) {
+    WattWiseTheme(darkTheme = false) {
         SegmentedTabs(
             tabs = listOf("Day", "Week", "Month", "Year"),
             selectedIndex = 1,
@@ -120,7 +120,7 @@ private fun PreviewSegmentedTabsLight() {
 @Preview(name = "SegmentedTabs - Dark", showBackground = true)
 @Composable
 private fun PreviewSegmentedTabsDark() {
-    VoltTrackTheme(darkTheme = true) {
+    WattWiseTheme(darkTheme = true) {
         SegmentedTabs(
             tabs = listOf("Day", "Week", "Month", "Year"),
             selectedIndex = 2,
@@ -132,7 +132,7 @@ private fun PreviewSegmentedTabsDark() {
 @Preview(name = "SegmentedTabs - 200% Font", fontScale = 2.0f, showBackground = true)
 @Composable
 private fun PreviewSegmentedTabsFont() {
-    VoltTrackTheme {
+    WattWiseTheme {
         SegmentedTabs(
             tabs = listOf("D", "W", "M", "Y"),
             selectedIndex = 0,
@@ -144,7 +144,7 @@ private fun PreviewSegmentedTabsFont() {
 @Preview(name = "SegmentedTabs - Bangla", showBackground = true)
 @Composable
 private fun PreviewSegmentedTabsBangla() {
-    VoltTrackTheme {
+    WattWiseTheme {
         SegmentedTabs(
             tabs = listOf("দিন", "সপ্তাহ", "মাস", "বছর"),
             selectedIndex = 2,

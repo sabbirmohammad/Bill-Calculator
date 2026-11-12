@@ -23,7 +23,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.powerunit.core.designsystem.theme.ButtonShape
 import com.powerunit.core.designsystem.theme.Dimens
-import com.powerunit.core.designsystem.theme.VoltTrackTheme
+import com.powerunit.core.designsystem.theme.WattWiseTheme
 
 /**
  * EmptyState (§5.10):
@@ -99,7 +99,7 @@ fun EmptyState(
 @Preview(name = "EmptyState - Light", showBackground = true)
 @Composable
 private fun PreviewEmptyStateLight() {
-    VoltTrackTheme(darkTheme = false) {
+    WattWiseTheme(darkTheme = false) {
         EmptyState(
             icon = Icons.Filled.ElectricBolt,
             title = "No readings yet",
@@ -113,7 +113,7 @@ private fun PreviewEmptyStateLight() {
 @Preview(name = "EmptyState - Dark", showBackground = true)
 @Composable
 private fun PreviewEmptyStateDark() {
-    VoltTrackTheme(darkTheme = true) {
+    WattWiseTheme(darkTheme = true) {
         EmptyState(
             icon = Icons.Filled.ElectricBolt,
             title = "No readings yet",
@@ -127,7 +127,7 @@ private fun PreviewEmptyStateDark() {
 @Preview(name = "EmptyState - 200% Font", fontScale = 2.0f, showBackground = true)
 @Composable
 private fun PreviewEmptyStateFont() {
-    VoltTrackTheme {
+    WattWiseTheme {
         EmptyState(
             icon = Icons.Filled.ElectricBolt,
             title = "No readings",
@@ -141,7 +141,7 @@ private fun PreviewEmptyStateFont() {
 @Preview(name = "EmptyState - Bangla", showBackground = true)
 @Composable
 private fun PreviewEmptyStateBangla() {
-    VoltTrackTheme {
+    WattWiseTheme {
         EmptyState(
             icon = Icons.Filled.ElectricBolt,
             title = "কোনো রিডিং পাওয়া যায়নি",

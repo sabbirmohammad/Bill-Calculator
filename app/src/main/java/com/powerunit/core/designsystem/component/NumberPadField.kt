@@ -39,7 +39,7 @@ import com.powerunit.core.designsystem.theme.Dimens
 import com.powerunit.core.designsystem.theme.KeypadKeyShape
 import com.powerunit.core.designsystem.theme.NumberHero
 import com.powerunit.core.designsystem.theme.NumberLarge
-import com.powerunit.core.designsystem.theme.VoltTrackTheme
+import com.powerunit.core.designsystem.theme.WattWiseTheme
 
 /**
  * NumberPadField (§5.8):
@@ -219,7 +219,7 @@ fun NumberPadField(
 @Preview(name = "NumberPadField - Light", showBackground = true)
 @Composable
 private fun PreviewNumberPadFieldLight() {
-    VoltTrackTheme(darkTheme = false) {
+    WattWiseTheme(darkTheme = false) {
         NumberPadField(
             value = "14828.4",
             onValueChange = {},
@@ -231,7 +231,7 @@ private fun PreviewNumberPadFieldLight() {
 @Preview(name = "NumberPadField - Dark", showBackground = true)
 @Composable
 private fun PreviewNumberPadFieldDark() {
-    VoltTrackTheme(darkTheme = true) {
+    WattWiseTheme(darkTheme = true) {
         NumberPadField(
             value = "14828.4",
             onValueChange = {},
@@ -243,7 +243,7 @@ private fun PreviewNumberPadFieldDark() {
 @Preview(name = "NumberPadField - Error", showBackground = true)
 @Composable
 private fun PreviewNumberPadFieldError() {
-    VoltTrackTheme {
+    WattWiseTheme {
         NumberPadField(
             value = "14000",
             onValueChange = {},

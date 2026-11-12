@@ -26,7 +26,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.powerunit.core.common.Formatters
 import com.powerunit.core.designsystem.theme.Dimens
-import com.powerunit.core.designsystem.theme.VoltTrackTheme
+import com.powerunit.core.designsystem.theme.WattWiseTheme
 import kotlin.math.abs
 
 /**
@@ -135,7 +135,7 @@ internal fun formatTrendText(
 @Preview(name = "TrendChip - Light", showBackground = true)
 @Composable
 private fun PreviewTrendChipLight() {
-    VoltTrackTheme(darkTheme = false) {
+    WattWiseTheme(darkTheme = false) {
         Row {
             TrendChip(percent = -8.4)
             Spacer(modifier = Modifier.width(8.dp))
@@ -147,7 +147,7 @@ private fun PreviewTrendChipLight() {
 @Preview(name = "TrendChip - Dark", showBackground = true)
 @Composable
 private fun PreviewTrendChipDark() {
-    VoltTrackTheme(darkTheme = true) {
+    WattWiseTheme(darkTheme = true) {
         Row {
             TrendChip(percent = -8.4)
             Spacer(modifier = Modifier.width(8.dp))
@@ -159,7 +159,7 @@ private fun PreviewTrendChipDark() {
 @Preview(name = "TrendChip - 200% Font", fontScale = 2.0f, showBackground = true)
 @Composable
 private fun PreviewTrendChipFont() {
-    VoltTrackTheme {
+    WattWiseTheme {
         TrendChip(percent = -8.4)
     }
 }
@@ -167,7 +167,7 @@ private fun PreviewTrendChipFont() {
 @Preview(name = "TrendChip - Compact", showBackground = true)
 @Composable
 private fun PreviewTrendChipCompact() {
-    VoltTrackTheme {
+    WattWiseTheme {
         Row {
             TrendChip(percent = -100.0, compact = true)
             Spacer(modifier = Modifier.width(8.dp))
@@ -179,7 +179,7 @@ private fun PreviewTrendChipCompact() {
 @Preview(name = "TrendChip - Bangla", showBackground = true)
 @Composable
 private fun PreviewTrendChipBangla() {
-    VoltTrackTheme {
+    WattWiseTheme {
         TrendChip(percent = -8.4, useBengaliDigits = true)
     }
 }

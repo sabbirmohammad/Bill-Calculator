@@ -70,7 +70,7 @@ import com.powerunit.core.designsystem.theme.CenterAddButtonGradient
 import com.powerunit.core.designsystem.theme.Dimens
 import com.powerunit.core.designsystem.theme.Elevation
 import com.powerunit.core.designsystem.theme.Motion
-import com.powerunit.core.designsystem.theme.VoltTrackTheme
+import com.powerunit.core.designsystem.theme.WattWiseTheme
 import com.powerunit.navigation.Screen
 
 /**
@@ -449,7 +449,7 @@ private fun CenterAddButton(
 @Preview(name = "BottomBar - Light", showBackground = true)
 @Composable
 private fun PreviewWattWiseBottomBarLight() {
-    VoltTrackTheme(darkTheme = false) {
+    WattWiseTheme(darkTheme = false) {
         WattWiseBottomBar(
             currentRoute = Screen.Home.route,
             onNavigate = {},
@@ -462,7 +462,7 @@ private fun PreviewWattWiseBottomBarLight() {
 @Preview(name = "BottomBar - Dark", showBackground = true)
 @Composable
 private fun PreviewWattWiseBottomBarDark() {
-    VoltTrackTheme(darkTheme = true) {
+    WattWiseTheme(darkTheme = true) {
         WattWiseBottomBar(
             currentRoute = Screen.Analytics.route,
             onNavigate = {},

@@ -28,7 +28,7 @@ import com.powerunit.core.designsystem.theme.CardShape
 import com.powerunit.core.designsystem.theme.Dimens
 import com.powerunit.core.designsystem.theme.IconWellShape
 import com.powerunit.core.designsystem.theme.NumberMedium
-import com.powerunit.core.designsystem.theme.VoltTrackTheme
+import com.powerunit.core.designsystem.theme.WattWiseTheme
 
 /**
  * StatCard (§5.2): Bento tile
@@ -135,7 +135,7 @@ fun StatCard(
 @Preview(name = "StatCard - Light", showBackground = true)
 @Composable
 private fun PreviewStatCardLight() {
-    VoltTrackTheme(darkTheme = false) {
+    WattWiseTheme(darkTheme = false) {
         StatCard(
             title = "Avg Daily Usage",
             value = "8.4",
@@ -149,7 +149,7 @@ private fun PreviewStatCardLight() {
 @Preview(name = "StatCard - Dark", showBackground = true)
 @Composable
 private fun PreviewStatCardDark() {
-    VoltTrackTheme(darkTheme = true) {
+    WattWiseTheme(darkTheme = true) {
         StatCard(
             title = "Avg Daily Usage",
             value = "8.4",
@@ -163,7 +163,7 @@ private fun PreviewStatCardDark() {
 @Preview(name = "StatCard - 200% Font", fontScale = 2.0f, showBackground = true)
 @Composable
 private fun PreviewStatCardFont() {
-    VoltTrackTheme {
+    WattWiseTheme {
         StatCard(
             title = "Avg Daily Usage",
             value = "8.4",
@@ -177,7 +177,7 @@ private fun PreviewStatCardFont() {
 @Preview(name = "StatCard - Bangla", showBackground = true)
 @Composable
 private fun PreviewStatCardBangla() {
-    VoltTrackTheme {
+    WattWiseTheme {
         StatCard(
             title = "দৈনিক গড় ব্যবহার",
             value = "৮.৪",

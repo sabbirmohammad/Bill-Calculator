@@ -28,7 +28,7 @@ import androidx.compose.ui.unit.dp
 import com.powerunit.core.designsystem.theme.CardShape
 import com.powerunit.core.designsystem.theme.Dimens
 import com.powerunit.core.designsystem.theme.IconWellShape
-import com.powerunit.core.designsystem.theme.VoltTrackTheme
+import com.powerunit.core.designsystem.theme.WattWiseTheme
 
 /**
  * InsightCard (§5.13):
@@ -109,7 +109,7 @@ fun InsightCard(
 @Preview(name = "InsightCard - Light", showBackground = true)
 @Composable
 private fun PreviewInsightCardLight() {
-    VoltTrackTheme(darkTheme = false) {
+    WattWiseTheme(darkTheme = false) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             InsightCard(
                 message = "You used 12% less electricity this week than last week!",
@@ -127,7 +127,7 @@ private fun PreviewInsightCardLight() {
 @Preview(name = "InsightCard - Dark", showBackground = true)
 @Composable
 private fun PreviewInsightCardDark() {
-    VoltTrackTheme(darkTheme = true) {
+    WattWiseTheme(darkTheme = true) {
         InsightCard(
             message = "You are currently within your monthly budget of 300 units.",
             onDismiss = {}
@@ -138,7 +138,7 @@ private fun PreviewInsightCardDark() {
 @Preview(name = "InsightCard - 200% Font", fontScale = 2.0f, showBackground = true)
 @Composable
 private fun PreviewInsightCardFont() {
-    VoltTrackTheme {
+    WattWiseTheme {
         InsightCard(
             message = "You saved 12% units this week.",
             onDismiss = {}
@@ -149,7 +149,7 @@ private fun PreviewInsightCardFont() {
 @Preview(name = "InsightCard - Bangla", showBackground = true)
 @Composable
 private fun PreviewInsightCardBangla() {
-    VoltTrackTheme {
+    WattWiseTheme {
         InsightCard(
             message = "গত সপ্তাহের তুলনায় আপনি এই সপ্তাহে ১২% কম বিদ্যুৎ ব্যবহার করেছেন!",
             onDismiss = {}

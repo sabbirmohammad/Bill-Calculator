@@ -24,7 +24,7 @@ import com.powerunit.core.designsystem.theme.NumberMedium
 import com.powerunit.core.designsystem.theme.UsageHigh
 import com.powerunit.core.designsystem.theme.UsageLow
 import com.powerunit.core.designsystem.theme.UsageMedium
-import com.powerunit.core.designsystem.theme.VoltTrackTheme
+import com.powerunit.core.designsystem.theme.WattWiseTheme
 
 /**
  * UsageRing (§5.3):
@@ -104,7 +104,7 @@ fun UsageRing(
 @Preview(name = "UsageRing - Light", showBackground = true)
 @Composable
 private fun PreviewUsageRingLight() {
-    VoltTrackTheme(darkTheme = false) {
+    WattWiseTheme(darkTheme = false) {
         UsageRing(progress = 0.65f)
     }
 }
@@ -112,7 +112,7 @@ private fun PreviewUsageRingLight() {
 @Preview(name = "UsageRing - Dark", showBackground = true)
 @Composable
 private fun PreviewUsageRingDark() {
-    VoltTrackTheme(darkTheme = true) {
+    WattWiseTheme(darkTheme = true) {
         UsageRing(progress = 0.82f)
     }
 }
@@ -120,7 +120,7 @@ private fun PreviewUsageRingDark() {
 @Preview(name = "UsageRing - 200% Font", fontScale = 2.0f, showBackground = true)
 @Composable
 private fun PreviewUsageRingFont() {
-    VoltTrackTheme {
+    WattWiseTheme {
         UsageRing(progress = 0.94f)
     }
 }
@@ -128,7 +128,7 @@ private fun PreviewUsageRingFont() {
 @Preview(name = "UsageRing - Bangla", showBackground = true)
 @Composable
 private fun PreviewUsageRingBangla() {
-    VoltTrackTheme {
+    WattWiseTheme {
         UsageRing(progress = 0.65f, centerText = "৬৫%", subText = "বাজেটের")
     }
 }

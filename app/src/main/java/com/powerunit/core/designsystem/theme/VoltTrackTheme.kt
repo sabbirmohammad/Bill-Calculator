@@ -4,9 +4,9 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 
 /**
- * VoltTrackTheme is the design system entry point specified in §11.
- * Provides light, dark, and optional dynamic color theming.
+ * Backward compatibility alias for WattWiseTheme.
  */
+@Deprecated("Use WattWiseTheme instead", ReplaceWith("WattWiseTheme(darkTheme, dynamicColor, content)"))
 @Composable
 fun VoltTrackTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),

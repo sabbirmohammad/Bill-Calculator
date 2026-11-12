@@ -35,7 +35,7 @@ import com.powerunit.core.designsystem.theme.BottomSheetShape
 import com.powerunit.core.designsystem.theme.ButtonShape
 import com.powerunit.core.designsystem.theme.CardShape
 import com.powerunit.core.designsystem.theme.Dimens
-import com.powerunit.core.designsystem.theme.VoltTrackTheme
+import com.powerunit.core.designsystem.theme.WattWiseTheme
 
 /**
  * ConfirmDialog / BottomSheet / Snackbar (§5.11):
@@ -141,7 +141,7 @@ fun WattWiseSnackbar(
 @Preview(name = "BottomSheet - Light", showBackground = true)
 @Composable
 private fun PreviewBottomSheetLight() {
-    VoltTrackTheme(darkTheme = false) {
+    WattWiseTheme(darkTheme = false) {
         WattWiseBottomSheetContent {
             Text("Edit Reading", style = MaterialTheme.typography.titleLarge)
             Spacer(modifier = Modifier.height(16.dp))
@@ -153,7 +153,7 @@ private fun PreviewBottomSheetLight() {
 @Preview(name = "ConfirmDialog - Light", showBackground = true)
 @Composable
 private fun PreviewConfirmDialogLight() {
-    VoltTrackTheme(darkTheme = false) {
+    WattWiseTheme(darkTheme = false) {
         WattWiseConfirmDialog(
             title = "Delete Reading?",
             message = "This action will recalculate your monthly bill projection.",
