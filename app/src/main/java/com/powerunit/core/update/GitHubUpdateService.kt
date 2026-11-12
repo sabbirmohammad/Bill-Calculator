@@ -22,79 +22,67 @@ class GitHubUpdateService @Inject constructor() {
     }
 
     suspend fun fetchLatestRelease(
-        repository: String,
+        repository: String = "sabbirmohammad/Bill-Calculator",
         currentVersion: String
     ): Result<UpdateInfo?> = withContext(Dispatchers.IO) {
         runCatching {
-            val cleanRepo = repository.trim().trim('/')
-            require(cleanRepo.contains('/')) { "Invalid repository format. Expected: owner/repo" }
+            val cleanRepo = repository.trim().trim('/').takeIf { it.isNotBlank() && it.contains('/') }
+                ?: "sabbirmohammad/Bill-Calculator"
+
+            var updateInfo: UpdateInfo? = null
 
             // 1. Try standard GitHub REST API
-            val apiUrl = "https://api.github.com/repos/$cleanRepo/releases/latest"
-            val connection = (URL(apiUrl).openConnection() as HttpURLConnection).apply {
-                requestMethod = "GET"
-                connectTimeout = 10000
-                readTimeout = 10000
-                setRequestProperty("Accept", "application/vnd.github.v3+json")
-                setRequestProperty("User-Agent", "WattWise-App-Updater")
-            }
-
-            val responseCode = connection.responseCode
-            if (responseCode == HttpURLConnection.HTTP_NOT_FOUND) {
-                // If API returns 404, check web redirect or verify repository
-                val fallback = fetchFromWebRedirect(cleanRepo, currentVersion)
-                if (fallback != null) return@runCatching fallback
-                return@runCatching null
-            }
-
-            if (responseCode == 403) {
-                // Rate limit exceeded on api.github.com (60 req/hr limit on shared IP)
-                // Fallback to web redirect method (Zero rate limit)
-                val fallbackInfo = fetchFromWebRedirect(cleanRepo, currentVersion)
-                if (fallbackInfo != null) {
-                    return@runCatching fallbackInfo
+            try {
+                val apiUrl = "https://api.github.com/repos/$cleanRepo/releases/latest"
+                val connection = (URL(apiUrl).openConnection() as HttpURLConnection).apply {
+                    requestMethod = "GET"
+                    connectTimeout = 8000
+                    readTimeout = 8000
+                    setRequestProperty("Accept", "application/vnd.github.v3+json")
+                    setRequestProperty("User-Agent", "WattWise-App-Updater")
                 }
 
-                val repoExists = checkRepoExistsOnWeb(cleanRepo)
-                if (!repoExists) {
-                    error("GitHub repository '$cleanRepo' was not found or has no releases published yet. Please configure your repository in Settings.")
-                } else {
-                    error("GitHub API rate limit exceeded on your network. Please wait a few minutes and try again.")
+                val responseCode = connection.responseCode
+                if (responseCode in 200..299) {
+                    val responseBody = BufferedReader(InputStreamReader(connection.inputStream)).use { it.readText() }
+                    val release = json.decodeFromString<GitHubRelease>(responseBody)
+
+                    val apkAsset = findApkAsset(release.assets)
+                    if (apkAsset != null) {
+                        val remoteVersion = cleanVersion(release.tagName)
+                        val currentClean = cleanVersion(currentVersion)
+
+                        if (isNewerVersion(remoteVersion, currentClean)) {
+                            updateInfo = UpdateInfo(
+                                currentVersion = currentVersion,
+                                newVersion = remoteVersion,
+                                releaseName = release.name ?: release.tagName,
+                                releaseNotes = release.body?.trim().orEmpty().ifEmpty { "Performance updates and bug fixes." },
+                                downloadUrl = apkAsset.downloadUrl,
+                                apkSize = apkAsset.size,
+                                publishedAt = release.publishedAt.orEmpty()
+                            )
+                        } else {
+                            return@runCatching null // Already on latest version
+                        }
+                    }
                 }
+            } catch (_: Exception) {
+                // If API fails (e.g. rate limit, connection timeout), smoothly fall through to web redirect
             }
 
-            if (responseCode !in 200..299) {
-                val errorStream = connection.errorStream?.bufferedReader()?.use { it.readText() }
-                if (errorStream?.contains("rate limit", ignoreCase = true) == true) {
-                    val fallbackInfo = fetchFromWebRedirect(cleanRepo, currentVersion)
-                    if (fallbackInfo != null) return@runCatching fallbackInfo
-                    error("GitHub API rate limit exceeded on your network. Please wait a few minutes and try again.")
-                }
-                error("GitHub check error ($responseCode). Please verify repository '$cleanRepo' in Settings.")
+            if (updateInfo != null) {
+                return@runCatching updateInfo
             }
 
-            val responseBody = BufferedReader(InputStreamReader(connection.inputStream)).use { it.readText() }
-            val release = json.decodeFromString<GitHubRelease>(responseBody)
-
-            val apkAsset = findApkAsset(release.assets)
-                ?: error("Release ${release.tagName} has no .apk asset attached.")
-
-            val remoteVersion = cleanVersion(release.tagName)
-            val currentClean = cleanVersion(currentVersion)
-
-            if (isNewerVersion(remoteVersion, currentClean)) {
-                UpdateInfo(
-                    currentVersion = currentVersion,
-                    newVersion = remoteVersion,
-                    releaseName = release.name ?: release.tagName,
-                    releaseNotes = release.body?.trim().orEmpty().ifEmpty { "Performance updates and bug fixes." },
-                    downloadUrl = apkAsset.downloadUrl,
-                    apkSize = apkAsset.size,
-                    publishedAt = release.publishedAt.orEmpty()
-                )
-            } else {
-                null
+            // 2. High-reliability fallback using GitHub web release redirect (Zero rate limit, works everywhere)
+            val fallback = fetchFromWebRedirect(cleanRepo, currentVersion)
+            if (fallback != null) {
+                return@runCatching fallback
             }
+
+            // If neither finds a newer version, current app is up-to-date
+            null
         }
     }
 
@@ -143,21 +131,6 @@ class GitHubUpdateService @Inject constructor() {
             null
         } catch (_: Exception) {
             null
-        }
-    }
-
-    private fun checkRepoExistsOnWeb(cleanRepo: String): Boolean {
-        return try {
-            val url = "https://github.com/$cleanRepo"
-            val conn = (URL(url).openConnection() as HttpURLConnection).apply {
-                requestMethod = "HEAD"
-                connectTimeout = 8000
-                readTimeout = 8000
-                setRequestProperty("User-Agent", "Mozilla/5.0")
-            }
-            conn.responseCode in 200..399
-        } catch (_: Exception) {
-            false
         }
     }
 

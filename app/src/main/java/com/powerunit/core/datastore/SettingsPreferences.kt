@@ -22,6 +22,7 @@ class SettingsPreferences @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
     companion object {
+        const val DEFAULT_GITHUB_REPO = "sabbirmohammad/Bill-Calculator"
         val KEY_BILLING_CYCLE_DAY = intPreferencesKey("billing_cycle_day")
         val KEY_CO2_EMISSION_FACTOR = doublePreferencesKey("co2_emission_factor")
         val KEY_REMINDER_TIME = stringPreferencesKey("reminder_time")
@@ -52,7 +53,9 @@ class SettingsPreferences @Inject constructor(
     val themeMode: Flow<String> = context.dataStore.data.map { it[KEY_THEME_MODE] ?: "SYSTEM" }
     val dynamicColor: Flow<Boolean> = context.dataStore.data.map { it[KEY_DYNAMIC_COLOR] ?: false }
     val onboardingCompleted: Flow<Boolean> = context.dataStore.data.map { it[KEY_ONBOARDING_COMPLETED] ?: false }
-    val githubRepo: Flow<String> = context.dataStore.data.map { it[KEY_GITHUB_REPO] ?: "sabbirmohammad/Bill-Calculator" }
+    val githubRepo: Flow<String> = context.dataStore.data.map {
+        it[KEY_GITHUB_REPO]?.takeIf { repo -> repo.isNotBlank() && repo.contains('/') } ?: DEFAULT_GITHUB_REPO
+    }
     val autoCheckUpdates: Flow<Boolean> = context.dataStore.data.map { it[KEY_AUTO_CHECK_UPDATES] ?: true }
 
     suspend fun setBillingCycleDay(day: Int) {

@@ -184,11 +184,9 @@ fun SettingsScreen(
                 item {
                     UpdateSettingsSection(
                         currentVersion = "v${BuildConfig.VERSION_NAME}",
-                        githubRepo = uiState.githubRepo,
                         autoCheck = uiState.autoCheckUpdates,
                         onCheckUpdates = viewModel::checkForUpdates,
-                        onToggleAutoCheck = viewModel::setAutoCheckUpdates,
-                        onRepoChange = viewModel::setGithubRepo
+                        onToggleAutoCheck = viewModel::setAutoCheckUpdates
                     )
                 }
 
@@ -1054,15 +1052,10 @@ private fun SettingToggleRow(
 @Composable
 private fun UpdateSettingsSection(
     currentVersion: String,
-    githubRepo: String,
     autoCheck: Boolean,
     onCheckUpdates: () -> Unit,
-    onToggleAutoCheck: (Boolean) -> Unit,
-    onRepoChange: (String) -> Unit
+    onToggleAutoCheck: (Boolean) -> Unit
 ) {
-    var showRepoDialog by remember { mutableStateOf(false) }
-    var tempRepo by remember(githubRepo) { mutableStateOf(githubRepo) }
-
     Card(
         modifier = Modifier.fillMaxWidth().testTag("settings_updates_card"),
         shape = CardShape,
@@ -1090,7 +1083,7 @@ private fun UpdateSettingsSection(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "Current: $currentVersion • Tap to check GitHub",
+                        text = "Current: $currentVersion • Tap to check for updates",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -1130,85 +1123,7 @@ private fun UpdateSettingsSection(
                     onCheckedChange = onToggleAutoCheck
                 )
             }
-
-            HorizontalDivider(thickness = Dimens.dividerThickness, color = MaterialTheme.colorScheme.outlineVariant)
-
-            // GitHub Repository row
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { showRepoDialog = true }
-                    .padding(vertical = Dimens.xxs),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(R.string.settings_github_repo),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = githubRepo,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(Dimens.iconSizeSmall)
-                )
-            }
         }
-    }
-
-    if (showRepoDialog) {
-        AlertDialog(
-            onDismissRequest = { showRepoDialog = false },
-            title = {
-                Text(
-                    text = stringResource(R.string.settings_github_repo),
-                    style = MaterialTheme.typography.titleLarge
-                )
-            },
-            text = {
-                Column {
-                    Text(
-                        text = "Enter GitHub repository (owner/repo):",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(Dimens.spacingSm))
-                    OutlinedTextField(
-                        value = tempRepo,
-                        onValueChange = { tempRepo = it },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        if (tempRepo.isNotBlank()) {
-                            onRepoChange(tempRepo.trim())
-                        }
-                        showRepoDialog = false
-                    }
-                ) {
-                    Text("Save", style = MaterialTheme.typography.labelLarge)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showRepoDialog = false }) {
-                    Text("Cancel", style = MaterialTheme.typography.labelLarge)
-                }
-            },
-            shape = CardShape,
-            containerColor = MaterialTheme.colorScheme.surface
-        )
     }
 }
 
