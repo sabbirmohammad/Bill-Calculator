@@ -5,6 +5,14 @@ All notable changes to WattWise will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2026-11-13
+
+### Changed
+- **Responsive Meter Reset Card**: Eliminated the fixed 48dp height constraint and multi-line column clipping in `AddReadingScreen`. Redesigned with a flexible row layout ensuring full responsiveness across all phone displays and accessibility font scale settings.
+- **Streamlined Typography**: Removed redundant description text (*"Turn on if your meter rolled over..."* / *"মিটার ০ তে ফিরে আসলে বা নতুন মিটার লাগালে অন করুন"*) and conditional badge from the Meter Reset card, resulting in a clean, modern, and uncluttered layout.
+- **Seamless Save Reading Button Bar**: Replaced the elevated `Surface` (tonal elevation) and border with a background-matched `Box` in `AddReadingScreen`. Completely eliminated the awkward colored background shade behind the button, providing high contrast and clear visual hierarchy for both enabled and disabled states.
+- **Button Localization**: Added dedicated string resources for `btn_save_reading` and `btn_saving` in both English and Bengali.
+
 ## [1.1.0] - 2026-11-12
 
 ### Added
