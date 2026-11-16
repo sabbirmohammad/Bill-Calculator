@@ -34,21 +34,24 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.powerunit.core.designsystem.theme.Dimens
 import com.powerunit.core.designsystem.theme.HeroGradientDark
 import com.powerunit.core.designsystem.theme.HeroGradientLight
 import com.powerunit.core.designsystem.theme.HeroShape
 import com.powerunit.core.designsystem.theme.NumberHero
+import com.powerunit.core.designsystem.theme.NumberLarge
 import com.powerunit.core.designsystem.theme.WattWiseTheme
 
 /**
  * GradientHeroCard (§5.1):
  * - Radius 28dp, padding 20dp, min height 200dp
  * - Top row: label (labelMedium, white 78%) + TrendChip
- * - Center: numberHero units + unit suffix (labelMedium, 4dp gap)
- * - Below: cost line (titleMedium)
+ * - Center: numberHero cost (large highlighted)
+ * - Below: units line (titleMedium, e.g. units + unitSymbol)
  * - Bottom: cycle progress bar (6dp tall, white 24% track, white fill) + cycle status (labelMedium)
  * - Optional sparkline in background at 20% opacity.
  */
@@ -149,13 +152,29 @@ fun GradientHeroCard(
 
                 Spacer(modifier = Modifier.height(Dimens.spacingSm))
 
-                // Center: numberHero units + unit suffix
+                // Center: Hero Cost (highlighted with large font)
+                val costHeroStyle = when {
+                    estimatedCost.length > 14 -> NumberLarge
+                    estimatedCost.length > 8 -> NumberHero.copy(fontSize = 40.sp, lineHeight = 44.sp)
+                    else -> NumberHero
+                }
+                Text(
+                    text = estimatedCost,
+                    style = costHeroStyle,
+                    color = whitePrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Spacer(modifier = Modifier.height(Dimens.xs))
+
+                // Below: units usage (smaller font)
                 Row(
                     verticalAlignment = Alignment.Bottom
                 ) {
                     Text(
                         text = unitsUsed,
-                        style = NumberHero,
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                         color = whitePrimary,
                         modifier = Modifier.alignByBaseline()
                     )
@@ -167,15 +186,6 @@ fun GradientHeroCard(
                         modifier = Modifier.alignByBaseline()
                     )
                 }
-
-                Spacer(modifier = Modifier.height(Dimens.xs))
-
-                // Below: cost line
-                Text(
-                    text = estimatedCost,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = whitePrimary
-                )
 
                 Spacer(modifier = Modifier.height(Dimens.spacingMd))
 

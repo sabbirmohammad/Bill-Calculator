@@ -5,6 +5,16 @@ All notable changes to WattWise will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.3] - 2026-11-16
+
+### Changed & Enhanced
+- **Reversed Hero Card Layout**: Highlighted estimated bill cost in prominent bold typography as the primary hero metric on the dashboard, with energy consumption (units/kWh) positioned neatly underneath.
+- **Redesigned Monthly Budget & Outlook Card**:
+  - Replaced circular ring with a sleek full-width horizontal dual-segment progress bar displaying real-time spend and projected month-end trajectory.
+  - Resolved "Watch out" status badge wrapping and overflow on mobile screens with flexible single-line layout constraints.
+  - Added dedicated Cycle Progress Timeline pill displaying elapsed days, days remaining, and visual monthly progression.
+  - Converted Spent so far and Projected bill metrics into balanced Bento stat tiles with contextual buffer indicators.
+
 ## [1.1.2] - 2026-11-16
 
 ### Fixed & Enhanced
