@@ -12,6 +12,12 @@ import kotlinx.datetime.Instant
 
 @Dao
 interface ReadingDao {
+    @Query("SELECT * FROM readings ORDER BY recordedAt ASC")
+    fun getAllReadings(): Flow<List<ReadingEntity>>
+
+    @Query("SELECT * FROM readings ORDER BY recordedAt ASC")
+    suspend fun getAllReadingsSync(): List<ReadingEntity>
+
     @Query("SELECT * FROM readings WHERE meterId = :meterId ORDER BY recordedAt DESC")
     fun getReadingsByMeter(meterId: Long): Flow<List<ReadingEntity>>
 

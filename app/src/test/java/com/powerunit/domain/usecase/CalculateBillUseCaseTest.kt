@@ -140,4 +140,159 @@ class CalculateBillUseCaseTest {
         assertEquals(BigDecimal("6569.85"), result.totalBill)
         assertEquals(BigDecimal("100.0"), result.slabCharges[5].unitsBilled)
     }
+
+    @Test
+    fun getSlabForUnits_identifiesCorrectSlabAndRate() {
+        val slab0 = useCase.getSlabForUnits(BigDecimal.ZERO, bdTariff)
+        assertEquals(1, slab0.slabNumber)
+        assertEquals(BigDecimal("4.35"), slab0.ratePerUnit)
+
+        val slab50 = useCase.getSlabForUnits(BigDecimal("50"), bdTariff)
+        assertEquals(1, slab50.slabNumber)
+        assertEquals(BigDecimal("4.35"), slab50.ratePerUnit)
+
+        val slab75 = useCase.getSlabForUnits(BigDecimal("75"), bdTariff)
+        assertEquals(1, slab75.slabNumber)
+
+        val slab76 = useCase.getSlabForUnits(BigDecimal("76"), bdTariff)
+        assertEquals(2, slab76.slabNumber)
+        assertEquals(BigDecimal("6.63"), slab76.ratePerUnit)
+
+        val slab200 = useCase.getSlabForUnits(BigDecimal("200"), bdTariff)
+        assertEquals(2, slab200.slabNumber)
+
+        val slab250 = useCase.getSlabForUnits(BigDecimal("250"), bdTariff)
+        assertEquals(3, slab250.slabNumber)
+        assertEquals(BigDecimal("6.95"), slab250.ratePerUnit)
+
+        val slab350 = useCase.getSlabForUnits(BigDecimal("350"), bdTariff)
+        assertEquals(4, slab350.slabNumber)
+        assertEquals(BigDecimal("7.34"), slab350.ratePerUnit)
+
+        val slab500 = useCase.getSlabForUnits(BigDecimal("500"), bdTariff)
+        assertEquals(5, slab500.slabNumber)
+        assertEquals(BigDecimal("11.51"), slab500.ratePerUnit)
+
+        val slab750 = useCase.getSlabForUnits(BigDecimal("750"), bdTariff)
+        assertEquals(6, slab750.slabNumber)
+        assertEquals(BigDecimal("13.26"), slab750.ratePerUnit)
+    }
+
+    @Test
+    fun calculateEnergyCharge_computesProgressiveEnergyCharge() {
+        val energy50 = useCase.calculateEnergyCharge(BigDecimal("50"), bdTariff)
+        assertEquals(BigDecimal("217.50"), energy50)
+
+        val energy75 = useCase.calculateEnergyCharge(BigDecimal("75"), bdTariff)
+        assertEquals(BigDecimal("326.25"), energy75)
+
+        val energy250 = useCase.calculateEnergyCharge(BigDecimal("250"), bdTariff)
+        assertEquals(BigDecimal("1502.50"), energy250)
+
+        // Incremental cost between 75 and 250 units
+        val deltaCost = energy250 - energy75
+        // 125 * 6.63 (828.75) + 50 * 6.95 (347.50) = 1176.25
+        assertEquals(BigDecimal("1176.25"), deltaCost)
+    }
+
+    @Test
+    fun calculateBill_exactBoundaries_200UnitsAnd300Units() {
+        // Exact 200 units boundary:
+        // Slab 1 (75): 75 * 4.35 = 326.25
+        // Slab 2 (125): 125 * 6.63 = 828.75
+        // Energy charge = 1155.00
+        // Subtotal = 1155.00 + 45 = 1200.00
+        // VAT 5% = 60.00
+        // Total = 1260.00
+        val result200 = useCase(BigDecimal("200"), bdTariff)
+        assertEquals(BigDecimal("1155.00"), result200.energyCharge)
+        assertEquals(BigDecimal("1200.00"), result200.subtotal)
+        assertEquals(BigDecimal("60.00"), result200.vatAmount)
+        assertEquals(BigDecimal("1260.00"), result200.totalBill)
+        assertEquals(BigDecimal("75.0"), result200.slabCharges[0].unitsBilled)
+        assertEquals(BigDecimal("125.0"), result200.slabCharges[1].unitsBilled)
+        assertEquals(BigDecimal("0.0"), result200.slabCharges[2].unitsBilled)
+
+        // Exact 300 units boundary:
+        // Slab 1: 326.25, Slab 2: 828.75, Slab 3 (100): 100 * 6.95 = 695.00
+        // Energy charge = 1155.00 + 695.00 = 1850.00
+        // Subtotal = 1850.00 + 45 = 1895.00
+        // VAT 5% = 94.75
+        // Total = 1989.75
+        val result300 = useCase(BigDecimal("300"), bdTariff)
+        assertEquals(BigDecimal("1850.00"), result300.energyCharge)
+        assertEquals(BigDecimal("1895.00"), result300.subtotal)
+        assertEquals(BigDecimal("94.75"), result300.vatAmount)
+        assertEquals(BigDecimal("1989.75"), result300.totalBill)
+    }
+
+    @Test
+    fun getUnitsToNextSlab_computesRemainingUnitsAccurately() {
+        // At 50 units (in Slab 1 with upper bound 75), units to next slab = 25.0
+        val remainingAt50 = useCase.getUnitsToNextSlab(BigDecimal("50.0"), bdTariff)
+        assertEquals(BigDecimal("25.0"), remainingAt50)
+
+        // At 75 units (boundary), units to next slab = 0.0
+        val remainingAt75 = useCase.getUnitsToNextSlab(BigDecimal("75.0"), bdTariff)
+        assertEquals(BigDecimal("0.0"), remainingAt75)
+
+        // At 150 units (in Slab 2 with upper bound 200), units to next slab = 50.0
+        val remainingAt150 = useCase.getUnitsToNextSlab(BigDecimal("150.0"), bdTariff)
+        assertEquals(BigDecimal("50.0"), remainingAt150)
+
+        // At 700 units (in unlimited Slab 6), returns null
+        val remainingAt700 = useCase.getUnitsToNextSlab(BigDecimal("700.0"), bdTariff)
+        assertEquals(null, remainingAt700)
+    }
+
+    @Test
+    fun calculateBill_withRebateAndOtherCharges() {
+        // 100 units with 1% prepaid rebate and ৳40 meter rent
+        val tariffWithRebate = bdTariff.copy(
+            rebatePercent = BigDecimal("1.0"),
+            otherCharges = BigDecimal("40.00")
+        )
+        // Energy charge for 100 units:
+        // Slab 1 (75): 75 * 4.35 = 326.25
+        // Slab 2 (25): 25 * 6.63 = 165.75
+        // Total energy = 492.00
+        // Rebate 1% = 4.92 -> net energy = 487.08
+        // Subtotal = 487.08 + 35 (demand) + 10 (service) + 40 (meter rent) = 572.08
+        // VAT 5% of 572.08 = 28.604 -> 28.60
+        // Total = 572.08 + 28.60 = 600.68
+        val result = useCase(BigDecimal("100"), tariffWithRebate)
+        assertEquals(BigDecimal("492.00"), result.energyCharge)
+        assertEquals(BigDecimal("4.92"), result.rebateAmount)
+        assertEquals(BigDecimal("40.00"), result.otherCharges)
+        assertEquals(BigDecimal("572.08"), result.subtotal)
+        assertEquals(BigDecimal("28.60"), result.vatAmount)
+        assertEquals(BigDecimal("600.68"), result.totalBill)
+    }
+
+    @Test
+    fun calculateSplitBill_handlesMidCycleTariffChange() {
+        val oldTariff = bdTariff
+        val newTariff = bdTariff.copy(
+            demandChargeFlat = BigDecimal("40.00"),
+            slabs = listOf(
+                TariffSlab(id = 1, tariffId = 1, fromUnit = BigDecimal("0"), toUnit = null, ratePerUnit = BigDecimal("7.00"))
+            )
+        )
+
+        // 30 days total: 10 days under old tariff, 20 days under new tariff. Total units = 300.0
+        // Period 1 units = 300 * 10 / 30 = 100.0
+        // Period 2 units = 300 - 100 = 200.0
+        val split = useCase.calculateSplitBill(
+            totalUnits = BigDecimal("300.0"),
+            firstTariff = oldTariff,
+            firstPeriodDays = 10,
+            secondTariff = newTariff,
+            secondPeriodDays = 20
+        )
+
+        assertEquals(BigDecimal("100.0"), split.period1Units)
+        assertEquals(BigDecimal("200.0"), split.period2Units)
+        assertEquals(BigDecimal("300.0"), split.period1Units + split.period2Units)
+        org.junit.Assert.assertTrue(split.totalBill > BigDecimal.ZERO)
+    }
 }

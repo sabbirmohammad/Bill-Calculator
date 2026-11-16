@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -22,12 +23,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -200,7 +203,8 @@ fun HistoryScreen(
                             onClick = { viewModel.onSelectItemForDetail(item) },
                             onEdit = onNavigateToEditReading,
                             onDelete = { viewModel.deleteReading(item) },
-                            useBengaliDigits = state.useBengaliDigits
+                            useBengaliDigits = state.useBengaliDigits,
+                            isBangla = isBangla
                         )
                     }
                 }
@@ -224,6 +228,7 @@ fun SwipeableReadingItem(
     onEdit: (Long) -> Unit,
     onDelete: (ReadingItemUiModel) -> Unit,
     useBengaliDigits: Boolean,
+    isBangla: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val dismissState = rememberSwipeToDismissBoxState(
@@ -281,7 +286,8 @@ fun SwipeableReadingItem(
         ReadingListItem(
             item = item,
             onClick = onClick,
-            useBengaliDigits = useBengaliDigits
+            useBengaliDigits = useBengaliDigits,
+            isBangla = isBangla
         )
     }
 }
@@ -354,9 +360,10 @@ fun ReadingListItem(
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     if (item.unitsDelta > BigDecimal.ZERO) {
                         Surface(
@@ -370,13 +377,41 @@ fun ReadingListItem(
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                             )
                         }
+
+                        if (!item.slabLabel.isNullOrBlank()) {
+                            val (containerColor, contentColor) = when (item.slabNumber ?: 1) {
+                                1 -> Pair(
+                                    MaterialTheme.colorScheme.secondary.copy(alpha = 0.14f),
+                                    MaterialTheme.colorScheme.secondary
+                                )
+                                2 -> Pair(
+                                    MaterialTheme.colorScheme.tertiary.copy(alpha = 0.16f),
+                                    MaterialTheme.colorScheme.tertiary
+                                )
+                                else -> Pair(
+                                    MaterialTheme.colorScheme.error.copy(alpha = 0.14f),
+                                    MaterialTheme.colorScheme.error
+                                )
+                            }
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
+                                color = containerColor
+                            ) {
+                                Text(
+                                    text = item.slabLabel,
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                                    color = contentColor,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
                     } else if (item.isMeterReset) {
                         Surface(
                             shape = RoundedCornerShape(4.dp),
                             color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f)
                         ) {
                             Text(
-                                text = "Reset",
+                                text = if (isBangla) "রিসেট" else "Reset",
                                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
                                 color = MaterialTheme.colorScheme.secondary,
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
@@ -388,7 +423,7 @@ fun ReadingListItem(
                             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
                         ) {
                             Text(
-                                text = "Initial reading",
+                                text = if (isBangla) "শুরুর রিডিং" else "Initial reading",
                                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
@@ -402,7 +437,7 @@ fun ReadingListItem(
                             color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f)
                         ) {
                             Text(
-                                text = "Estimated",
+                                text = if (isBangla) "আনুমানিক" else "Estimated",
                                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
                                 color = MaterialTheme.colorScheme.tertiary,
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
@@ -571,6 +606,26 @@ fun ReadingDetailDialog(
                     label = if (isBangla) "তারিখ ও সময়" else "Date & Time",
                     value = "${detail.formattedDate} at ${detail.formattedTime}"
                 )
+
+                if (!detail.slabLabel.isNullOrBlank()) {
+                    DetailInfoRow(
+                        icon = Icons.Default.Bolt,
+                        label = if (isBangla) "ট্যারিফ স্ল্যাব" else "Tariff Slab",
+                        value = if (detail.slabRate != null) {
+                            "${detail.slabLabel} (${Formatters.formatBDT(detail.slabRate, useBengaliDigits)}${if (isBangla) "/ইউনিট" else "/unit"})"
+                        } else {
+                            detail.slabLabel
+                        }
+                    )
+                }
+
+                if (detail.cumulativeMonthUnits != null && detail.cumulativeMonthUnits > BigDecimal.ZERO) {
+                    DetailInfoRow(
+                        icon = Icons.Default.Speed,
+                        label = if (isBangla) "মাসের মোট ব্যবহার (এই রিডিং পর্যন্ত)" else "Month Total (Up to this reading)",
+                        value = "${Formatters.formatUnits(detail.cumulativeMonthUnits, useBengaliDigits)} kWh"
+                    )
+                }
 
                 if (!detail.note.isNullOrBlank()) {
                     DetailInfoRow(

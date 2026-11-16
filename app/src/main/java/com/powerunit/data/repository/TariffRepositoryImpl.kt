@@ -32,20 +32,39 @@ class TariffRepositoryImpl @Inject constructor(
 ) : TariffRepository {
 
     override fun getActiveTariff(): Flow<Tariff?> {
-        return tariffDao.getActiveTariffWithSlabs().map { it?.toDomain() }
+        return tariffDao.getActiveTariffWithSlabs().map { entity ->
+            val domain = entity?.toDomain()
+            if (domain == null || domain.slabs.isEmpty()) {
+                val version = tariffVersionDao.getLatestVersionSync(1L)?.toDomain()?.toTariff()
+                if (version != null && version.slabs.isNotEmpty()) version else com.powerunit.domain.model.DEFAULT_BANGLADESH_TARIFF
+            } else {
+                domain
+            }
+        }
     }
 
     override suspend fun getActiveTariffSync(): Tariff? {
-        return tariffDao.getActiveTariffWithSlabsSync()?.toDomain()
+        val domain = tariffDao.getActiveTariffWithSlabsSync()?.toDomain()
+        return if (domain == null || domain.slabs.isEmpty()) {
+            val version = tariffVersionDao.getLatestVersionSync(1L)?.toDomain()?.toTariff()
+            if (version != null && version.slabs.isNotEmpty()) version else com.powerunit.domain.model.DEFAULT_BANGLADESH_TARIFF
+        } else {
+            domain
+        }
     }
 
     override suspend fun getTariffEffectiveAt(date: Instant): Tariff? {
         val cycle = DateUtils.instantToCycleString(date)
         val version = tariffVersionDao.getVersionForCycleSync(cycle = cycle)
-        return if (version != null) {
+        val resolved = if (version != null) {
             version.toTariff()
         } else {
             tariffDao.getTariffEffectiveAtSync(date)?.toDomain()
+        }
+        return if (resolved == null || resolved.slabs.isEmpty()) {
+            com.powerunit.domain.model.DEFAULT_BANGLADESH_TARIFF
+        } else {
+            resolved
         }
     }
 
@@ -183,14 +202,7 @@ class TariffRepositoryImpl @Inject constructor(
         val isSeeded = settingsPreferences.isTariffSeeded()
         val count = tariffVersionDao.getCount()
         if (!isSeeded && count == 0) {
-            val defaultSlabs = listOf(
-                TariffSlab(fromUnit = BigDecimal("0"), toUnit = BigDecimal("75"), ratePerUnit = BigDecimal("4.85")),
-                TariffSlab(fromUnit = BigDecimal("76"), toUnit = BigDecimal("200"), ratePerUnit = BigDecimal("6.63")),
-                TariffSlab(fromUnit = BigDecimal("201"), toUnit = BigDecimal("300"), ratePerUnit = BigDecimal("6.95")),
-                TariffSlab(fromUnit = BigDecimal("301"), toUnit = BigDecimal("400"), ratePerUnit = BigDecimal("7.34")),
-                TariffSlab(fromUnit = BigDecimal("401"), toUnit = BigDecimal("600"), ratePerUnit = BigDecimal("11.51")),
-                TariffSlab(fromUnit = BigDecimal("601"), toUnit = null, ratePerUnit = BigDecimal("13.26"))
-            )
+            val defaultSlabs = com.powerunit.domain.model.DEFAULT_BANGLADESH_SLABS
             val defaultVersion = TariffVersion(
                 id = 1L,
                 planId = 1L,
@@ -203,6 +215,27 @@ class TariffRepositoryImpl @Inject constructor(
                 otherCharges = BigDecimal.ZERO
             )
             tariffVersionDao.insertVersion(TariffVersionEntity.fromDomain(defaultVersion))
+
+            val tariffEntity = TariffEntity(
+                id = 1,
+                name = "Default Tariff (LT-A)",
+                effectiveFrom = DateUtils.cycleStringToInstant("1970-01"),
+                vatPercent = defaultVersion.vatPercent,
+                serviceChargeFlat = defaultVersion.fixedCharge,
+                demandChargeFlat = defaultVersion.demandCharge,
+                isActive = true
+            )
+            tariffDao.updateTariffAndSlabs(
+                tariffEntity,
+                defaultSlabs.map { slab ->
+                    TariffSlabEntity(
+                        tariffId = 1,
+                        fromUnit = slab.fromUnit,
+                        toUnit = slab.toUnit,
+                        ratePerUnit = slab.ratePerUnit
+                    )
+                }
+            )
             settingsPreferences.setTariffSeeded(true)
         }
     }

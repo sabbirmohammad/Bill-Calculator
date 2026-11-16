@@ -21,6 +21,8 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.datetime.toLocalDateTime
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -196,5 +198,116 @@ class AddReadingViewModelTest {
         val state = viewModel.uiState.value
         assertTrue(state.isMeterReset)
         assertEquals(BigDecimal("5.0"), state.calculatedDelta)
+    }
+
+    @Test
+    fun onReadingInputChange_whenInSlab2_calculatesCostAtSlab2Rate() = runTest(testDispatcher) {
+        val now = DateUtils.currentInstant()
+        val ldt = now.toLocalDateTime(DateUtils.DHAKA_ZONE)
+        val reading1Time = DateUtils.toInstantAtDhaka(ldt.year, ldt.monthNumber, 1, 9, 0)
+        val reading2Time = DateUtils.toInstantAtDhaka(ldt.year, ldt.monthNumber, 5, 9, 0)
+        val todayReadingTime = DateUtils.toInstantAtDhaka(ldt.year, ldt.monthNumber, 10, 9, 0)
+
+        // Reading 1: 100.0, Reading 2: 200.0 (+100.0 units consumed so far in current month -> Slab 2)
+        val existingReadings = listOf(
+            Reading(
+                id = 1L,
+                meterId = 1L,
+                readingValue = BigDecimal("100.0"),
+                recordedAt = reading1Time,
+                note = "Cycle start",
+                isEstimated = false,
+                isMeterReset = false,
+                createdAt = reading1Time,
+                updatedAt = reading1Time
+            ),
+            Reading(
+                id = 2L,
+                meterId = 1L,
+                readingValue = BigDecimal("200.0"),
+                recordedAt = reading2Time,
+                note = "Mid month",
+                isEstimated = false,
+                isMeterReset = false,
+                createdAt = reading2Time,
+                updatedAt = reading2Time
+            )
+        )
+
+        io.mockk.every { readingRepository.getReadings(1L) } returns flowOf(existingReadings)
+        io.mockk.every { settingsPreferences.billingCycleDay } returns flowOf(1)
+        io.mockk.every { settingsPreferences.appLanguage } returns flowOf("en")
+        io.mockk.every { settingsPreferences.useBengaliDigits } returns flowOf(false)
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onDateChange(todayReadingTime)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // User enters 220.0 (delta = 20.0 units)
+        // Prior units = 100.0 (in Slab 2: 76..200 @ 6.63)
+        // Cumulative after = 120.0 (in Slab 2)
+        // 20.0 units * 6.63 = 132.60
+        viewModel.onReadingInputChange("220.0")
+
+        val state = viewModel.uiState.value
+        assertEquals(BigDecimal("20.0"), state.calculatedDelta)
+        assertEquals(BigDecimal("132.60"), state.estimatedDeltaCost)
+        assertEquals(2, state.slabNumber)
+        assertEquals("2nd Slab", state.slabLabel)
+        assertEquals(BigDecimal("6.63"), state.slabRate)
+        assertEquals(BigDecimal("120.0"), state.cumulativeMonthUnits)
+    }
+
+    @Test
+    fun onReadingInputChange_whenBangla_formatsBengaliSlabLabel() = runTest(testDispatcher) {
+        val now = DateUtils.currentInstant()
+        val ldt = now.toLocalDateTime(DateUtils.DHAKA_ZONE)
+        val reading1Time = DateUtils.toInstantAtDhaka(ldt.year, ldt.monthNumber, 1, 9, 0)
+        val reading2Time = DateUtils.toInstantAtDhaka(ldt.year, ldt.monthNumber, 5, 9, 0)
+        val todayReadingTime = DateUtils.toInstantAtDhaka(ldt.year, ldt.monthNumber, 10, 9, 0)
+
+        val existingReadings = listOf(
+            Reading(
+                id = 1L,
+                meterId = 1L,
+                readingValue = BigDecimal("100.0"),
+                recordedAt = reading1Time,
+                note = "Cycle start",
+                isEstimated = false,
+                isMeterReset = false,
+                createdAt = reading1Time,
+                updatedAt = reading1Time
+            ),
+            Reading(
+                id = 2L,
+                meterId = 1L,
+                readingValue = BigDecimal("200.0"),
+                recordedAt = reading2Time,
+                note = "Mid month",
+                isEstimated = false,
+                isMeterReset = false,
+                createdAt = reading2Time,
+                updatedAt = reading2Time
+            )
+        )
+
+        io.mockk.every { readingRepository.getReadings(1L) } returns flowOf(existingReadings)
+        io.mockk.every { settingsPreferences.billingCycleDay } returns flowOf(1)
+        io.mockk.every { settingsPreferences.appLanguage } returns flowOf("bn")
+        io.mockk.every { settingsPreferences.useBengaliDigits } returns flowOf(true)
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onDateChange(todayReadingTime)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onReadingInputChange("220.0")
+
+        val state = viewModel.uiState.value
+        assertEquals("২য় স্ল্যাব", state.slabLabel)
+        assertEquals(2, state.slabNumber)
     }
 }

@@ -144,4 +144,107 @@ class CalculateDailyUsageUseCaseTest {
         assertEquals(1, result.size)
         assertEquals(BigDecimal("25.0"), result[0].units)
     }
+
+    @Test
+    fun calculateDailyUsage_hugeGap_strictlyConservesTotalDelta() {
+        // Delta = 20.0 units over 7 days. Under naive flat division, 2.9 * 7 = 20.3 (0.3 leaked).
+        // Under our conserved Hamilton distribution, sum must be EXACTLY 20.0 units!
+        val readings = listOf(
+            Reading(
+                id = 1, meterId = 1, readingValue = BigDecimal("1000.0"),
+                recordedAt = DateUtils.toInstantAtDhaka(2026, 3, 1, 9, 0),
+                createdAt = DateUtils.toInstantAtDhaka(2026, 3, 1, 9, 0),
+                updatedAt = DateUtils.toInstantAtDhaka(2026, 3, 1, 9, 0)
+            ),
+            Reading(
+                id = 2, meterId = 1, readingValue = BigDecimal("1020.0"),
+                recordedAt = DateUtils.toInstantAtDhaka(2026, 3, 8, 9, 0),
+                createdAt = DateUtils.toInstantAtDhaka(2026, 3, 8, 9, 0),
+                updatedAt = DateUtils.toInstantAtDhaka(2026, 3, 8, 9, 0)
+            )
+        )
+
+        val result = useCase(readings)
+
+        assertEquals(7, result.size)
+        val sumUnits = result.fold(BigDecimal.ZERO) { acc, u -> acc + u.units }
+        assertEquals(BigDecimal("20.0"), sumUnits)
+
+        // 30-day huge gap test (100.0 units over 30 days)
+        val monthReadings = listOf(
+            Reading(
+                id = 1, meterId = 1, readingValue = BigDecimal("5000.0"),
+                recordedAt = DateUtils.toInstantAtDhaka(2026, 4, 1, 9, 0),
+                createdAt = DateUtils.toInstantAtDhaka(2026, 4, 1, 9, 0),
+                updatedAt = DateUtils.toInstantAtDhaka(2026, 4, 1, 9, 0)
+            ),
+            Reading(
+                id = 2, meterId = 1, readingValue = BigDecimal("5100.0"),
+                recordedAt = DateUtils.toInstantAtDhaka(2026, 5, 1, 9, 0),
+                createdAt = DateUtils.toInstantAtDhaka(2026, 5, 1, 9, 0),
+                updatedAt = DateUtils.toInstantAtDhaka(2026, 5, 1, 9, 0)
+            )
+        )
+        val monthResult = useCase(monthReadings)
+        assertEquals(30, monthResult.size)
+        val monthSum = monthResult.fold(BigDecimal.ZERO) { acc, u -> acc + u.units }
+        assertEquals(BigDecimal("100.0"), monthSum)
+    }
+
+    @Test
+    fun calculateDailyUsage_meterRollover_detectsDialWrapAround() {
+        // 5-digit meter (capacity 100,000): reads 99995.0 on Mar 1, rolls over to 00010.0 on Mar 2
+        // True consumption = (100000 - 99995) + 10 = 15.0 units
+        val readings = listOf(
+            Reading(
+                id = 1, meterId = 1, readingValue = BigDecimal("99995.0"),
+                recordedAt = DateUtils.toInstantAtDhaka(2026, 3, 1, 9, 0),
+                createdAt = DateUtils.toInstantAtDhaka(2026, 3, 1, 9, 0),
+                updatedAt = DateUtils.toInstantAtDhaka(2026, 3, 1, 9, 0)
+            ),
+            Reading(
+                id = 2, meterId = 1, readingValue = BigDecimal("10.0"),
+                recordedAt = DateUtils.toInstantAtDhaka(2026, 3, 2, 9, 0),
+                createdAt = DateUtils.toInstantAtDhaka(2026, 3, 2, 9, 0),
+                updatedAt = DateUtils.toInstantAtDhaka(2026, 3, 2, 9, 0)
+            )
+        )
+
+        val result = useCase(readings)
+
+        assertEquals(1, result.size)
+        assertEquals(BigDecimal("15.0"), result[0].units)
+    }
+
+    @Test
+    fun calculateDailyUsage_multipleReadingsSameDay_accumulatesCorrectly() {
+        // Morning reading (1000.0), midday reading (1004.0, +4 units), night reading (1009.5, +5.5 units)
+        // Total for that day should be 9.5 units
+        val readings = listOf(
+            Reading(
+                id = 1, meterId = 1, readingValue = BigDecimal("1000.0"),
+                recordedAt = DateUtils.toInstantAtDhaka(2026, 3, 1, 8, 0),
+                createdAt = DateUtils.toInstantAtDhaka(2026, 3, 1, 8, 0),
+                updatedAt = DateUtils.toInstantAtDhaka(2026, 3, 1, 8, 0)
+            ),
+            Reading(
+                id = 2, meterId = 1, readingValue = BigDecimal("1004.0"),
+                recordedAt = DateUtils.toInstantAtDhaka(2026, 3, 1, 14, 0),
+                createdAt = DateUtils.toInstantAtDhaka(2026, 3, 1, 14, 0),
+                updatedAt = DateUtils.toInstantAtDhaka(2026, 3, 1, 14, 0)
+            ),
+            Reading(
+                id = 3, meterId = 1, readingValue = BigDecimal("1009.5"),
+                recordedAt = DateUtils.toInstantAtDhaka(2026, 3, 1, 22, 0),
+                createdAt = DateUtils.toInstantAtDhaka(2026, 3, 1, 22, 0),
+                updatedAt = DateUtils.toInstantAtDhaka(2026, 3, 1, 22, 0)
+            )
+        )
+
+        val result = useCase(readings)
+
+        assertEquals(1, result.size)
+        assertEquals(LocalDate(2026, 3, 1), result[0].date)
+        assertEquals(BigDecimal("9.5"), result[0].units)
+    }
 }

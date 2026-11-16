@@ -5,6 +5,15 @@ All notable changes to WattWise will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.2] - 2026-11-16
+
+### Fixed & Enhanced
+- **Progressive Slab-Aware Billing for New Readings**: Accurately tracks cumulative consumption in the current billing cycle and calculates new reading delta costs progressively based on the current slab tier (e.g. 2nd or 3rd slab rate) instead of calculating only at the base 1st slab rate.
+- **Live Tariff Slab Badges in Add Reading Screen**: Displays active slab tier, unit rate, and cumulative cycle units in real-time as readings are entered in `AddReadingScreen`.
+- **Tariff Slab Tier in Celebration Dialog**: Bento Stats summary in `ReadingSuccessCelebrationDialog` now features the active Tariff Slab alongside Units Used and Estimated Cost.
+- **History Screen & Detail Dialog Integration**: Displays slab badges and rates for all chronological readings and fixes meter reset delta handling.
+- **Robust Bangladesh LT-A Slabs Fallback**: Ensures all 6 domestic tariff slabs are always populated and seeded, guaranteeing progressive calculation even on fresh or unconfigured installs.
+
 ## [1.1.1] - 2026-11-13
 
 ### Changed

@@ -80,7 +80,44 @@ class BackupManagerTest {
         assertTrue(backupFile.exists())
         assertTrue(backupFile.length() > 0)
 
+        // Verify V2 file header starts with WATT\x02
+        val headerBytes = java.io.FileInputStream(backupFile).use { it.readNBytes(5) }
+        assertEquals('W'.code.toByte(), headerBytes[0])
+        assertEquals('A'.code.toByte(), headerBytes[1])
+        assertEquals('T'.code.toByte(), headerBytes[2])
+        assertEquals('T'.code.toByte(), headerBytes[3])
+        assertEquals(0x02.toByte(), headerBytes[4])
+
         val restoredCount = backupManager.restoreEncryptedBackup(backupFile, passphrase)
+        assertEquals(1, restoredCount)
+        coVerify { readingDao.insertReadings(any()) }
+    }
+
+    @Test
+    fun restoreLegacyV1Backup_withoutHeaderAnd10kIterations_succeeds() = runTest {
+        val passphrase = "LegacyPassword123!"
+        val jsonPayload = backupManager.exportDatabaseToJson()
+
+        // Manually construct legacy V1 format (10k iterations, no magic header, no AAD)
+        val salt = ByteArray(16).apply { java.security.SecureRandom().nextBytes(this) }
+        val iv = ByteArray(12).apply { java.security.SecureRandom().nextBytes(this) }
+        val keySpec = javax.crypto.spec.PBEKeySpec(passphrase.toCharArray(), salt, 10000, 256)
+        val factory = javax.crypto.SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
+        val secretKey = javax.crypto.spec.SecretKeySpec(factory.generateSecret(keySpec).encoded, "AES")
+
+        val cipher = javax.crypto.Cipher.getInstance("AES/GCM/NoPadding")
+        cipher.init(javax.crypto.Cipher.ENCRYPT_MODE, secretKey, javax.crypto.spec.GCMParameterSpec(128, iv))
+        val encryptedBytes = cipher.doFinal(jsonPayload.toByteArray(Charsets.UTF_8))
+
+        val legacyFile = tempFolder.newFile("legacy_backup.wattwise")
+        java.io.FileOutputStream(legacyFile).use { fos ->
+            fos.write(salt)
+            fos.write(iv)
+            fos.write(encryptedBytes)
+        }
+
+        // Must restore legacy file without crashing
+        val restoredCount = backupManager.restoreEncryptedBackup(legacyFile, passphrase)
         assertEquals(1, restoredCount)
         coVerify { readingDao.insertReadings(any()) }
     }

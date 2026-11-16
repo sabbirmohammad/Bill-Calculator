@@ -23,11 +23,13 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.powerunit.core.designsystem.theme.CardShape
@@ -54,6 +56,8 @@ fun ReadingListItem(
     hasPhoto: Boolean = false,
     hasNote: Boolean = false,
     isEstimated: Boolean = false,
+    slabLabel: String? = null,
+    slabNumber: Int? = null,
     onClick: (() -> Unit)? = null
 ) {
     Card(
@@ -97,7 +101,7 @@ fun ReadingListItem(
 
             Spacer(modifier = Modifier.width(Dimens.iconToTextGap))
 
-            // Center: title and delta units subtitle
+            // Center: title, delta units, and slab badge
             Column(
                 modifier = Modifier.weight(1f)
             ) {
@@ -107,11 +111,43 @@ fun ReadingListItem(
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = deltaUnitsText,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = deltaUnitsText,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    if (!slabLabel.isNullOrBlank()) {
+                        val (containerColor, contentColor) = when (slabNumber ?: 1) {
+                            1 -> Pair(
+                                MaterialTheme.colorScheme.secondary.copy(alpha = 0.14f),
+                                MaterialTheme.colorScheme.secondary
+                            )
+                            2 -> Pair(
+                                MaterialTheme.colorScheme.tertiary.copy(alpha = 0.16f),
+                                MaterialTheme.colorScheme.tertiary
+                            )
+                            else -> Pair(
+                                MaterialTheme.colorScheme.error.copy(alpha = 0.14f),
+                                MaterialTheme.colorScheme.error
+                            )
+                        }
+                        Surface(
+                            shape = RoundedCornerShape(4.dp),
+                            color = containerColor
+                        ) {
+                            Text(
+                                text = slabLabel,
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                                color = contentColor,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.width(Dimens.xs))
@@ -172,7 +208,9 @@ private fun PreviewReadingListItemLight() {
             costText = "৳ 78.50",
             hasPhoto = true,
             hasNote = true,
-            isEstimated = false
+            isEstimated = false,
+            slabLabel = "1st Slab",
+            slabNumber = 1
         )
     }
 }
@@ -189,7 +227,9 @@ private fun PreviewReadingListItemDark() {
             costText = "৳ 78.50",
             hasPhoto = true,
             hasNote = true,
-            isEstimated = false
+            isEstimated = false,
+            slabLabel = "2nd Slab",
+            slabNumber = 2
         )
     }
 }
@@ -204,7 +244,9 @@ private fun PreviewReadingListItemFont() {
             meterValue = "14,820",
             deltaUnitsText = "+8.4 units",
             costText = "৳ 78",
-            hasNote = true
+            hasNote = true,
+            slabLabel = "1st Slab",
+            slabNumber = 1
         )
     }
 }
@@ -220,7 +262,9 @@ private fun PreviewReadingListItemBangla() {
             deltaUnitsText = "+৮.৪ ইউনিট",
             costText = "৳ ৭৮.৫০",
             hasPhoto = true,
-            hasNote = true
+            hasNote = true,
+            slabLabel = "১ম স্ল্যাব",
+            slabNumber = 1
         )
     }
 }

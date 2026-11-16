@@ -71,8 +71,12 @@ class DatabasePassphraseHelper @Inject constructor(
                 .commit()
             inMemoryCachedPassphrase = passphraseToPersist
             return passphraseToPersist
-        } catch (_: Exception) {
-            // For unit testing environments without AndroidKeyStore provider, store in fallback
+        } catch (e: Exception) {
+            // Only allow fallback in JVM test environments where AndroidKeyStore is missing
+            if (isAndroidKeyStoreAvailable()) {
+                throw SecurityException("Failed to securely wrap database passphrase with AndroidKeyStore", e)
+            }
+            // For JVM unit test environments without AndroidKeyStore provider, store in fallback
             val fbPrefs = context.getSharedPreferences(LEGACY_FB_PREFS_FILE, Context.MODE_PRIVATE)
             val fbExisting = fbPrefs.getString(LEGACY_KEY_DB_PASSPHRASE, null)
             val fbBytes = if (fbExisting != null) {
@@ -84,6 +88,15 @@ class DatabasePassphraseHelper @Inject constructor(
             }
             inMemoryCachedPassphrase = fbBytes
             return fbBytes
+        }
+    }
+
+    private fun isAndroidKeyStoreAvailable(): Boolean {
+        return try {
+            KeyStore.getInstance(ANDROID_KEYSTORE)
+            true
+        } catch (_: Throwable) {
+            false
         }
     }
 

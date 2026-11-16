@@ -20,7 +20,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -47,13 +49,24 @@ data class ReadingItemUiModel(
     val isEstimated: Boolean,
     val isMeterReset: Boolean,
     val note: String?,
-    val rawReading: Reading
+    val rawReading: Reading,
+    val slabNumber: Int? = null,
+    val slabLabel: String? = null,
+    val slabRate: BigDecimal? = null,
+    val cumulativeMonthUnits: BigDecimal? = null
 )
+
+fun formatSlabLabel(slabNumber: Int, isBangla: Boolean): String {
+    return Formatters.formatSlabLabel(slabNumber, isBangla)
+}
 
 fun Reading.toUiModel(
     prevReading: Reading? = null,
     useBengaliDigits: Boolean = false,
-    isBangla: Boolean = false
+    isBangla: Boolean = false,
+    tariff: Tariff? = null,
+    cumulativeMonthUnitsBefore: BigDecimal = BigDecimal.ZERO,
+    calculateBillUseCase: CalculateBillUseCase? = null
 ): ReadingItemUiModel {
     val date = DateUtils.formatDate(recordedAt)
     val time = DateUtils.formatTime(recordedAt)
@@ -68,12 +81,32 @@ fun Reading.toUiModel(
         englishShortMonths.getOrElse(monthNumber - 1) { "DATE" }
     }
 
-    val delta = if (isMeterReset || prevReading == null) {
+    val delta = if (isMeterReset) {
+        readingValue
+    } else if (prevReading == null) {
         BigDecimal.ZERO
     } else {
         (readingValue - prevReading.readingValue).coerceAtLeast(BigDecimal.ZERO)
     }
-    val cost = delta.multiply(BigDecimal("6.0")).setScale(2, RoundingMode.HALF_UP)
+
+    val cumulativeAfter = (cumulativeMonthUnitsBefore + delta).setScale(1, RoundingMode.HALF_UP)
+
+    // Progressive tariff slab calculation
+    val (cost, slabInfo) = if (tariff != null && calculateBillUseCase != null && delta > BigDecimal.ZERO) {
+        val costBefore = calculateBillUseCase.calculateEnergyCharge(cumulativeMonthUnitsBefore, tariff)
+        val costAfter = calculateBillUseCase.calculateEnergyCharge(cumulativeAfter, tariff)
+        val readingCost = (costAfter - costBefore).coerceAtLeast(BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP)
+        val slab = calculateBillUseCase.getSlabForUnits(cumulativeAfter, tariff)
+        Pair(readingCost, slab)
+    } else if (tariff != null && calculateBillUseCase != null) {
+        val slab = calculateBillUseCase.getSlabForUnits(cumulativeAfter, tariff)
+        Pair(BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP), slab)
+    } else {
+        val fallbackCost = delta.multiply(BigDecimal("6.0")).setScale(2, RoundingMode.HALF_UP)
+        Pair(fallbackCost, null)
+    }
+
+    val slabLabel = slabInfo?.let { Formatters.formatSlabLabel(it.slabNumber, isBangla, useBengaliDigits) }
 
     return ReadingItemUiModel(
         id = id,
@@ -87,7 +120,11 @@ fun Reading.toUiModel(
         isEstimated = isEstimated,
         isMeterReset = isMeterReset,
         note = note,
-        rawReading = this
+        rawReading = this,
+        slabNumber = slabInfo?.slabNumber,
+        slabLabel = slabLabel,
+        slabRate = slabInfo?.ratePerUnit,
+        cumulativeMonthUnits = cumulativeAfter
     )
 }
 
@@ -131,6 +168,13 @@ sealed interface HistoryUiEffect {
     data class ShowUndoSnackbar(val reading: Reading, val message: String = "Reading deleted") : HistoryUiEffect
 }
 
+private data class HistoryPrefs(
+    val useBengaliDigits: Boolean,
+    val appLanguage: String,
+    val hideAmounts: Boolean,
+    val billingCycleDay: Int
+)
+
 @HiltViewModel
 class HistoryViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle,
@@ -139,7 +183,8 @@ class HistoryViewModel @Inject constructor(
     private val tariffRepository: TariffRepository,
     private val calculateBillUseCase: CalculateBillUseCase,
     private val exportManager: ExportManager,
-    private val settingsPreferences: SettingsPreferences
+    private val settingsPreferences: SettingsPreferences,
+    private val calculateCycleUsageUseCase: com.powerunit.domain.usecase.CalculateCycleUsageUseCase = com.powerunit.domain.usecase.CalculateCycleUsageUseCase()
 ) : ViewModel() {
 
     companion object {
@@ -176,12 +221,17 @@ class HistoryViewModel @Inject constructor(
             val meter = meterRepository.getActiveMeterSync()
             val meterId = meter?.id ?: 1L
 
+            val billingCycleFlow = settingsPreferences.billingCycleDay
+                .onStart { emit(1) }
+                .distinctUntilChanged()
+
             val prefsFlow = combine(
                 settingsPreferences.useBengaliDigits,
                 settingsPreferences.appLanguage,
-                settingsPreferences.hideAmounts
-            ) { useBengaliDigits, appLanguage, hideAmounts ->
-                Triple(useBengaliDigits, appLanguage, hideAmounts)
+                settingsPreferences.hideAmounts,
+                billingCycleFlow
+            ) { useBengaliDigits, appLanguage, hideAmounts, billingCycleDay ->
+                HistoryPrefs(useBengaliDigits, appLanguage, hideAmounts, billingCycleDay)
             }
 
             combine(
@@ -191,15 +241,15 @@ class HistoryViewModel @Inject constructor(
                 _selectedMonth,
                 prefsFlow
             ) { readings, tariff, selectedYear, selectedMonth, prefs ->
-                val (useBengaliDigits, appLanguage, hideAmounts) = prefs
                 processHistoryData(
                     readings = readings,
                     tariff = tariff,
                     selectedYear = selectedYear,
                     selectedMonth = selectedMonth,
-                    useBengaliDigits = useBengaliDigits,
-                    appLanguage = appLanguage,
-                    hideAmounts = hideAmounts
+                    useBengaliDigits = prefs.useBengaliDigits,
+                    appLanguage = prefs.appLanguage,
+                    hideAmounts = prefs.hideAmounts,
+                    billingCycleDay = prefs.billingCycleDay
                 )
             }.collect { newState ->
                 _uiState.value = newState
@@ -214,7 +264,8 @@ class HistoryViewModel @Inject constructor(
         selectedMonth: Int,
         useBengaliDigits: Boolean,
         appLanguage: String,
-        hideAmounts: Boolean = false
+        hideAmounts: Boolean = false,
+        billingCycleDay: Int = 1
     ): HistoryUiState {
         val isBangla = appLanguage.equals("bn", ignoreCase = true) || useBengaliDigits
 
@@ -225,22 +276,41 @@ class HistoryViewModel @Inject constructor(
         val availableYears = (yearsWithData + defaultYear).distinct().sortedDescending()
 
         // 2. Fallback active tariff
-        val activeTariff = tariff ?: Tariff(
-            name = "Default",
-            effectiveFrom = DateUtils.currentInstant(),
-            vatPercent = BigDecimal("5.0"),
-            serviceChargeFlat = BigDecimal("10.00"),
-            demandChargeFlat = BigDecimal("35.00"),
-            isActive = true
-        )
-
-        // 3. Process all readings into UI models with delta computed against adjacent chronologically preceding reading
-        val allUiItems = mutableListOf<ReadingItemUiModel>()
-        for (i in readings.indices) {
-            val reading = readings[i]
-            val prev = if (i < readings.size - 1) readings[i + 1] else null
-            allUiItems.add(reading.toUiModel(prev, useBengaliDigits, isBangla))
+        val activeTariff = if (tariff != null && tariff.slabs.isNotEmpty()) {
+            tariff
+        } else {
+            com.powerunit.domain.model.DEFAULT_BANGLADESH_TARIFF
         }
+
+        // 3. Process all readings into UI models in chronological order to track cumulative monthly units and progressive slabs
+        val sortedAscending = readings.sortedBy { it.recordedAt }
+        val cycleCumulativeTracker = mutableMapOf<String, BigDecimal>()
+        val allUiItemsAsc = mutableListOf<ReadingItemUiModel>()
+
+        for (i in sortedAscending.indices) {
+            val reading = sortedAscending[i]
+            val prev = if (i > 0) sortedAscending[i - 1] else null
+
+            val ldt = reading.recordedAt.toLocalDateTime(DateUtils.DHAKA_ZONE)
+            val (cycleStart, _) = calculateCycleUsageUseCase.computeCycleRange(billingCycleDay, ldt.date)
+            val cycleKey = cycleStart.toString()
+            val cumBefore = cycleCumulativeTracker.getOrDefault(cycleKey, BigDecimal.ZERO)
+
+            val uiItem = reading.toUiModel(
+                prevReading = prev,
+                useBengaliDigits = useBengaliDigits,
+                isBangla = isBangla,
+                tariff = activeTariff,
+                cumulativeMonthUnitsBefore = cumBefore,
+                calculateBillUseCase = calculateBillUseCase
+            )
+
+            cycleCumulativeTracker[cycleKey] = uiItem.cumulativeMonthUnits ?: cumBefore
+            allUiItemsAsc.add(uiItem)
+        }
+
+        // Reverse so newest readings appear at the top of the history list
+        val allUiItems = allUiItemsAsc.asReversed()
 
         // 4. Months with data in the currently selected year
         val monthsWithDataInYear = readings.filter { reading ->

@@ -9,5 +9,7 @@ data class MonthEndForecast(
     val expectedBill: BigDecimal,
     val lowBill: BigDecimal,
     val highBill: BigDecimal,
-    val daysLeft: Int
+    val daysLeft: Int,
+    val projectedSlab: SlabInfo? = null,
+    val unitsToNextSlab: BigDecimal? = null
 )

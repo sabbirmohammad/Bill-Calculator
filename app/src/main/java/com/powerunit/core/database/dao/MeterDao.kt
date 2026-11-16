@@ -14,6 +14,9 @@ interface MeterDao {
     @Query("SELECT * FROM meters ORDER BY createdAt ASC")
     fun getAllMeters(): Flow<List<MeterEntity>>
 
+    @Query("SELECT * FROM meters ORDER BY createdAt ASC")
+    suspend fun getAllMetersSync(): List<MeterEntity>
+
     @Query("SELECT * FROM meters WHERE isActive = 1 LIMIT 1")
     fun getActiveMeter(): Flow<MeterEntity?>
 
@@ -25,6 +28,9 @@ interface MeterDao {
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertMeter(meter: MeterEntity): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertMeters(meters: List<MeterEntity>)
 
     @Update
     suspend fun updateMeter(meter: MeterEntity)

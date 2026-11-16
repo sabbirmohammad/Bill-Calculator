@@ -125,6 +125,30 @@ object Formatters {
         }
     }
 
+    fun formatSlabLabel(slabNumber: Int, isBangla: Boolean = false, useBengaliDigits: Boolean = false): String {
+        return if (isBangla || useBengaliDigits) {
+            when (slabNumber) {
+                1 -> "১ম স্ল্যাব"
+                2 -> "২য় স্ল্যাব"
+                3 -> "৩য় স্ল্যাব"
+                4 -> "৪র্থ স্ল্যাব"
+                5 -> "৫ম স্ল্যাব"
+                6 -> "৬ষ্ঠ স্ল্যাব"
+                else -> "${toBengaliDigits(slabNumber.toString())}-তম স্ল্যাব"
+            }
+        } else {
+            when (slabNumber) {
+                1 -> "1st Slab"
+                2 -> "2nd Slab"
+                3 -> "3rd Slab"
+                4 -> "4th Slab"
+                5 -> "5th Slab"
+                6 -> "6th Slab"
+                else -> "Slab $slabNumber"
+            }
+        }
+    }
+
     fun toBengaliDigits(input: String): String {
         val sb = StringBuilder(input.length)
         for (ch in input) {

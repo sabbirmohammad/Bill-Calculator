@@ -41,33 +41,29 @@ class CalculateCycleUsageUseCase @Inject constructor() {
     }
 
     fun computeCycleRange(cycleStartDay: Int, referenceDate: LocalDate): Pair<LocalDate, LocalDate> {
-        val clampedDay = cycleStartDay.coerceIn(1, 28)
+        val targetDay = cycleStartDay.coerceIn(1, 31)
 
         val cycleStart: LocalDate
         val cycleEnd: LocalDate
 
-        if (referenceDate.dayOfMonth >= clampedDay) {
-            cycleStart = LocalDate(referenceDate.year, referenceDate.monthNumber, clampedDay)
-            val nextMonthEpoch = cycleStart.plusMonths(1)
-            cycleEnd = LocalDate(nextMonthEpoch.year, nextMonthEpoch.monthNumber, clampedDay).minusDays(1)
+        val currentMonthMaxDays = daysInMonth(referenceDate.year, referenceDate.monthNumber)
+        val currentMonthStartDay = targetDay.coerceAtMost(currentMonthMaxDays)
+
+        if (referenceDate.dayOfMonth >= currentMonthStartDay) {
+            cycleStart = LocalDate(referenceDate.year, referenceDate.monthNumber, currentMonthStartDay)
+            val nextMonthNumber = if (referenceDate.monthNumber == 12) 1 else referenceDate.monthNumber + 1
+            val nextYear = if (referenceDate.monthNumber == 12) referenceDate.year + 1 else referenceDate.year
+            val nextMonthStartDay = targetDay.coerceAtMost(daysInMonth(nextYear, nextMonthNumber))
+            cycleEnd = LocalDate(nextYear, nextMonthNumber, nextMonthStartDay).minusDays(1)
         } else {
-            val prevMonthEpoch = LocalDate(referenceDate.year, referenceDate.monthNumber, 1).minusDays(1)
-            cycleStart = LocalDate(prevMonthEpoch.year, prevMonthEpoch.monthNumber, clampedDay)
-            cycleEnd = LocalDate(referenceDate.year, referenceDate.monthNumber, clampedDay).minusDays(1)
+            val prevMonthNumber = if (referenceDate.monthNumber == 1) 12 else referenceDate.monthNumber - 1
+            val prevYear = if (referenceDate.monthNumber == 1) referenceDate.year - 1 else referenceDate.year
+            val prevMonthStartDay = targetDay.coerceAtMost(daysInMonth(prevYear, prevMonthNumber))
+            cycleStart = LocalDate(prevYear, prevMonthNumber, prevMonthStartDay)
+            cycleEnd = LocalDate(referenceDate.year, referenceDate.monthNumber, currentMonthStartDay).minusDays(1)
         }
 
         return Pair(cycleStart, cycleEnd)
-    }
-
-    private fun LocalDate.plusMonths(months: Int): LocalDate {
-        var newMonth = this.monthNumber + months
-        var newYear = this.year
-        while (newMonth > 12) {
-            newMonth -= 12
-            newYear += 1
-        }
-        val clampedDay = this.dayOfMonth.coerceAtMost(daysInMonth(newYear, newMonth))
-        return LocalDate(newYear, newMonth, clampedDay)
     }
 
     private fun LocalDate.minusDays(days: Int): LocalDate {

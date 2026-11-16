@@ -47,6 +47,37 @@ class OtherUseCasesTest {
     }
 
     @Test
+    fun detectAnomalies_maskingResistance_flagsMultipleOutliers() {
+        // Robust Median + MAD is immune to the masking effect where multiple spikes inflate stdDev
+        val detect = DetectAnomaliesUseCase()
+        val normalDays = (1..20).map {
+            DailyUsage(LocalDate(2026, 3, it), BigDecimal("8.0"), BigDecimal("40.0"))
+        }
+        val spike1 = DailyUsage(LocalDate(2026, 3, 21), BigDecimal("35.0"), BigDecimal("175.0"))
+        val spike2 = DailyUsage(LocalDate(2026, 3, 22), BigDecimal("38.0"), BigDecimal("190.0"))
+
+        val allDays = normalDays + spike1 + spike2
+        val flagged = detect(allDays)
+
+        assertFalse(flagged[0].isAnomaly)
+        assertTrue(flagged[20].isAnomaly)
+        assertTrue(flagged[21].isAnomaly)
+    }
+
+    @Test
+    fun detectAnomalies_lowUsageHousehold_flagsRelativeSurge() {
+        // Frugal household: typical 1.5 units/day (e.g. LED bulb + fan). Surges to 4.5 units (3x)
+        val detect = DetectAnomaliesUseCase()
+        val lowUsageDays = (1..20).map {
+            DailyUsage(LocalDate(2026, 3, it), BigDecimal("1.5"), BigDecimal("7.5"))
+        }
+        val surgeDay = DailyUsage(LocalDate(2026, 3, 21), BigDecimal("4.5"), BigDecimal("22.5"))
+
+        val flagged = detect(lowUsageDays + surgeDay)
+        assertTrue(flagged.last().isAnomaly)
+    }
+
+    @Test
     fun calculateMetrics_computesMetricsAndCo2() {
         val metricsUseCase = CalculateMetricsUseCase()
 
@@ -61,6 +92,7 @@ class OtherUseCasesTest {
         assertEquals(BigDecimal("60.00"), metrics.costPerDay)
         assertEquals(BigDecimal("6.00"), metrics.costPerUnitEffective)
         assertEquals(BigDecimal("55.00"), metrics.co2EstimateKg) // 100 * 0.55
+        assertTrue(metrics.treesEquivalentMonthly > BigDecimal.ZERO)
     }
 
     @Test
@@ -74,6 +106,8 @@ class OtherUseCasesTest {
             averageCostPerUnitBdt = BigDecimal("6.00")
         )
         assertEquals(10, safeStatus.estimatedDaysRemaining)
+        assertEquals(BigDecimal("10.00"), safeStatus.exactDaysRemaining)
+        assertEquals(240, safeStatus.hoursRemaining)
         assertFalse(safeStatus.isRechargeSoonAlert)
 
         // Balance 100 BDT, daily cost 50 BDT -> 2 days remaining (triggers alert)
@@ -83,7 +117,26 @@ class OtherUseCasesTest {
             averageCostPerUnitBdt = BigDecimal("6.00")
         )
         assertEquals(2, lowStatus.estimatedDaysRemaining)
+        assertEquals(48, lowStatus.hoursRemaining)
         assertTrue(lowStatus.isRechargeSoonAlert)
+    }
+
+    @Test
+    fun calculatePrepaidStatus_monthTurnoverFixedDeduction_triggersCriticalAlert() {
+        // Balance 100 BDT, daily cost 20 BDT (appears to have 5 days runway).
+        // BUT 3 days left until 1st of month, when 85 BDT monthly fixed charge is deducted!
+        // After 3 days (60 BDT) + 85 BDT fixed charge = 145 BDT needed! Balance will be negative!
+        val prepaidUseCase = CalculatePrepaidStatusUseCase()
+        val criticalStatus = prepaidUseCase(
+            currentBalanceBdt = BigDecimal("100.00"),
+            averageDailyCostBdt = BigDecimal("20.00"),
+            averageCostPerUnitBdt = BigDecimal("6.00"),
+            monthlyFixedChargesBdt = BigDecimal("85.00"),
+            daysLeftInMonth = 3
+        )
+
+        assertEquals(com.powerunit.domain.model.PrepaidAlertLevel.CRITICAL, criticalStatus.alertLevel)
+        assertTrue(criticalStatus.isRechargeSoonAlert)
     }
 
     @Test

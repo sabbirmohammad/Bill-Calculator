@@ -104,6 +104,7 @@ class HistoryViewModelTest {
         every { settingsPreferences.useBengaliDigits } returns flowOf(false)
         every { settingsPreferences.appLanguage } returns flowOf("en")
         every { settingsPreferences.hideAmounts } returns flowOf(false)
+        every { settingsPreferences.billingCycleDay } returns flowOf(1)
     }
 
     @After
@@ -154,6 +155,74 @@ class HistoryViewModelTest {
         assertEquals(2, state.monthSummary?.readingsCount)
         assertTrue(state.monthSummary!!.totalCost > BigDecimal.ZERO)
         assertTrue(state.monthChips[2].hasData) // Month 3 has data
+
+        val readingItem = state.items[0]
+        assertEquals(BigDecimal("20.0"), readingItem.unitsDelta)
+        assertEquals(1, readingItem.slabNumber)
+        assertEquals("1st Slab", readingItem.slabLabel)
+        assertEquals(BigDecimal("4.85"), readingItem.slabRate)
+        assertEquals(BigDecimal("97.00"), readingItem.costEstimate)
+    }
+
+    @Test
+    fun onSelectMonth_banglaLanguage_formatsBanglaSlabLabel() = runTest(testDispatcher) {
+        every { settingsPreferences.appLanguage } returns flowOf("bn")
+        val savedState = SavedStateHandle(mapOf(
+            HistoryViewModel.KEY_SELECTED_YEAR to 2026,
+            HistoryViewModel.KEY_SELECTED_MONTH to 3
+        ))
+        val viewModel = createViewModel(savedState)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        val readingItem = state.items[0]
+        assertEquals(1, readingItem.slabNumber)
+        assertEquals("১ম স্ল্যাব", readingItem.slabLabel)
+    }
+
+    @Test
+    fun onSelectMonth_crossingSlabs_calculatesProgressiveCostAndReachesSlab2() = runTest(testDispatcher) {
+        val crossingReadings = listOf(
+            Reading(
+                id = 2L,
+                meterId = 1L,
+                readingValue = BigDecimal("180.0"), // +80.0 units
+                recordedAt = Instant.parse("2026-03-10T10:00:00Z"),
+                note = "Crossing into Slab 2",
+                isEstimated = false,
+                isMeterReset = false,
+                createdAt = Instant.parse("2026-03-10T10:00:00Z"),
+                updatedAt = Instant.parse("2026-03-10T10:00:00Z")
+            ),
+            Reading(
+                id = 1L,
+                meterId = 1L,
+                readingValue = BigDecimal("100.0"),
+                recordedAt = Instant.parse("2026-03-01T10:00:00Z"),
+                note = "Baseline",
+                isEstimated = false,
+                isMeterReset = false,
+                createdAt = Instant.parse("2026-03-01T10:00:00Z"),
+                updatedAt = Instant.parse("2026-03-01T10:00:00Z")
+            )
+        )
+        coEvery { readingRepository.getReadings(1L) } returns flowOf(crossingReadings)
+
+        val savedState = SavedStateHandle(mapOf(
+            HistoryViewModel.KEY_SELECTED_YEAR to 2026,
+            HistoryViewModel.KEY_SELECTED_MONTH to 3
+        ))
+        val viewModel = createViewModel(savedState)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        val readingItem = state.items[0]
+        assertEquals(BigDecimal("80.0"), readingItem.unitsDelta)
+        assertEquals(2, readingItem.slabNumber)
+        assertEquals("2nd Slab", readingItem.slabLabel)
+        assertEquals(BigDecimal("6.63"), readingItem.slabRate)
+        // 75 units @ 4.85 (363.75) + 5 units @ 6.63 (33.15) = 396.90
+        assertEquals(BigDecimal("396.90"), readingItem.costEstimate)
     }
 
     @Test

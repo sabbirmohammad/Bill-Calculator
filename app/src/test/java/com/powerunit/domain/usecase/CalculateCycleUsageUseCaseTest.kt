@@ -63,4 +63,25 @@ class CalculateCycleUsageUseCaseTest {
         assertEquals(26, cycle.daysLeft) // 31 - 5 = 26
         assertEquals(BigDecimal("12.00"), cycle.dailyAverage) // 60 / 5 = 12.00
     }
+
+    @Test
+    fun computeCycleRange_shortMonthHandling_cycleStartDay31() {
+        // Today is April 15 (April has 30 days, so start day 31 clamps to 30)
+        // Previous month is March (31 days, start day 31)
+        val today = LocalDate(2026, 4, 15)
+        val (start, end) = useCase.computeCycleRange(31, today)
+
+        assertEquals(LocalDate(2026, 3, 31), start)
+        assertEquals(LocalDate(2026, 4, 29), end)
+    }
+
+    @Test
+    fun computeCycleRange_leapYearHandling_february29() {
+        // Year 2028 is a leap year (February has 29 days)
+        val today = LocalDate(2028, 2, 10)
+        val (start, end) = useCase.computeCycleRange(1, today)
+
+        assertEquals(LocalDate(2028, 2, 1), start)
+        assertEquals(LocalDate(2028, 2, 29), end)
+    }
 }

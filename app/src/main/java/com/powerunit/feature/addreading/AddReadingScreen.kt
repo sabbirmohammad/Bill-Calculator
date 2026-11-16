@@ -150,6 +150,7 @@ fun AddReadingScreen(
             units = state.calculatedDelta ?: BigDecimal.ZERO,
             estimatedCost = state.estimatedDeltaCost,
             recordedAt = state.recordedAt,
+            slabLabel = state.slabLabel,
             onDismiss = {
                 viewModel.dismissSuccessSheet()
                 val deltaStr = state.calculatedDelta?.let { Formatters.formatUnits(it) } ?: "0.0"
@@ -296,7 +297,11 @@ fun AddReadingScreen(
                 onInputChange = viewModel::onReadingInputChange,
                 delta = state.calculatedDelta,
                 estimatedCost = state.estimatedDeltaCost,
-                isMeterReset = state.isMeterReset
+                isMeterReset = state.isMeterReset,
+                slabNumber = state.slabNumber,
+                slabLabel = state.slabLabel,
+                slabRate = state.slabRate,
+                cumulativeMonthUnits = state.cumulativeMonthUnits
             )
 
             // Smart Unified Date & Time Card with quick preset pills
@@ -405,7 +410,11 @@ private fun ModernReadingInputSection(
     onInputChange: (String) -> Unit,
     delta: BigDecimal?,
     estimatedCost: BigDecimal?,
-    isMeterReset: Boolean
+    isMeterReset: Boolean,
+    slabNumber: Int? = null,
+    slabLabel: String? = null,
+    slabRate: BigDecimal? = null,
+    cumulativeMonthUnits: BigDecimal? = null
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -524,6 +533,55 @@ private fun ModernReadingInputSection(
                                         fontWeight = FontWeight.SemiBold,
                                         color = MaterialTheme.colorScheme.onSecondaryContainer
                                     )
+                                }
+                            }
+                        }
+
+                        if (!slabLabel.isNullOrBlank()) {
+                            Spacer(modifier = Modifier.height(Dimens.xxs))
+                            val (containerColor, contentColor) = when (slabNumber ?: 1) {
+                                1 -> Pair(
+                                    MaterialTheme.colorScheme.secondary.copy(alpha = 0.14f),
+                                    MaterialTheme.colorScheme.secondary
+                                )
+                                2 -> Pair(
+                                    MaterialTheme.colorScheme.tertiary.copy(alpha = 0.16f),
+                                    MaterialTheme.colorScheme.tertiary
+                                )
+                                else -> Pair(
+                                    MaterialTheme.colorScheme.error.copy(alpha = 0.14f),
+                                    MaterialTheme.colorScheme.error
+                                )
+                            }
+                            Surface(
+                                shape = PillShape,
+                                color = containerColor,
+                                border = androidx.compose.foundation.BorderStroke(1.dp, contentColor.copy(alpha = 0.3f))
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = Dimens.spacingMd, vertical = Dimens.xxs),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Bolt,
+                                        contentDescription = null,
+                                        tint = contentColor,
+                                        modifier = Modifier.size(13.dp)
+                                    )
+                                    val rateText = if (slabRate != null) " (${Formatters.formatBDT(slabRate)}/u)" else ""
+                                    Text(
+                                        text = "$slabLabel$rateText",
+                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                                        color = contentColor
+                                    )
+                                    if (cumulativeMonthUnits != null && cumulativeMonthUnits > BigDecimal.ZERO) {
+                                        Text(
+                                            text = "• Σ ${Formatters.formatUnits(cumulativeMonthUnits)} kWh",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = contentColor.copy(alpha = 0.8f)
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -909,6 +967,7 @@ private fun ReadingSuccessCelebrationDialog(
     units: BigDecimal,
     estimatedCost: BigDecimal?,
     recordedAt: kotlinx.datetime.Instant,
+    slabLabel: String? = null,
     onDismiss: () -> Unit
 ) {
     val haptic = LocalHapticFeedback.current
@@ -1089,6 +1148,29 @@ private fun ReadingSuccessCelebrationDialog(
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.primary
                                 )
+                            }
+
+                            if (!slabLabel.isNullOrBlank()) {
+                                Box(
+                                    modifier = Modifier
+                                        .width(1.dp)
+                                        .height(32.dp)
+                                        .background(MaterialTheme.colorScheme.outlineVariant)
+                                )
+
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(
+                                        text = "Tariff Slab",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Text(
+                                        text = slabLabel,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.tertiary
+                                    )
+                                }
                             }
                         }
                     }

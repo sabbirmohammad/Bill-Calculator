@@ -287,7 +287,8 @@ private fun BudgetStatRowsColumn(
             label = "Projected month-end",
             value = if (hideAmounts) "৳ ••••" else Formatters.formatBDT(forecast?.expectedBill ?: budget.currentSpentBDT),
             subtitle = forecast?.let {
-                if (hideAmounts) "Range: ৳••••" else "Range: ${Formatters.formatBDT(it.lowBill)} – ${Formatters.formatBDT(it.highBill)}"
+                val slabPrefix = it.projectedSlab?.let { slab -> "Slab ${slab.slabNumber} • " } ?: ""
+                if (hideAmounts) "${slabPrefix}Range: ৳••••" else "${slabPrefix}Range: ${Formatters.formatBDT(it.lowBill)} – ${Formatters.formatBDT(it.highBill)}"
             } ?: "Based on current rate"
         )
         BudgetStatRow(
@@ -312,11 +313,17 @@ private fun formatInsightText(
 ): String {
     return if (forecast != null) {
         val diff = budget.monthlyLimitBDT.subtract(forecast.expectedBill)
-        if (diff >= BigDecimal.ZERO) {
-            "Projected ${if (hideAmounts) "৳ ••••" else Formatters.formatBDT(diff)} under budget • $daysLeft days remaining"
+        val budgetStatus = if (diff >= BigDecimal.ZERO) {
+            "Projected ${if (hideAmounts) "৳ ••••" else Formatters.formatBDT(diff)} under budget"
         } else {
             "Projected to exceed budget by ${if (hideAmounts) "৳ ••••" else Formatters.formatBDT(diff.abs())}"
         }
+        val slabAlert = if (forecast.unitsToNextSlab != null && forecast.unitsToNextSlab > BigDecimal.ZERO && forecast.unitsToNextSlab <= BigDecimal("50.0")) {
+            " • ${forecast.unitsToNextSlab} kWh to next slab"
+        } else {
+            " • $daysLeft days remaining"
+        }
+        budgetStatus + slabAlert
     } else {
         val rem = budget.monthlyLimitBDT.subtract(budget.currentSpentBDT)
         if (rem >= BigDecimal.ZERO) {
