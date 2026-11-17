@@ -5,6 +5,11 @@ All notable changes to WattWise will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.6] - 2026-11-17
+
+### Changed & Optimized
+- **Production APK Size Reduction (67% smaller)**: Slashed release APK download size from ~24 MB down to ~7.9 MB by stripping unused emulator binaries (`x86`, `x86_64`) and enabling compressed JNI native packaging (`useLegacyPackaging = true`) while maintaining 100% real-world phone compatibility (`arm64-v8a` + `armeabi-v7a`).
+
 ## [1.1.5] - 2026-11-17
 
 ### Fixed

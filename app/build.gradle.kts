@@ -27,6 +27,10 @@ android {
         buildConfigField("String", "BUILD_DATE", "\"${LocalDate.now()}\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        ndk {
+            abiFilters.addAll(listOf("arm64-v8a", "armeabi-v7a"))
+        }
     }
 
     signingConfigs {
@@ -63,6 +67,9 @@ android {
     }
 
     packaging {
+        jniLibs {
+            useLegacyPackaging = true
+        }
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
             excludes += "META-INF/DEPENDENCIES"
