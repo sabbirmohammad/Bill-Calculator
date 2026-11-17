@@ -20,11 +20,15 @@ import com.powerunit.domain.usecase.CalculateBillUseCase
 import com.powerunit.domain.usecase.CalculateCycleUsageUseCase
 import com.powerunit.domain.usecase.CalculateDailyUsageUseCase
 import com.powerunit.domain.usecase.ForecastMonthEndUseCase
+import com.powerunit.feature.history.ReadingItemUiModel
+import com.powerunit.feature.history.buildReadingUiModels
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
@@ -56,10 +60,19 @@ data class DashboardUiState(
     val budget: BudgetUiModel? = null,
     val hasCustomBudget: Boolean = false,
     val past14DaysUsage: List<DailyUsage> = emptyList(),
-    val recentReadings: List<Reading> = emptyList(),
+    val recentReadings: List<ReadingItemUiModel> = emptyList(),
     val hideAmounts: Boolean = false,
     val hasInitialReading: Boolean = false,
-    val showInitialReadingDialog: Boolean = false
+    val showInitialReadingDialog: Boolean = false,
+    val useBengaliDigits: Boolean = false,
+    val isBangla: Boolean = false
+)
+
+private data class DashboardPrefs(
+    val billingCycleDay: Int,
+    val hideAmounts: Boolean,
+    val useBengaliDigits: Boolean,
+    val appLanguage: String
 )
 
 @HiltViewModel
@@ -88,14 +101,35 @@ class DashboardViewModel @Inject constructor(
             val meter = meterRepository.getActiveMeterSync()
             val meterId = meter?.id ?: 1L
 
+            val billingCycleFlow = settingsPreferences.billingCycleDay
+                .onStart { emit(1) }
+                .distinctUntilChanged()
+
+            val prefsFlow = combine(
+                billingCycleFlow,
+                settingsPreferences.hideAmounts,
+                settingsPreferences.useBengaliDigits,
+                settingsPreferences.appLanguage
+            ) { cycleDay, hideAmounts, useBengaliDigits, appLanguage ->
+                DashboardPrefs(cycleDay, hideAmounts, useBengaliDigits, appLanguage)
+            }
+
             combine(
                 readingRepository.getReadings(meterId),
                 tariffRepository.getActiveTariff(),
-                settingsPreferences.billingCycleDay,
-                settingsPreferences.hideAmounts,
+                prefsFlow,
                 budgetRepository.getLatestBudget()
-            ) { readings, tariff, cycleDay, hideAmounts, budget ->
-                computeState(readings, tariff, cycleDay, hideAmounts, meter, budget)
+            ) { readings, tariff, prefs, budget ->
+                computeState(
+                    readings = readings,
+                    tariff = tariff,
+                    cycleDay = prefs.billingCycleDay,
+                    hideAmounts = prefs.hideAmounts,
+                    useBengaliDigits = prefs.useBengaliDigits,
+                    appLanguage = prefs.appLanguage,
+                    meter = meter,
+                    budgetEntity = budget
+                )
             }.collect { newState ->
                 _uiState.value = newState
             }
@@ -107,6 +141,8 @@ class DashboardViewModel @Inject constructor(
         tariff: Tariff?,
         cycleDay: Int,
         hideAmounts: Boolean,
+        useBengaliDigits: Boolean = false,
+        appLanguage: String = "en",
         meter: Meter?,
         budgetEntity: BudgetEntity? = null
     ): DashboardUiState {
@@ -114,6 +150,7 @@ class DashboardViewModel @Inject constructor(
         val todayDate = DateUtils.currentDhakaDate()
         val sortedReadings = readings.sortedBy { it.recordedAt }
         val dailyUsages = calculateDailyUsageUseCase(sortedReadings)
+        val isBangla = appLanguage.equals("bn", ignoreCase = true) || useBengaliDigits
 
         val activeTariff = tariff ?: Tariff(
             name = "Default",
@@ -156,6 +193,18 @@ class DashboardViewModel @Inject constructor(
         val hasInitialReading = sortedReadings.isNotEmpty()
         val showInitialDialog = !hasInitialReading && !userDismissedInitialDialog
 
+        // Build history UI models to show identical recent reading items on dashboard
+        val allHistoryUiItems = buildReadingUiModels(
+            readings = readings,
+            tariff = activeTariff,
+            billingCycleDay = cycleDay,
+            useBengaliDigits = useBengaliDigits,
+            isBangla = isBangla,
+            calculateBillUseCase = calculateBillUseCase,
+            calculateCycleUsageUseCase = calculateCycleUsageUseCase
+        )
+        val recentReadings = allHistoryUiItems.take(3)
+
         return DashboardUiState(
             isLoading = false,
             activeMeter = meter,
@@ -171,11 +220,19 @@ class DashboardViewModel @Inject constructor(
             budget = budgetModel,
             hasCustomBudget = (budgetEntity != null),
             past14DaysUsage = past14Days,
-            recentReadings = sortedReadings.takeLast(3).reversed(),
+            recentReadings = recentReadings,
             hideAmounts = hideAmounts,
             hasInitialReading = hasInitialReading,
-            showInitialReadingDialog = showInitialDialog
+            showInitialReadingDialog = showInitialDialog,
+            useBengaliDigits = useBengaliDigits,
+            isBangla = isBangla
         )
+    }
+
+    fun deleteReading(readingId: Long) {
+        viewModelScope.launch {
+            readingRepository.deleteReading(readingId)
+        }
     }
 
     fun onDismissInitialReadingDialog() {

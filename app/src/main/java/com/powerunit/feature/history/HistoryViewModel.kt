@@ -128,6 +128,50 @@ fun Reading.toUiModel(
     )
 }
 
+fun buildReadingUiModels(
+    readings: List<Reading>,
+    tariff: Tariff?,
+    billingCycleDay: Int = 1,
+    useBengaliDigits: Boolean = false,
+    isBangla: Boolean = false,
+    calculateBillUseCase: CalculateBillUseCase,
+    calculateCycleUsageUseCase: com.powerunit.domain.usecase.CalculateCycleUsageUseCase = com.powerunit.domain.usecase.CalculateCycleUsageUseCase()
+): List<ReadingItemUiModel> {
+    val activeTariff = if (tariff != null && tariff.slabs.isNotEmpty()) {
+        tariff
+    } else {
+        com.powerunit.domain.model.DEFAULT_BANGLADESH_TARIFF
+    }
+
+    val sortedAscending = readings.sortedBy { it.recordedAt }
+    val cycleCumulativeTracker = mutableMapOf<String, BigDecimal>()
+    val allUiItemsAsc = mutableListOf<ReadingItemUiModel>()
+
+    for (i in sortedAscending.indices) {
+        val reading = sortedAscending[i]
+        val prev = if (i > 0) sortedAscending[i - 1] else null
+
+        val ldt = reading.recordedAt.toLocalDateTime(DateUtils.DHAKA_ZONE)
+        val (cycleStart, _) = calculateCycleUsageUseCase.computeCycleRange(billingCycleDay, ldt.date)
+        val cycleKey = cycleStart.toString()
+        val cumBefore = cycleCumulativeTracker.getOrDefault(cycleKey, BigDecimal.ZERO)
+
+        val uiItem = reading.toUiModel(
+            prevReading = prev,
+            useBengaliDigits = useBengaliDigits,
+            isBangla = isBangla,
+            tariff = activeTariff,
+            cumulativeMonthUnitsBefore = cumBefore,
+            calculateBillUseCase = calculateBillUseCase
+        )
+
+        cycleCumulativeTracker[cycleKey] = uiItem.cumulativeMonthUnits ?: cumBefore
+        allUiItemsAsc.add(uiItem)
+    }
+
+    return allUiItemsAsc.asReversed()
+}
+
 data class MonthSummaryUiModel(
     val totalUnits: BigDecimal,
     val totalCost: BigDecimal,
@@ -275,42 +319,23 @@ class HistoryViewModel @Inject constructor(
         }.distinct()
         val availableYears = (yearsWithData + defaultYear).distinct().sortedDescending()
 
-        // 2. Fallback active tariff
+        // 2. Process all readings into UI models in chronological order to track cumulative monthly units and progressive slabs
+        val allUiItems = buildReadingUiModels(
+            readings = readings,
+            tariff = tariff,
+            billingCycleDay = billingCycleDay,
+            useBengaliDigits = useBengaliDigits,
+            isBangla = isBangla,
+            calculateBillUseCase = calculateBillUseCase,
+            calculateCycleUsageUseCase = calculateCycleUsageUseCase
+        )
+
+        // 3. Fallback active tariff for month summary calculation
         val activeTariff = if (tariff != null && tariff.slabs.isNotEmpty()) {
             tariff
         } else {
             com.powerunit.domain.model.DEFAULT_BANGLADESH_TARIFF
         }
-
-        // 3. Process all readings into UI models in chronological order to track cumulative monthly units and progressive slabs
-        val sortedAscending = readings.sortedBy { it.recordedAt }
-        val cycleCumulativeTracker = mutableMapOf<String, BigDecimal>()
-        val allUiItemsAsc = mutableListOf<ReadingItemUiModel>()
-
-        for (i in sortedAscending.indices) {
-            val reading = sortedAscending[i]
-            val prev = if (i > 0) sortedAscending[i - 1] else null
-
-            val ldt = reading.recordedAt.toLocalDateTime(DateUtils.DHAKA_ZONE)
-            val (cycleStart, _) = calculateCycleUsageUseCase.computeCycleRange(billingCycleDay, ldt.date)
-            val cycleKey = cycleStart.toString()
-            val cumBefore = cycleCumulativeTracker.getOrDefault(cycleKey, BigDecimal.ZERO)
-
-            val uiItem = reading.toUiModel(
-                prevReading = prev,
-                useBengaliDigits = useBengaliDigits,
-                isBangla = isBangla,
-                tariff = activeTariff,
-                cumulativeMonthUnitsBefore = cumBefore,
-                calculateBillUseCase = calculateBillUseCase
-            )
-
-            cycleCumulativeTracker[cycleKey] = uiItem.cumulativeMonthUnits ?: cumBefore
-            allUiItemsAsc.add(uiItem)
-        }
-
-        // Reverse so newest readings appear at the top of the history list
-        val allUiItems = allUiItemsAsc.asReversed()
 
         // 4. Months with data in the currently selected year
         val monthsWithDataInYear = readings.filter { reading ->

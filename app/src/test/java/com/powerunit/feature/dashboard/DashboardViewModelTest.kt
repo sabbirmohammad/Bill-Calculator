@@ -95,6 +95,8 @@ class DashboardViewModelTest {
         coEvery { tariffRepository.getActiveTariff() } returns flowOf(sampleTariff)
         coEvery { settingsPreferences.billingCycleDay } returns flowOf(1)
         coEvery { settingsPreferences.hideAmounts } returns flowOf(false)
+        coEvery { settingsPreferences.useBengaliDigits } returns flowOf(false)
+        coEvery { settingsPreferences.appLanguage } returns flowOf("en")
         coEvery { budgetRepository.getLatestBudget() } returns flowOf(null)
     }
 
@@ -192,5 +194,87 @@ class DashboardViewModelTest {
             settingsPreferences.setOnboardingCompleted(true)
         }
         assertFalse(viewModel.uiState.value.showInitialReadingDialog)
+    }
+
+    @Test
+    fun recentReadings_takesUpToThreeReadings_withAccurateDeltaAndTariffCalculation() = runTest(testDispatcher) {
+        val multipleReadings = listOf(
+            Reading(
+                id = 1L,
+                meterId = 1L,
+                readingValue = BigDecimal("100.0"),
+                recordedAt = DateUtils.toInstantAtDhaka(2026, 11, 1, 8, 0),
+                note = "Baseline",
+                isEstimated = false,
+                isMeterReset = false,
+                createdAt = DateUtils.toInstantAtDhaka(2026, 11, 1, 8, 0),
+                updatedAt = DateUtils.toInstantAtDhaka(2026, 11, 1, 8, 0)
+            ),
+            Reading(
+                id = 2L,
+                meterId = 1L,
+                readingValue = BigDecimal("130.0"), // +30.0 units
+                recordedAt = DateUtils.toInstantAtDhaka(2026, 11, 5, 8, 0),
+                note = "Reading 2",
+                isEstimated = false,
+                isMeterReset = false,
+                createdAt = DateUtils.toInstantAtDhaka(2026, 11, 5, 8, 0),
+                updatedAt = DateUtils.toInstantAtDhaka(2026, 11, 5, 8, 0)
+            ),
+            Reading(
+                id = 3L,
+                meterId = 1L,
+                readingValue = BigDecimal("160.0"), // +30.0 units
+                recordedAt = DateUtils.toInstantAtDhaka(2026, 11, 10, 8, 0),
+                note = "Reading 3",
+                isEstimated = false,
+                isMeterReset = false,
+                createdAt = DateUtils.toInstantAtDhaka(2026, 11, 10, 8, 0),
+                updatedAt = DateUtils.toInstantAtDhaka(2026, 11, 10, 8, 0)
+            ),
+            Reading(
+                id = 4L,
+                meterId = 1L,
+                readingValue = BigDecimal("200.0"), // +40.0 units
+                recordedAt = DateUtils.toInstantAtDhaka(2026, 11, 15, 8, 0),
+                note = "Reading 4",
+                isEstimated = false,
+                isMeterReset = false,
+                createdAt = DateUtils.toInstantAtDhaka(2026, 11, 15, 8, 0),
+                updatedAt = DateUtils.toInstantAtDhaka(2026, 11, 15, 8, 0)
+            )
+        )
+        coEvery { readingRepository.getReadings(1L) } returns flowOf(multipleReadings)
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val recent = viewModel.uiState.value.recentReadings
+        // Only 3 most recent readings should be shown, ordered newest first
+        assertEquals(3, recent.size)
+        assertEquals(4L, recent[0].id)
+        assertEquals(3L, recent[1].id)
+        assertEquals(2L, recent[2].id)
+
+        // Reading 4: +40.0 units (200 - 160)
+        assertEquals(BigDecimal("40.0"), recent[0].unitsDelta)
+        // Reading 3: +30.0 units (160 - 130)
+        assertEquals(BigDecimal("30.0"), recent[1].unitsDelta)
+        // Reading 2: +30.0 units (130 - 100), calculated using Reading 1 as predecessor!
+        assertEquals(BigDecimal("30.0"), recent[2].unitsDelta)
+        // Reading 2 should not show 0 or "Initial reading" since its predecessor exists in history
+        assertTrue(recent[2].costEstimate > BigDecimal.ZERO)
+        assertNotNull(recent[2].slabLabel)
+    }
+
+    @Test
+    fun deleteReading_delegatesToRepository() = runTest(testDispatcher) {
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.deleteReading(42L)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { readingRepository.deleteReading(42L) }
     }
 }

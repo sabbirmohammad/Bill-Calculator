@@ -69,7 +69,6 @@ import com.powerunit.feature.dashboard.components.InitialReadingRequiredBanner
 import com.powerunit.feature.history.ReadingDetailDialog
 import com.powerunit.feature.history.ReadingItemUiModel
 import com.powerunit.feature.history.ReadingListItem
-import com.powerunit.feature.history.toUiModel
 import java.math.BigDecimal
 
 @Composable
@@ -100,10 +99,12 @@ fun DashboardScreen(
                 selectedReadingForDetail = null
                 onNavigateToEditReading(id)
             },
-            onDelete = {
+            onDelete = { item ->
                 selectedReadingForDetail = null
-                onNavigateToHistory()
-            }
+                viewModel.deleteReading(item.id)
+            },
+            useBengaliDigits = state.useBengaliDigits,
+            isBangla = state.isBangla
         )
     }
 
@@ -200,13 +201,15 @@ fun DashboardScreen(
             item {
                 Spacer(modifier = Modifier.height(Dimens.spacingSm))
                 SectionHeader(
-                    title = "Recent Readings",
-                    actionLabel = "See All",
+                    title = stringResource(R.string.recent_readings),
+                    actionLabel = stringResource(R.string.see_all),
                     onActionClick = onNavigateToHistory
                 )
                 Spacer(modifier = Modifier.height(Dimens.sectionHeaderToContentGap))
                 RecentReadingsSection(
                     readings = state.recentReadings,
+                    useBengaliDigits = state.useBengaliDigits,
+                    isBangla = state.isBangla,
                     onReadingClick = { item -> selectedReadingForDetail = item }
                 )
             }
@@ -425,18 +428,20 @@ private fun MiniUsageBarChart(dailyUsages: List<DailyUsage>) {
 
 @Composable
 private fun RecentReadingsSection(
-    readings: List<Reading>,
+    readings: List<ReadingItemUiModel>,
+    useBengaliDigits: Boolean,
+    isBangla: Boolean,
     onReadingClick: (ReadingItemUiModel) -> Unit
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(Dimens.cardGap)
     ) {
-        readings.forEachIndexed { index, reading ->
-            val prev = if (index < readings.size - 1) readings[index + 1] else null
-            val item = reading.toUiModel(prev)
+        readings.forEach { item ->
             ReadingListItem(
                 item = item,
-                onClick = { onReadingClick(item) }
+                onClick = { onReadingClick(item) },
+                useBengaliDigits = useBengaliDigits,
+                isBangla = isBangla
             )
         }
     }
