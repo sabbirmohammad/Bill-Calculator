@@ -5,6 +5,11 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (e.g. v1.1.4)'
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -33,20 +38,26 @@ jobs:
       - name: Build Release APK
         run: ./gradlew assembleRelease --stacktrace
 
-      - name: Prepare APK Asset
+      - name: Prepare APK Asset & Checksum
         run: |
-          TAG="${GITHUB_REF_NAME:-v1.0.0}"
+          RAW_TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          TAG="${RAW_TAG:-v1.0.0}"
           mkdir -p release-artifacts
           cp app/build/outputs/apk/release/app-release.apk release-artifacts/WattWise-${TAG}.apk
+          cd release-artifacts
+          sha256sum WattWise-${TAG}.apk > WattWise-${TAG}.apk.sha256
+          cd ..
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
         with:
-          name: "WattWise ${{ github.ref_name }}"
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          name: "WattWise ${{ github.event.inputs.tag || github.ref_name }}"
           draft: false
           prerelease: false
           generate_release_notes: true
-          files: release-artifacts/*.apk
+          files: |
+            release-artifacts/*.apk
+            release-artifacts/*.sha256
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

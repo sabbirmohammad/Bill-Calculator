@@ -54,3 +54,4 @@ release-output/
 screenshots/
 *.xml
 
+release-artifacts/
