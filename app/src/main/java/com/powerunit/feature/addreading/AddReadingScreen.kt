@@ -491,126 +491,132 @@ private fun ModernReadingInputSection(
                 exit = fadeOut() + shrinkVertically()
             ) {
                 if (delta != null) {
-                    Spacer(modifier = Modifier.height(Dimens.spacingSm))
-                    val isPositive = delta >= BigDecimal.ZERO
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = Dimens.spacingSm),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(Dimens.xs)
+                    ) {
+                        val isPositive = delta >= BigDecimal.ZERO
 
-                    if (isPositive) {
-                        Surface(
-                            shape = PillShape,
-                            color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f),
-                            border = androidx.compose.foundation.BorderStroke(
-                                1.dp,
-                                MaterialTheme.colorScheme.secondary.copy(alpha = 0.3f)
-                            )
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = Dimens.spacingMd, vertical = Dimens.xs),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(Dimens.spacingSm)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.TrendingUp,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.secondary,
-                                    modifier = Modifier.size(Dimens.iconSizeSmall)
-                                )
-                                Text(
-                                    text = "+${Formatters.formatUnits(delta)} kWh",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.secondary
-                                )
-
-                                if (estimatedCost != null && estimatedCost > BigDecimal.ZERO) {
-                                    Text(
-                                        text = "•",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.5f)
-                                    )
-                                    Text(
-                                        text = "≈ ${Formatters.formatMoney(estimatedCost)}",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = MaterialTheme.colorScheme.onSecondaryContainer
-                                    )
-                                }
-                            }
-                        }
-
-                        if (!slabLabel.isNullOrBlank()) {
-                            Spacer(modifier = Modifier.height(Dimens.xxs))
-                            val (containerColor, contentColor) = when (slabNumber ?: 1) {
-                                1 -> Pair(
-                                    MaterialTheme.colorScheme.secondary.copy(alpha = 0.14f),
-                                    MaterialTheme.colorScheme.secondary
-                                )
-                                2 -> Pair(
-                                    MaterialTheme.colorScheme.tertiary.copy(alpha = 0.16f),
-                                    MaterialTheme.colorScheme.tertiary
-                                )
-                                else -> Pair(
-                                    MaterialTheme.colorScheme.error.copy(alpha = 0.14f),
-                                    MaterialTheme.colorScheme.error
-                                )
-                            }
+                        if (isPositive) {
                             Surface(
                                 shape = PillShape,
-                                color = containerColor,
-                                border = androidx.compose.foundation.BorderStroke(1.dp, contentColor.copy(alpha = 0.3f))
+                                color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f),
+                                border = androidx.compose.foundation.BorderStroke(
+                                    1.dp,
+                                    MaterialTheme.colorScheme.secondary.copy(alpha = 0.3f)
+                                )
                             ) {
                                 Row(
-                                    modifier = Modifier.padding(horizontal = Dimens.spacingMd, vertical = Dimens.xxs),
+                                    modifier = Modifier.padding(horizontal = Dimens.spacingMd, vertical = Dimens.xs),
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(Dimens.spacingSm)
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.Bolt,
+                                        imageVector = Icons.AutoMirrored.Filled.TrendingUp,
                                         contentDescription = null,
-                                        tint = contentColor,
-                                        modifier = Modifier.size(13.dp)
+                                        tint = MaterialTheme.colorScheme.secondary,
+                                        modifier = Modifier.size(Dimens.iconSizeSmall)
                                     )
-                                    val rateText = if (slabRate != null) " (${Formatters.formatBDT(slabRate)}/u)" else ""
                                     Text(
-                                        text = "$slabLabel$rateText",
-                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
-                                        color = contentColor
+                                        text = "+${Formatters.formatUnits(delta)} kWh",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.secondary
                                     )
-                                    if (cumulativeMonthUnits != null && cumulativeMonthUnits > BigDecimal.ZERO) {
+
+                                    if (estimatedCost != null && estimatedCost > BigDecimal.ZERO) {
                                         Text(
-                                            text = "• Σ ${Formatters.formatUnits(cumulativeMonthUnits)} kWh",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = contentColor.copy(alpha = 0.8f)
+                                            text = "•",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.5f)
+                                        )
+                                        Text(
+                                            text = "≈ ${Formatters.formatMoney(estimatedCost)}",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = MaterialTheme.colorScheme.onSecondaryContainer
                                         )
                                     }
                                 }
                             }
-                        }
-                    } else if (!isMeterReset) {
-                        Surface(
-                            shape = PillShape,
-                            color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
-                            border = androidx.compose.foundation.BorderStroke(
-                                1.dp,
-                                MaterialTheme.colorScheme.error.copy(alpha = 0.3f)
-                            )
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = Dimens.spacingMd, vertical = Dimens.xs),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(Dimens.xs)
+
+                            if (!slabLabel.isNullOrBlank()) {
+                                val (containerColor, contentColor) = when (slabNumber ?: 1) {
+                                    1 -> Pair(
+                                        MaterialTheme.colorScheme.secondary.copy(alpha = 0.14f),
+                                        MaterialTheme.colorScheme.secondary
+                                    )
+                                    2 -> Pair(
+                                        MaterialTheme.colorScheme.tertiary.copy(alpha = 0.16f),
+                                        MaterialTheme.colorScheme.tertiary
+                                    )
+                                    else -> Pair(
+                                        MaterialTheme.colorScheme.error.copy(alpha = 0.14f),
+                                        MaterialTheme.colorScheme.error
+                                    )
+                                }
+                                Surface(
+                                    shape = PillShape,
+                                    color = containerColor,
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, contentColor.copy(alpha = 0.3f))
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = Dimens.spacingMd, vertical = Dimens.xxs),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Bolt,
+                                            contentDescription = null,
+                                            tint = contentColor,
+                                            modifier = Modifier.size(13.dp)
+                                        )
+                                        val rateText = if (slabRate != null) " (${Formatters.formatBDT(slabRate)}/u)" else ""
+                                        Text(
+                                            text = "$slabLabel$rateText",
+                                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                                            color = contentColor
+                                        )
+                                        if (cumulativeMonthUnits != null && cumulativeMonthUnits > BigDecimal.ZERO) {
+                                            Text(
+                                                text = "• Σ ${Formatters.formatUnits(cumulativeMonthUnits)} kWh",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = contentColor.copy(alpha = 0.8f)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        } else if (!isMeterReset) {
+                            Surface(
+                                shape = PillShape,
+                                color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
+                                border = androidx.compose.foundation.BorderStroke(
+                                    1.dp,
+                                    MaterialTheme.colorScheme.error.copy(alpha = 0.3f)
+                                )
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.Warning,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.error,
-                                    modifier = Modifier.size(Dimens.iconSizeSmall)
-                                )
-                                Text(
-                                    text = "Lower than previous reading",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.error
-                                )
+                                Row(
+                                    modifier = Modifier.padding(horizontal = Dimens.spacingMd, vertical = Dimens.xs),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(Dimens.xs)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Warning,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.error,
+                                        modifier = Modifier.size(Dimens.iconSizeSmall)
+                                    )
+                                    Text(
+                                        text = "Lower than previous reading",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                }
                             }
                         }
                     }

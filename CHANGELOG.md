@@ -5,6 +5,11 @@ All notable changes to WattWise will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.5] - 2026-11-17
+
+### Fixed
+- **Add Reading Live Ticker Overlap**: Resolved visual overlap in `AddReadingScreen` where the consumption delta pill (`+4.2 kWh • ≈ ৳35.70`) and the active tariff slab badge (`2nd Slab • Σ ... kWh`) rendered directly on top of each other inside `AnimatedVisibility`. Enclosed ticker badges in a properly spaced vertical `Column` layout.
+
 ## [1.1.4] - 2026-11-17
 
 ### Fixed & Enhanced
