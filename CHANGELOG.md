@@ -5,6 +5,15 @@ All notable changes to WattWise will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.4] - 2026-11-17
+
+### Fixed & Enhanced
+- **Home Recent Readings Synchronized with History**: Unified reading presentation by extracting `buildReadingUiModels()` from `HistoryViewModel`. Home screen recent readings now use the exact same calculation pipeline as the History screen.
+- **Accurate Predecessor Delta Calculation**: Preserved history predecessor readings so that the third recent reading on the home screen no longer shows as an "Initial reading" with 0.0 units.
+- **Progressive Tariff Slabs & Badges on Dashboard**: Replaced the flat fallback multiplier with tiered Bangladesh tariff slab rates, live slab badges, and accurate progressive costs on dashboard recent readings.
+- **Localization Integration**: Added full Bengali numeral and Bangla month localization support to dashboard recent readings and detail dialogs.
+- **In-App Deletion from Dashboard**: Enabled direct reading deletion from the dashboard reading detail dialog with automatic Room flow reactive updates.
+
 ## [1.1.3] - 2026-11-16
 
 ### Changed & Enhanced
