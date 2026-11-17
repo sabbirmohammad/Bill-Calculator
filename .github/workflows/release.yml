@@ -44,8 +44,10 @@ jobs:
           TAG="${RAW_TAG:-v1.0.0}"
           mkdir -p release-artifacts
           cp app/build/outputs/apk/release/app-release.apk release-artifacts/WattWise-${TAG}.apk
+          cp app/build/outputs/apk/release/app-release.apk release-artifacts/app-release.apk
           cd release-artifacts
           sha256sum WattWise-${TAG}.apk > WattWise-${TAG}.apk.sha256
+          sha256sum app-release.apk > app-release.apk.sha256
           cd ..
 
       - name: Publish GitHub Release
